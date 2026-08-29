@@ -13,3 +13,7 @@
 3. Aguarde a Vercel publicar e use Ctrl+F5.
 4. No importador, carregue o CSV, informe o Profit que o SharkScope mostra para o mesmo filtro e clique em Calibrar.
 5. Confira a auditoria e só então clique em Importar/atualizar.
+
+
+## V4.4
+Analytics avançado: inscrições/reentries, ITM, melhor/pior dia, maior prêmio, profit semanal, comparação por formato, distribuição por buy-in e calendário recente. A importação incremental e a auditoria CNY/USD da V4.3 foram preservadas. Não há migração de banco obrigatória nesta versão.

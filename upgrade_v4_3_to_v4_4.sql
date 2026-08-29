@@ -1,0 +1,3 @@
+-- Poker Study V4.4
+-- Esta versão não exige alterações no banco de dados.
+-- Não é necessário executar SQL no Supabase.
