@@ -1,19 +1,16 @@
-# Poker Study V4.3
+# Poker Study V5 — Study Engine
 
-- Corrige Analytics para CSVs SharkScope com múltiplas moedas (USD + CNY).
-- Auditoria de importação e calibração do câmbio pelo Profit exibido no SharkScope.
-- Reimportação atualiza torneios existentes sem duplicar.
-- Filtro de período usa a última data disponível nos dados, não o relógio do navegador.
-- Datas personalizadas, faixa de buy-in e opção de excluir satélites.
-- Gráfico acumulado com eixos, datas e tooltip.
+V5 preserva toda a base da V4.4 e adiciona uma camada de estudo orientada por dados.
 
-## Atualização
-1. Rode `upgrade_v4_2_to_v4_3.sql` no Supabase SQL Editor.
-2. Substitua os arquivos no GitHub.
-3. Aguarde a Vercel publicar e use Ctrl+F5.
-4. No importador, carregue o CSV, informe o Profit que o SharkScope mostra para o mesmo filtro e clique em Calibrar.
-5. Confira a auditoria e só então clique em Importar/atualizar.
+## Novidades
+- Central de Leaks com ranking de prioridade por recorrência, pendências, confiança e aulas concluídas.
+- Plano de Estudos automático com blocos sugeridos e carga semanal.
+- Evolução: estudo, mãos revisadas, profit e ROI por semana.
+- Banco de mãos com filtros por status, prioridade, formato, tema, posição e busca livre por spot/tag/street/stack.
+- Mantém Analytics, SharkScope CSV, conversão USD/CNY, recuperação de senha, imagens, metas e relatórios.
 
+## Atualização da V4.4
+Não há migração SQL nesta versão. Substitua os arquivos do projeto no GitHub e aguarde o deploy da Vercel.
 
-## V4.4
-Analytics avançado: inscrições/reentries, ITM, melhor/pior dia, maior prêmio, profit semanal, comparação por formato, distribuição por buy-in e calendário recente. A importação incremental e a auditoria CNY/USD da V4.3 foram preservadas. Não há migração de banco obrigatória nesta versão.
+## Observação
+A tela Evolução mostra associação temporal entre estudo e performance; ela não afirma causalidade. Quanto mais semanas de histórico forem registradas, mais útil fica a comparação.
