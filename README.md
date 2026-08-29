@@ -1,16 +1,11 @@
-# Poker Study V4.1
+# Poker Study V4.2
 
-Atualização do importador para o CSV real do SharkScope em português.
-
-- Detecta automaticamente as 22 colunas do CSV.
-- Buy-in total = (Stake + Rake) × (1 + Reentradas/Recompras).
-- Usa Prêmio para retorno e Resultado (incluindo Rake) para validação.
-- Usa ID do Jogo para anti-duplicação.
-- Detecta PKO/Bounty pelas Bandeiras/nome.
-- Salva rake, reentradas, duração, moeda e flags.
+Correção do importador SharkScope.
 
 ## Atualização
-1. Rode `upgrade_v4_to_v4_1.sql` no Supabase SQL Editor.
-2. Substitua os arquivos do projeto pelos desta pasta e faça commit na `main`.
-3. Aguarde o deploy da Vercel ficar Ready.
-4. Importe o CSV em SharkScope / CSV.
+1. Supabase > SQL Editor: execute `upgrade_v4_1_to_v4_2.sql` uma vez.
+2. Substitua os arquivos do app no GitHub pelos desta versão.
+3. Aguarde o deploy da Vercel ficar Ready e faça Ctrl+F5.
+4. Em SharkScope / CSV, selecione o CSV, clique em Ler CSV e importe.
+
+A V4.2 corrige a chave de conflito usada para impedir duplicações e passa a mostrar na tela qualquer erro devolvido pelo Supabase.

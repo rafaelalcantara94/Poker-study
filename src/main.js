@@ -153,10 +153,27 @@ async function importCsvRows(){
     const fingerprint=await sha256(`sharkscope|${site}|${gameId}`)
     batch.push({user_id:user.id,played_at:dt.toISOString(),site,tournament_name:name,format,buyin,prize,finish_position:c.finish!==null?parseInt(r[c.finish])||null:null,entrants:c.entrants!==null?parseInt(r[c.entrants])||null:null,source:'sharkscope_csv',fingerprint,external_id:gameId,rake:+(rake*(1+reentries)).toFixed(2),reentries,duration_seconds:c.duration!==null?parseInt(r[c.duration])||null:null,currency:c.currency!==null?String(r[c.currency]||'').trim():'',flags})
   }
-  for(let i=0;i<batch.length;i+=200){const chunk=batch.slice(i,i+200);const {data,error}=await supabase.from('tournaments').upsert(chunk,{onConflict:'user_id,fingerprint',ignoreDuplicates:true}).select('id');if(error){console.error(error);failed+=chunk.length}else added+=data?.length||0}
-  skipped+=batch.length-added-failed
-  importMsg.textContent=`Concluído: ${added} novos, ${skipped} duplicados/ignorados${failed?`, ${failed} com erro`:''}${mismatch?` · ${mismatch} linhas com divergência para revisar`:''}.`
-  importCsv.disabled=false;await load();setTimeout(()=>route('importer'),700)
+  const errors=[]
+  importMsg.textContent=`Importando ${batch.length} torneios...`
+  for(let i=0;i<batch.length;i+=100){
+    const chunk=batch.slice(i,i+100)
+    const {data,error}=await supabase.from('tournaments').upsert(chunk,{onConflict:'user_id,fingerprint',ignoreDuplicates:true}).select('id')
+    if(error){
+      console.error('Erro ao importar torneios:',error)
+      failed+=chunk.length
+      errors.push(error.message||error.details||String(error))
+    }else added+=data?.length||0
+    importMsg.textContent=`Importando... ${Math.min(i+chunk.length,batch.length)}/${batch.length} processados · ${added} novos${failed?` · ${failed} com erro`:''}`
+  }
+  skipped+=Math.max(0,batch.length-added-failed)
+  importCsv.disabled=false
+  if(errors.length){
+    importMsg.innerHTML=`<b style=\"color:#ff7b7b\">A importação encontrou erro no Supabase.</b><br>${added} novos · ${skipped} ignorados · ${failed} com erro.<br><span class=\"muted\">Erro: ${esc([...new Set(errors)].join(' | '))}</span>`
+    if(added>0)await load()
+    return
+  }
+  importMsg.textContent=`Concluído: ${added} novos, ${skipped} duplicados/ignorados${mismatch?` · ${mismatch} linhas com divergência para revisar`:''}.`
+  await load();setTimeout(()=>route('importer'),1800)
 }
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
