@@ -116,7 +116,7 @@ function results(){return `<div class="toolbar"><button class="btn" id="newResul
 
 let csvState=null
 function importer(){
-  return `<div class="panel"><h2>Importar CSV do SharkScope</h2><div class="notice">O SharkScope oferece exportação CSV oficial de torneios. Aqui você pode importar o arquivo e mapear as colunas, sem colocar sua senha ou chave da API no navegador.</div><div class="toolbar" style="margin-top:14px"><input id="csvFile" type="file" accept=".csv,text/csv" style="max-width:420px"><button class="btn" id="readCsv">Ler CSV</button></div><div id="csvMapper"></div></div><div class="panel"><h2>Torneios importados</h2><p class="muted">${db.tournaments.length} torneios individuais salvos. Duplicados são ignorados pelo fingerprint.</p>${db.tournaments.length?`<table><tr><th>Data</th><th>Site</th><th>Torneio</th><th>Formato</th><th>Buy-in</th><th>Prêmio</th><th>Profit</th></tr>${db.tournaments.slice(0,30).map(t=>`<tr><td>${String(t.played_at).slice(0,10)}</td><td>${esc(t.site||'')}</td><td>${esc(t.tournament_name||'')}</td><td>${esc(t.format||'')}</td><td>${money(t.buyin)}</td><td>${money(t.prize)}</td><td class="${t.profit>=0?'good':'bad'}">${money(t.profit)}</td></tr>`).join('')}</table>`:''}</div>`
+  return `<div class="panel"><h2>Importar CSV do SharkScope</h2><div class="notice"><b>Reconhecimento automático do SharkScope em português.</b> O Poker Study identifica as colunas do arquivo, soma Stake + Rake, considera suas reentradas e usa o ID do Jogo para impedir duplicações.</div><div class="toolbar" style="margin-top:14px"><input id="csvFile" type="file" accept=".csv,text/csv" style="max-width:420px"><button class="btn" id="readCsv">Ler CSV</button></div><div id="csvMapper"></div></div><div class="panel"><h2>Torneios importados</h2><p class="muted">${db.tournaments.length} torneios individuais salvos. Duplicados são ignorados automaticamente.</p>${db.tournaments.length?`<table><tr><th>Data</th><th>Site</th><th>Torneio</th><th>Formato</th><th>Buy-in total</th><th>Prêmio</th><th>Profit</th></tr>${db.tournaments.slice(0,30).map(t=>`<tr><td>${String(t.played_at).slice(0,10)}</td><td>${esc(t.site||'')}</td><td>${esc(t.tournament_name||'')}</td><td>${esc(t.format||'')}</td><td>${money(t.buyin)}</td><td>${money(t.prize)}</td><td class="${t.profit>=0?'good':'bad'}">${money(t.profit)}</td></tr>`).join('')}</table>`:''}</div>`
 }
 function parseCsv(text){
   const rows=[];let row=[],field='',q=false
@@ -124,28 +124,38 @@ function parseCsv(text){
   if(field||row.length){row.push(field);rows.push(row)}
   return rows
 }
+const normHeader=s=>String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+function sharkscopeColumns(headers){
+  const map={};headers.forEach((h,i)=>map[normHeader(h)]=i)
+  const get=(...names)=>{for(const n of names){const k=normHeader(n);if(map[k]!==undefined)return map[k]}return null}
+  return {site:get('Rede'),gameId:get('ID do Jogo'),stake:get('Stake'),rake:get('Rake'),date:get('Data de Início (America/Sao_Paulo)','Data de Início'),entrants:get('Participantes'),result:get('Resultado (incluindo Rake)'),finish:get('Posição'),flags:get('Bandeiras'),currency:get('Moeda'),reentries:get('Reentradas/Recompras'),duration:get('Duração'),prize:get('Prêmio'),name:get('Nome')}
+}
+function parseLocalDate(v){const m=String(v||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);if(!m)return new Date(v);return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0))}
+function inferFormat(flags,name){const x=`${flags||''} ${name||''}`.toLowerCase();if(x.includes('bounty')||x.includes('pko'))return 'PKO';if(x.includes('satellite'))return 'Satellite';return 'MTT'}
 function mappingUi(headers,rows){
-  const options=(sel='')=>`<option value="">— não usar —</option>${headers.map((h,i)=>`<option value="${i}" ${String(i)===String(sel)?'selected':''}>${esc(h)}</option>`).join('')}`
-  const guess=(words)=>headers.findIndex(h=>words.some(w=>h.toLowerCase().includes(w)))
-  const g={date:guess(['date','data','played']),site:guess(['network','site','room']),name:guess(['tournament','name','torneio']),format:guess(['type','format','game']),buyin:guess(['stake','buy-in','buyin','entry']),prize:guess(['prize','winnings','won','prêmio','premio']),finish:guess(['finish','position','place']),entrants:guess(['entrants','players','field'])}
-  return `<div class="form form3" style="margin-top:14px">${[['mapDate','Data','date'],['mapSite','Site/Rede','site'],['mapName','Torneio','name'],['mapFormat','Formato','format'],['mapBuyin','Buy-in','buyin'],['mapPrize','Prêmio','prize'],['mapFinish','Posição final','finish'],['mapEntrants','Entrantes','entrants']].map(([id,label,k])=>`<div class="field"><label>${label}</label><select id="${id}">${options(g[k]>=0?g[k]:'')}</select></div>`).join('')}</div><p class="muted">Prévia: ${rows.length} linhas de dados encontradas.</p><button class="btn" id="importCsv">Importar torneios</button><p id="importMsg" class="muted"></p>`
+  const c=sharkscopeColumns(headers),required=['site','gameId','stake','rake','date','result','name']
+  const ok=required.every(k=>c[k]!==null)
+  if(!ok)return `<div class="notice" style="margin-top:14px"><b>Arquivo não reconhecido automaticamente.</b><br>Este importador espera o CSV de torneios do SharkScope em português. Colunas encontradas: ${headers.map(esc).join(', ')}</div>`
+  let totalBuyin=0,totalPrize=0,totalProfit=0,valid=0
+  for(const r of rows){const entries=1+Math.max(0,parseInt(r[c.reentries])||0),bi=(num(r[c.stake])+num(r[c.rake]))*entries,pr=num(r[c.prize]),res=num(r[c.result]);totalBuyin+=bi;totalPrize+=pr;totalProfit+=res;valid++}
+  return `<div class="notice" style="margin-top:14px"><b>✓ SharkScope detectado automaticamente</b><br>${valid} torneios encontrados · Buy-ins: ${money(totalBuyin)} · Prêmios: ${money(totalPrize)} · Profit do SharkScope: ${money(totalProfit)}<br><span class="muted">Cálculo: (Stake + Rake) × (1 + suas reentradas). O campo “Resultado (incluindo Rake)” é usado para conferência.</span></div><button class="btn" id="importCsv" style="margin-top:14px">Importar ${valid} torneios</button><p id="importMsg" class="muted"></p>`
 }
 async function importCsvRows(){
-  const idx=id=>{const v=document.getElementById(id).value;return v===''?null:+v}
-  const m={date:idx('mapDate'),site:idx('mapSite'),name:idx('mapName'),format:idx('mapFormat'),buyin:idx('mapBuyin'),prize:idx('mapPrize'),finish:idx('mapFinish'),entrants:idx('mapEntrants')}
-  if(m.date===null||m.buyin===null||m.prize===null)return importMsg.textContent='Mapeie pelo menos Data, Buy-in e Prêmio.'
-  importCsv.disabled=true;let added=0,skipped=0,failed=0
-  const batch=[]
+  const c=sharkscopeColumns(csvState.headers);if(c.gameId===null||c.date===null||c.stake===null||c.rake===null||c.result===null)return importMsg.textContent='CSV do SharkScope não reconhecido.'
+  importCsv.disabled=true;let added=0,skipped=0,failed=0,mismatch=0;const batch=[]
   for(const r of csvState.rows){
-    const rawDate=r[m.date]?.trim();if(!rawDate){skipped++;continue}
-    const dt=new Date(rawDate);if(Number.isNaN(dt.getTime())){skipped++;continue}
-    const buyin=num(r[m.buyin]),prize=num(r[m.prize]),site=m.site!==null?r[m.site]?.trim()||'':'',name=m.name!==null?r[m.name]?.trim()||'':'',format=m.format!==null?r[m.format]?.trim()||'':''
-    const fingerprint=await sha256([dt.toISOString(),site,name,buyin,prize,m.finish!==null?r[m.finish]:''].join('|'))
-    batch.push({user_id:user.id,played_at:dt.toISOString(),site,tournament_name:name,format,buyin,prize,finish_position:m.finish!==null?parseInt(r[m.finish])||null:null,entrants:m.entrants!==null?parseInt(r[m.entrants])||null:null,source:'sharkscope_csv',fingerprint})
+    const gameId=String(r[c.gameId]||'').trim(),rawDate=String(r[c.date]||'').trim();if(!gameId||!rawDate){skipped++;continue}
+    const dt=parseLocalDate(rawDate);if(Number.isNaN(dt.getTime())){skipped++;continue}
+    const reentries=Math.max(0,parseInt(r[c.reentries])||0),stake=num(r[c.stake]),rake=num(r[c.rake]),buyin=+((stake+rake)*(1+reentries)).toFixed(2)
+    const sharkProfit=num(r[c.result]);let prize=c.prize!==null?num(r[c.prize]):+(buyin+sharkProfit).toFixed(2);if(!prize&&sharkProfit)prize=+(buyin+sharkProfit).toFixed(2)
+    if(Math.abs((prize-buyin)-sharkProfit)>.02)mismatch++
+    const site=c.site!==null?String(r[c.site]||'').trim():'',name=c.name!==null?String(r[c.name]||'').trim():'',flags=c.flags!==null?String(r[c.flags]||'').trim():'',format=inferFormat(flags,name)
+    const fingerprint=await sha256(`sharkscope|${site}|${gameId}`)
+    batch.push({user_id:user.id,played_at:dt.toISOString(),site,tournament_name:name,format,buyin,prize,finish_position:c.finish!==null?parseInt(r[c.finish])||null:null,entrants:c.entrants!==null?parseInt(r[c.entrants])||null:null,source:'sharkscope_csv',fingerprint,external_id:gameId,rake:+(rake*(1+reentries)).toFixed(2),reentries,duration_seconds:c.duration!==null?parseInt(r[c.duration])||null:null,currency:c.currency!==null?String(r[c.currency]||'').trim():'',flags})
   }
   for(let i=0;i<batch.length;i+=200){const chunk=batch.slice(i,i+200);const {data,error}=await supabase.from('tournaments').upsert(chunk,{onConflict:'user_id,fingerprint',ignoreDuplicates:true}).select('id');if(error){console.error(error);failed+=chunk.length}else added+=data?.length||0}
   skipped+=batch.length-added-failed
-  importMsg.textContent=`Concluído: ${added} novos, ${skipped} duplicados/ignorados${failed?`, ${failed} com erro`:''}.`
+  importMsg.textContent=`Concluído: ${added} novos, ${skipped} duplicados/ignorados${failed?`, ${failed} com erro`:''}${mismatch?` · ${mismatch} linhas com divergência para revisar`:''}.`
   importCsv.disabled=false;await load();setTimeout(()=>route('importer'),700)
 }
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
@@ -170,7 +180,7 @@ function bindPage(p){
   if(p==='hands'){newHand.onclick=handModal;bindHandCards();const filterHands=()=>{let a=db.hands;if(handStatus.value==='pending')a=a.filter(x=>x.status!=='done');if(handStatus.value==='done')a=a.filter(x=>x.status==='done');if(handStatus.value==='favorite')a=a.filter(x=>x.favorite);if(handPriority.value!=='all')a=a.filter(x=>x.priority===handPriority.value);handList.innerHTML=handCards(a);bindHandCards()};handStatus.onchange=handPriority.onchange=filterHands}
   if(p==='results')newResult.onclick=resultModal
   if(p==='goals'){newGoal.onclick=goalModal;document.querySelectorAll('[data-progress-goal]').forEach(b=>b.onclick=()=>goalProgress(b.dataset.progressGoal))}
-  if(p==='importer'){readCsv.onclick=()=>{const f=csvFile.files[0];if(!f)return alert('Selecione um CSV.');const rd=new FileReader();rd.onload=()=>{const rows=parseCsv(rd.result);if(rows.length<2)return csvMapper.innerHTML='<p class="bad">CSV vazio ou inválido.</p>';csvState={headers:rows[0].map(x=>x.trim()),rows:rows.slice(1)};csvMapper.innerHTML=mappingUi(csvState.headers,csvState.rows);importCsv.onclick=importCsvRows};rd.readAsText(f)}}
+  if(p==='importer'){readCsv.onclick=()=>{const f=csvFile.files[0];if(!f)return alert('Selecione um CSV.');const rd=new FileReader();rd.onload=()=>{const rows=parseCsv(rd.result);if(rows.length<2)return csvMapper.innerHTML='<p class="bad">CSV vazio ou inválido.</p>';csvState={headers:rows[0].map(x=>x.trim()),rows:rows.slice(1)};csvMapper.innerHTML=mappingUi(csvState.headers,csvState.rows);const b=document.getElementById('importCsv');if(b)b.onclick=importCsvRows};rd.readAsText(f)}}
 }
 function openModal(t,h){modalTitle.textContent=t;modalBody.innerHTML=h;modal.classList.add('show')}
 async function toggleStudy(id){const x=db.studies.find(x=>x.id===id);await supabase.from('studies').update({status:x.status==='done'?'pending':'done'}).eq('id',id);await load();route('studies')}
