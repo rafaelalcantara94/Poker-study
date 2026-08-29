@@ -23,3 +23,14 @@
    - VITE_SUPABASE_PUBLISHABLE_KEY
 
 Nunca use a `sb_secret_...` no frontend.
+
+
+## V3.1 - recuperação de senha
+- Botão **Esqueci minha senha** na tela de login.
+- Envio do link de recuperação pelo Supabase.
+- Tela para criar e confirmar a nova senha.
+- Depois da troca, o dashboard abre automaticamente.
+
+### Configuração necessária no Supabase
+Em **Authentication > URL Configuration**, deixe o endereço oficial da Vercel como **Site URL** e também em **Redirect URLs**.
+Exemplo: `https://poker-study-sigma.vercel.app`

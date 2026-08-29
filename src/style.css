@@ -21,3 +21,5 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .tag{display:inline-block;margin:2px;padding:3px 6px;border-radius:7px;background:#22314a;color:#b8c5dc;font-size:10px}
 @media(max-width:1100px){.cards{grid-template-columns:repeat(3,1fr)}.grid2,.grid3{grid-template-columns:1fr}.hand-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:720px){.sidebar{position:static;width:100%;height:auto}.app{display:block}.content{margin-left:0;width:100%;padding:14px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;width:auto}.logout{margin-top:10px}.cards{grid-template-columns:repeat(2,1fr)}.form,.form3{grid-template-columns:1fr}.hand-grid{grid-template-columns:1fr}header{display:block}}
+
+.auth-link{width:100%;border:0;background:transparent;color:#a78bfa;padding:12px 8px 4px;cursor:pointer;font-weight:700}.auth-link:hover{text-decoration:underline}

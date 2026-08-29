@@ -11,12 +11,29 @@ const today=()=>new Date().toISOString().slice(0,10)
 const tagList=s=>String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 
 function loginView(){
- app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V3 • PERFORMANCE HUB</small></div>
+ app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V3.1 • PERFORMANCE HUB</small></div>
  <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
  <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
- <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button><p id="msg" class="muted"></p></div></main>`
- signin.onclick=async()=>{const {error}=await supabase.auth.signInWithPassword({email:email.value.trim(),password:password.value});msg.textContent=error?error.message:''}
+ <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
+ <button class="auth-link" id="forgot" type="button">Esqueci minha senha</button><p id="msg" class="muted"></p></div></main>`
+ signin.onclick=async()=>{msg.textContent='Entrando...';const {error}=await supabase.auth.signInWithPassword({email:email.value.trim(),password:password.value});msg.textContent=error?error.message:''}
  signup.onclick=async()=>{if(!email.value.trim()||!password.value)return msg.textContent='Preencha e-mail e senha.';const {error}=await supabase.auth.signUp({email:email.value.trim(),password:password.value});msg.textContent=error?error.message:'Conta criada. Verifique seu e-mail se necessário.'}
+ forgot.onclick=()=>forgotPasswordView(email.value.trim())
+}
+function forgotPasswordView(prefill=''){
+ app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V3.1 • RECUPERAÇÃO</small></div>
+ <h1>Recuperar senha</h1><p class="muted">Digite o e-mail da sua conta. Você receberá um link para criar uma nova senha.</p>
+ <input id="resetEmail" type="email" placeholder="E-mail" value="${esc(prefill)}">
+ <button class="btn" id="sendReset">Enviar link de recuperação</button><button class="btn secondary" id="backLogin">Voltar para entrar</button><p id="resetMsg" class="muted"></p></div></main>`
+ backLogin.onclick=loginView
+ sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const redirectTo=window.location.origin;const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail e clique no link de recuperação.'}
+}
+function newPasswordView(){
+ app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V3.1 • NOVA SENHA</small></div>
+ <h1>Criar nova senha</h1><p class="muted">Escolha sua nova senha para o Poker Study.</p>
+ <input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha">
+ <button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
+ savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='A senha precisa ter pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';savePassword.disabled=true;passwordMsg.textContent='Salvando...';const {error}=await supabase.auth.updateUser({password:a});savePassword.disabled=false;if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada com sucesso. Abrindo seu dashboard...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},700)}
 }
 async function load(){
  for(const t of ['studies','hands','results','goals']){const {data,error}=await supabase.from(t).select('*').order('date',{ascending:false});db[t]=error?[]:(data||[])}
@@ -61,5 +78,12 @@ function viewHand(id){const h=db.hands.find(x=>x.id===id);openModal('Detalhes da
 function resultModal(){openModal('Novo resultado',`<div class="form form3"><div class="field"><label>Data</label><input id="r_date" type="date" value="${today()}"></div><div class="field"><label>Site</label><input id="r_site"></div><div class="field"><label>Formato</label><select id="r_format"><option>PKO</option><option>MTT Regular</option><option>Satélite</option><option>Outro</option></select></div><div class="field"><label>Torneios</label><input id="r_tournaments" type="number" value="0"></div><div class="field"><label>Buy-ins ($)</label><input id="r_buyins" type="number" step=".01" value="0"></div><div class="field"><label>Prêmios ($)</label><input id="r_prizes" type="number" step=".01" value="0"></div><div class="field"><label>ITM</label><input id="r_itm" type="number" value="0"></div><div class="field"><label>FT</label><input id="r_ft" type="number" value="0"></div><div class="field"><label>Vitórias</label><input id="r_wins" type="number" value="0"></div><div class="field"><label>Horas</label><input id="r_hours" type="number" step=".1" value="0"></div></div><br><button class="btn" id="saveResult">Salvar</button>`);saveResult.onclick=()=>{const t=+r_tournaments.value||0,bi=+r_buyins.value||0,pr=+r_prizes.value||0;if(!t)return alert('Informe o número de torneios.');insert('results',{date:r_date.value,site:r_site.value,format:r_format.value,tournaments:t,buyins:bi,prizes:pr,profit:pr-bi,abi:t?bi/t:0,itm:+r_itm.value||0,ft:+r_ft.value||0,wins:+r_wins.value||0,hours:+r_hours.value||0});modal.classList.remove('show')}}
 function goalModal(){openModal('Nova meta',`<div class="form"><div class="field"><label>Título</label><input id="g_title"></div><div class="field"><label>Métrica</label><select id="g_metric"><option>Volume</option><option>Estudo</option><option>Mãos revisadas</option><option>Profit</option><option>ROI</option></select></div><div class="field"><label>Meta</label><input id="g_target" type="number" step=".1"></div><div class="field"><label>Unidade</label><input id="g_unit"></div><div class="field"><label>Prazo</label><input id="g_date" type="date" value="${today()}"></div></div><br><button class="btn" id="saveGoal">Salvar</button>`);saveGoal.onclick=()=>{if(!g_title.value.trim())return alert('Digite o título da meta.');insert('goals',{title:g_title.value,metric:g_metric.value,target_value:+g_target.value||0,current_value:0,unit:g_unit.value,date:g_date.value});modal.classList.remove('show')}}
 async function goalProgress(id){const g=db.goals.find(x=>x.id===id),v=prompt(`Valor atual (${g.unit||''})`,g.current_value||0);if(v===null)return;const {error}=await supabase.from('goals').update({current_value:+v||0}).eq('id',id);if(error)alert(error.message);await load();route('goals')}
-supabase.auth.onAuthStateChange(async(_,s)=>{user=s?.user||null;if(user){await load();shell()}else loginView()})
-const {data:s}=await supabase.auth.getSession();user=s.session?.user||null;if(user){await load();shell()}else loginView()
+let recoveryMode=false
+supabase.auth.onAuthStateChange(async(event,s)=>{
+ if(event==='PASSWORD_RECOVERY'){recoveryMode=true;user=s?.user||null;newPasswordView();return}
+ if(recoveryMode)return
+ user=s?.user||null;if(user){await load();shell()}else loginView()
+})
+const {data:s}=await supabase.auth.getSession();user=s.session?.user||null
+const recoveryInUrl=window.location.hash.includes('type=recovery')||window.location.search.includes('type=recovery')
+if(recoveryInUrl){recoveryMode=true;newPasswordView()}else if(user){await load();shell()}else loginView()
