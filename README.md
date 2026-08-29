@@ -1,11 +1,15 @@
-# Poker Study V4.2
+# Poker Study V4.3
 
-Correção do importador SharkScope.
+- Corrige Analytics para CSVs SharkScope com múltiplas moedas (USD + CNY).
+- Auditoria de importação e calibração do câmbio pelo Profit exibido no SharkScope.
+- Reimportação atualiza torneios existentes sem duplicar.
+- Filtro de período usa a última data disponível nos dados, não o relógio do navegador.
+- Datas personalizadas, faixa de buy-in e opção de excluir satélites.
+- Gráfico acumulado com eixos, datas e tooltip.
 
 ## Atualização
-1. Supabase > SQL Editor: execute `upgrade_v4_1_to_v4_2.sql` uma vez.
-2. Substitua os arquivos do app no GitHub pelos desta versão.
-3. Aguarde o deploy da Vercel ficar Ready e faça Ctrl+F5.
-4. Em SharkScope / CSV, selecione o CSV, clique em Ler CSV e importe.
-
-A V4.2 corrige a chave de conflito usada para impedir duplicações e passa a mostrar na tela qualquer erro devolvido pelo Supabase.
+1. Rode `upgrade_v4_2_to_v4_3.sql` no Supabase SQL Editor.
+2. Substitua os arquivos no GitHub.
+3. Aguarde a Vercel publicar e use Ctrl+F5.
+4. No importador, carregue o CSV, informe o Profit que o SharkScope mostra para o mesmo filtro e clique em Calibrar.
+5. Confira a auditoria e só então clique em Importar/atualizar.
