@@ -1,5 +1,10 @@
-# Poker Study V5.4 — Replayer + Range Lab
+# Poker Study V5.4.1 — Replayer Layout
 
-Atualização visual do Replayer GGNetwork com mesa neon roxa inspirada em mesas de torneio, cartas 4 cores maiores, stacks em fichas + BB, fichas/apostas na mesa, velocidades 1x/1,5x/2x/3x, botão para mostrar/esconder mãos conhecidas dos oponentes e Equilab interno com matriz 13x13, seleção por cores, blockers e contagem de combos.
+Correções do Replayer:
+- Assentos em 4 camadas: cartas, nome, posição, stack + BB.
+- Cartas continuam em maior evidência, sem cobrir stack/posição.
+- Antes e blinds são aplicados automaticamente antes da primeira ação e não aparecem na timeline.
+- Torneios GG podem ser salvos localmente no navegador via IndexedDB e reabertos sem novo upload.
+- Equilab mantido sem mudanças funcionais.
 
-Não exige SQL novo no Supabase.
+Não requer SQL novo.
