@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.2 • REPLAYER BETA</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.3 • REPLAYER VISUAL</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -27,12 +27,12 @@ function loginView(){
   forgot.onclick=()=>forgotPasswordView(email.value.trim())
 }
 function forgotPasswordView(prefill=''){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.2 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.3 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
   backLogin.onclick=loginView
   sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail.'}
 }
 function newPasswordView(){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.2 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.3 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
   savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},600)}
 }
 
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.2 • CLOUD</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.3 • CLOUD</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -133,9 +133,9 @@ function hands(){
 }
 function handCards(list){return `<div class="hand-grid">${list.length?list.map(h=>`<article class="hand-card">${h.image_url?`<img src="${h.image_url}" alt="Imagem da mão">`:`<div class="no-image">Sem imagem</div>`}<div class="hand-body"><h3>${h.favorite?'★ ':''}${esc(h.tournament||'Mão sem torneio')}</h3><div class="muted">${h.date} · ${esc(h.site||'')} · ${esc(h.format||'')}</div><p><b>${esc(h.spot||'Spot')}</b> · ${esc(h.topic||'Geral')} ${h.priority==='high'?'<span class="pill warn">alta</span>':''}</p><p>${esc(h.question||'')}</p><div>${tagList(h.tags).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="toolbar" style="margin-top:10px"><button class="btn small secondary" data-view-hand="${h.id}">Ver detalhes</button><button class="btn small secondary" data-edit-hand="${h.id}">Editar</button><button class="btn small" data-toggle-hand="${h.id}">${h.status==='done'?'Reabrir':'Marcar estudada'}</button><button class="btn small secondary" data-fav-hand="${h.id}">${h.favorite?'★':'☆'}</button><button class="btn small danger" data-delete-hand="${h.id}">Apagar</button></div></div></article>`).join(''):'<p class="muted">Nenhuma mão encontrada.</p>'}</div>`}
 
-let replayState={hands:[],selected:null,step:0,sourceName:''}
+let replayState={hands:[],selected:null,step:0,sourceName:'',speed:1,playing:false}
 function replayer(){
-  return `<div class="panel"><h2>Replayer GGNetwork <span class="pill warn">BETA</span></h2><div class="notice"><b>Teste com Hand History da GG.</b> Faça upload do .txt inteiro do torneio ou cole uma única mão. O arquivo é processado no navegador e não é enviado para outro serviço.</div><div class="toolbar" style="margin-top:14px"><input id="hhFile" type="file" accept=".txt,text/plain"><button class="btn secondary" id="readHhFile">Ler arquivo</button></div><details style="margin-top:12px"><summary>Ou colar Hand History</summary><textarea id="hhPaste" class="hh-paste" placeholder="Poker Hand #TM..." style="margin-top:10px"></textarea><button class="btn secondary" id="parseHhPaste" style="margin-top:8px">Interpretar texto</button></details></div><div id="replayWorkspace">${replayState.hands.length?replayWorkspaceHtml():'<div class="panel"><p class="muted">Nenhuma Hand History carregada ainda.</p></div>'}</div>`
+  return `<div class="panel"><h2>Replayer GGNetwork <span class="pill warn">VISUAL</span></h2><div class="notice"><b>Hand History da GG.</b> Faça upload do .txt inteiro do torneio ou cole uma única mão. O arquivo é processado no navegador e não é enviado para outro serviço.</div><div class="toolbar" style="margin-top:14px"><input id="hhFile" type="file" accept=".txt,text/plain"><button class="btn secondary" id="readHhFile">Ler arquivo</button></div><details style="margin-top:12px"><summary>Ou colar Hand History</summary><textarea id="hhPaste" class="hh-paste" placeholder="Poker Hand #TM..." style="margin-top:10px"></textarea><button class="btn secondary" id="parseHhPaste" style="margin-top:8px">Interpretar texto</button></details></div><div id="replayWorkspace">${replayState.hands.length?replayWorkspaceHtml():'<div class="panel"><p class="muted">Nenhuma Hand History carregada ainda.</p></div>'}</div>`
 }
 function parseGgHistory(text){
   const blocks=String(text||'').replace(/\r/g,'').split(/(?=^Poker Hand #)/m).map(x=>x.trim()).filter(x=>x.startsWith('Poker Hand #'))
@@ -194,37 +194,79 @@ function replayWorkspaceHtml(){
   return `<div class="replay-layout"><div class="panel replay-list-panel"><div class="replay-summary"><b>${hs.length} mãos detectadas</b><span class="muted">${esc(replayState.sourceName||'Hand History')}</span></div><input id="replaySearch" placeholder="Buscar cartas, mão, horário..."><div id="replayHandList" class="replay-hand-list">${replayHandListHtml(hs,h)}</div></div><div id="replayStage">${replayStageHtml(h)}</div></div>`
 }
 function replayHandListHtml(list,selected){
-  return list.map((h,i)=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0;return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></button>`}).join('')
+  return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0;return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></button>`}).join('')
+}
+function replayPlayerCoords(h,p){
+  const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat),heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero)),idx=ordered.findIndex(x=>x.name===p.name),rel=(idx-heroIndex+ordered.length)%ordered.length
+  const angle=(90+(360/ordered.length)*rel)*Math.PI/180
+  return {left:50+43*Math.cos(angle),top:50+39*Math.sin(angle)}
 }
 function replayStageHtml(h){
   if(!h)return '<div class="panel">Selecione uma mão.</div>'
   const st=computeReplayState(h,replayState.step),step=h.steps[replayState.step],max=Math.max(0,h.steps.length-1),heroSeat=h.seats.find(x=>x.name===h.hero),heroPos=h.positionMap[h.hero]||'',heroBb=h.bb&&heroSeat?heroSeat.stack/h.bb:0
-  const seats=h.seats.map((p,i)=>{const ang=(-90+(360/h.seats.length)*i)*Math.PI/180,left=50+42*Math.cos(ang),top=50+40*Math.sin(ang),ps=st.players[p.name]||{},cards=p.name===h.hero?h.heroCards:(ps.cards||[]);return `<div class="replay-player ${ps.folded?'folded':''} ${p.name===h.hero?'hero':''}" style="left:${left}%;top:${top}%"><b>${esc(p.name)}</b><small>${esc(h.positionMap[p.name]||'')} · ${fmtChips(ps.stack)}</small><div class="mini-cards">${cards.length?cards.map(cardHtml).join(''):'<span class="card-back">?</span><span class="card-back">?</span>'}</div></div>`}).join('')
-  return `<div class="panel replay-stage-panel"><div class="replay-head"><div><h2>${esc(h.heroCards.join(' '))} · ${esc(heroPos)} · ${heroBb.toFixed(1)}bb</h2><div class="muted">${esc(h.tournamentName)} · ${esc(h.blindText)} · ${esc(h.dateTime)}</div></div><button class="btn" id="saveReplayHand">Salvar no Banco de Mãos</button></div><div class="poker-table-wrap"><div class="poker-table">${seats}<div class="table-center"><div class="board-cards">${st.board.length?st.board.map(cardHtml).join(''):'<span class="muted">Pré-flop</span>'}</div><b>Pot ${fmtChips(st.pot)}</b><small>${esc(st.streetLabel)}</small></div></div></div><div class="replay-action-box"><small>Ação ${Math.min(replayState.step+1,h.steps.length)} de ${h.steps.length}</small><strong>${step?esc(step.kind==='street'?`*** ${step.label.toUpperCase()} ***`:step.text):'Início da mão'}</strong></div><div class="replay-controls"><button class="btn secondary" id="replayFirst">⏮</button><button class="btn secondary" id="replayPrev">◀ Anterior</button><button class="btn" id="replayPlay">▶ Play</button><button class="btn secondary" id="replayNext">Próxima ▶</button><button class="btn secondary" id="replayLast">⏭</button><input id="replayRange" type="range" min="0" max="${max}" value="${Math.min(replayState.step,max)}"></div><details class="raw-actions"><summary>Ações da mão</summary>${h.steps.map((x,i)=>`<div class="raw-action ${i===replayState.step?'current':''}">${i+1}. ${esc(x.kind==='street'?`*** ${x.label} ***`:x.text)}</div>`).join('')}</details></div>`
+  const currentPlayer=step?.kind==='action'?step.player:''
+  const seats=h.seats.map(p=>{
+    const {left,top}=replayPlayerCoords(h,p),ps=st.players[p.name]||{},cards=p.name===h.hero?h.heroCards:(ps.cards||[]),pos=h.positionMap[p.name]||`Seat ${p.seat}`,stackBb=h.bb?ps.stack/h.bb:0,bet=st.streetContrib[p.name]||0
+    const chipLeft=50+(left-50)*.62,chipTop=50+(top-50)*.62,actLeft=50+(left-50)*.80,actTop=50+(top-50)*.80
+    const action=currentPlayer===p.name?replayActionLabel(step,h):''
+    return `<div class="replay-player ${ps.folded?'folded':''} ${p.name===h.hero?'hero':''} ${currentPlayer===p.name?'acting':''}" style="left:${left}%;top:${top}%"><div class="seat-top"><b>${esc(pos)}${p.name===h.hero?' <em>HERO</em>':''}</b>${/BTN/.test(pos)?'<span class="dealer-chip">D</span>':''}</div><small>${fmtFullChips(ps.stack)} <span>(${stackBb.toFixed(1)}bb)</span></small><div class="mini-cards">${cards.length?cards.map(cardHtml).join(''):'<span class="card-back">?</span><span class="card-back">?</span>'}</div></div>${bet>0?`<div class="table-bet" style="left:${chipLeft}%;top:${chipTop}%"><span class="chip-stack"><i></i><i></i><i></i></span><b>${fmtChips(bet)}</b><small>${h.bb?(bet/h.bb).toFixed(1)+'bb':''}</small></div>`:''}${action?`<div class="player-action ${step.type==='fold'?'fold-action':''}" style="left:${actLeft}%;top:${actTop}%">${esc(action)}</div>`:''}`
+  }).join('')
+  const potBb=h.bb?st.pot/h.bb:0
+  return `<div class="panel replay-stage-panel"><div class="replay-head"><div><h2>${esc(h.heroCards.join(' '))} · ${esc(heroPos)} · ${heroBb.toFixed(1)}bb</h2><div class="muted">${esc(h.tournamentName)} · ${esc(h.blindText)} · ${esc(h.dateTime)}</div></div><button class="btn" id="saveReplayHand">Salvar no Banco de Mãos</button></div><div class="poker-table-wrap"><div class="poker-table"><div class="table-felt-mark">POKER STUDY</div>${seats}<div class="table-center"><div class="board-cards">${st.board.length?st.board.map(cardHtml).join(''):'<span class="preflop-label">PRÉ-FLOP</span>'}</div><div class="pot-display"><span>POT</span><b>${fmtChips(st.pot)}</b><small>${potBb.toFixed(1)}bb</small></div><div class="street-badge">${esc(st.streetLabel)}</div></div></div></div><div class="replay-action-box"><small>Ação ${Math.min(replayState.step+1,h.steps.length)} de ${h.steps.length}</small><strong>${step?esc(step.kind==='street'?`*** ${step.label.toUpperCase()} ***`:replayActionText(step,h)):'Início da mão'}</strong></div><div class="replay-controls"><button class="btn secondary" id="replayFirst">⏮</button><button class="btn secondary" id="replayPrev">◀ Anterior</button><button class="btn" id="replayPlay">${replayState.playing?'⏸ Pausar':'▶ Play'}</button><button class="btn secondary" id="replayNext">Próxima ▶</button><button class="btn secondary" id="replayLast">⏭</button><label class="speed-control">Velocidade <select id="replaySpeed">${[1,1.5,2,3].map(v=>`<option value="${v}" ${replayState.speed===v?'selected':''}>${String(v).replace('.',',')}x</option>`).join('')}</select></label><input id="replayRange" type="range" min="0" max="${max}" value="${Math.min(replayState.step,max)}"></div><details class="raw-actions"><summary>Ações da mão</summary>${h.steps.map((x,i)=>`<div class="raw-action ${i===replayState.step?'current':''}">${i+1}. ${esc(x.kind==='street'?`*** ${x.label} ***`:replayActionText(x,h))}</div>`).join('')}</details></div>`
 }
 function computeReplayState(h,idx){
-  const players={};h.seats.forEach(x=>players[x.name]={stack:x.stack,committed:0,folded:false,cards:null});let pot=0,board=[],streetLabel='Pré-flop',street='preflop',streetContrib={}
+  const players={};h.seats.forEach(x=>players[x.name]={stack:x.stack,folded:false,cards:null});let pot=0,board=[],streetLabel='Pré-flop',street='preflop',streetContrib={}
   for(let i=0;i<=idx&&i<h.steps.length;i++){
     const x=h.steps[i];if(x.kind==='street'){if(x.street!==street)streetContrib={};street=x.street;streetLabel=x.label;board=[...(x.board||[])];continue}
     const p=players[x.player];if(!p)continue
-    const commit=a=>{a=Math.max(0,a||0);p.stack-=a;p.committed+=a;pot+=a;streetContrib[x.player]=(streetContrib[x.player]||0)+a}
-    if(['ante','sb','bb','call','bet'].includes(x.type))commit(x.amount)
-    else if(x.type==='raise'){const a=Math.max(0,x.to-(streetContrib[x.player]||0));commit(a)}
+    const commit=(a,countsForBet=true)=>{a=Math.max(0,a||0);p.stack=Math.max(0,p.stack-a);pot+=a;if(countsForBet)streetContrib[x.player]=(streetContrib[x.player]||0)+a}
+    if(x.type==='ante')commit(x.amount,false)
+    else if(['sb','bb','call','bet'].includes(x.type))commit(x.amount,true)
+    else if(x.type==='raise'){const a=Math.max(0,x.to-(streetContrib[x.player]||0));commit(a,true)}
     else if(x.type==='return'){p.stack+=x.amount;pot=Math.max(0,pot-x.amount);streetContrib[x.player]=Math.max(0,(streetContrib[x.player]||0)-x.amount)}
     else if(x.type==='fold')p.folded=true
     else if(x.type==='show')p.cards=x.cards
+    else if(x.type==='collect'){/* o pot permanece visível no replay até o resumo */}
   }
-  return {players,pot,board,streetLabel,street}
+  return {players,pot,board,streetLabel,street,streetContrib}
 }
-function fmtChips(n){n=+n||0;return n>=1e6?(n/1e6).toFixed(n>=1e7?1:2)+'M':n>=1e3?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString('en-US')}
-function cardHtml(c){const m=String(c).match(/^([2-9TJQKA])([cdhs])$/);if(!m)return `<span class="playing-card">${esc(c)}</span>`;const suit={c:'♣',d:'♦',h:'♥',s:'♠'}[m[2]],red=['d','h'].includes(m[2]);return `<span class="playing-card ${red?'red':''}">${m[1]}${suit}</span>`}
+function replayActionLabel(x,h){
+  if(!x||x.kind!=='action')return ''
+  const bb=h.bb||1,amt=n=>`${fmtChips(n)} · ${(n/bb).toFixed(1)}bb`
+  if(x.type==='fold')return 'FOLD'
+  if(x.type==='check')return 'CHECK'
+  if(x.type==='call')return `CALL ${amt(x.amount)}`
+  if(x.type==='bet')return `BET ${amt(x.amount)}`
+  if(x.type==='raise')return `RAISE TO ${amt(x.to)}`
+  if(x.type==='sb')return `SB ${amt(x.amount)}`
+  if(x.type==='bb')return `BB ${amt(x.amount)}`
+  if(x.type==='ante')return `ANTE ${amt(x.amount)}`
+  if(x.type==='return')return `RETURN ${amt(x.amount)}`
+  if(x.type==='show')return 'SHOW'
+  if(x.type==='collect')return `WIN ${amt(x.amount)}`
+  return x.type.toUpperCase()
+}
+function replayActionText(x,h){
+  if(!x||x.kind!=='action')return ''
+  const pos=h.positionMap[x.player]||x.player,label=replayActionLabel(x,h)
+  return `${pos}: ${label}`
+}
+function fmtChips(n){n=+n||0;return n>=1e6?(n/1e6).toFixed(n>=1e7?1:2)+'M':n>=1e3?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString('pt-BR')}
+function fmtFullChips(n){return Math.max(0,Math.round(+n||0)).toLocaleString('pt-BR')}
+function cardHtml(c){const m=String(c).match(/^([2-9TJQKA])([cdhs])$/);if(!m)return `<span class="playing-card">${esc(c)}</span>`;const suit={c:'♣',d:'♦',h:'♥',s:'♠'}[m[2]];return `<span class="playing-card suit-${m[2]}"><span class="card-rank">${m[1]}</span><span class="card-suit">${suit}</span></span>`}
 let replayTimer=null
-function selectReplayHand(id){const h=replayState.hands.find(x=>x.handId===id);if(!h)return;clearInterval(replayTimer);replayState.selected=h;replayState.step=0;document.getElementById('replayStage').innerHTML=replayStageHtml(h);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.classList.toggle('active',b.dataset.replayHand===id));bindReplayStage()}
+function stopReplay(){if(replayTimer){clearInterval(replayTimer);replayTimer=null}replayState.playing=false}
+function selectReplayHand(id){const h=replayState.hands.find(x=>x.handId===id);if(!h)return;stopReplay();replayState.selected=h;replayState.step=0;document.getElementById('replayStage').innerHTML=replayStageHtml(h);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.classList.toggle('active',b.dataset.replayHand===id));bindReplayStage()}
 function bindReplayStage(){
   const h=replayState.selected;if(!h)return
-  const rerender=()=>{document.getElementById('replayStage').innerHTML=replayStageHtml(h);bindReplayStage()}
-  replayFirst.onclick=()=>{clearInterval(replayTimer);replayState.step=0;rerender()};replayLast.onclick=()=>{clearInterval(replayTimer);replayState.step=Math.max(0,h.steps.length-1);rerender()};replayPrev.onclick=()=>{clearInterval(replayTimer);replayState.step=Math.max(0,replayState.step-1);rerender()};replayNext.onclick=()=>{clearInterval(replayTimer);replayState.step=Math.min(h.steps.length-1,replayState.step+1);rerender()};replayRange.oninput=()=>{clearInterval(replayTimer);replayState.step=+replayRange.value;rerender()};saveReplayHand.onclick=()=>replaySaveModal(h)
-  replayPlay.onclick=()=>{clearInterval(replayTimer);replayTimer=setInterval(()=>{if(replayState.step>=h.steps.length-1){clearInterval(replayTimer);return}replayState.step++;rerender()},750)}
+  const rerender=()=>{const el=document.getElementById('replayStage');if(!el)return;el.innerHTML=replayStageHtml(h);bindReplayStage()}
+  replayFirst.onclick=()=>{stopReplay();replayState.step=0;rerender()};replayLast.onclick=()=>{stopReplay();replayState.step=Math.max(0,h.steps.length-1);rerender()};replayPrev.onclick=()=>{stopReplay();replayState.step=Math.max(0,replayState.step-1);rerender()};replayNext.onclick=()=>{stopReplay();replayState.step=Math.min(h.steps.length-1,replayState.step+1);rerender()};replayRange.oninput=()=>{stopReplay();replayState.step=+replayRange.value;rerender()};saveReplayHand.onclick=()=>replaySaveModal(h)
+  replaySpeed.onchange=()=>{replayState.speed=+replaySpeed.value||1;if(replayState.playing){stopReplay();startReplay(h,rerender)}}
+  replayPlay.onclick=()=>{if(replayState.playing){stopReplay();rerender()}else startReplay(h,rerender)}
+}
+function startReplay(h,rerender){
+  stopReplay();if(replayState.step>=h.steps.length-1)replayState.step=0;replayState.playing=true;rerender()
+  const tick=Math.max(220,900/(replayState.speed||1));replayTimer=setInterval(()=>{if(replayState.step>=h.steps.length-1){stopReplay();rerender();return}replayState.step++;rerender()},tick)
 }
 function replaySaveModal(h){
   const hero=h.seats.find(x=>x.name===h.hero),stackBb=h.bb&&hero?hero.stack/h.bb:0,stackBucket=stackBb<=10?'≤10bb':stackBb<=15?'11–15bb':stackBb<=20?'16–20bb':stackBb<=30?'21–30bb':stackBb<=40?'31–40bb':stackBb<=60?'41–60bb':'61bb+',fmt=/bounty/i.test(h.tournamentName)?'PKO':'MTT Regular',date=h.dateTime.slice(0,10).replaceAll('/','-')

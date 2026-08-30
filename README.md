@@ -1,18 +1,14 @@
-# Poker Study V5.2 — Replayer Beta
+# Poker Study V5.3 — Replayer Visual
 
-Baseado na V5.1.
+Baseado na V5.2. Não exige SQL novo.
 
-## Novo
-- Replayer GGNetwork para arquivos .txt de Hand History.
-- Upload do torneio inteiro ou colagem de uma mão.
-- Separa automaticamente as mãos do arquivo.
-- Mesa visual com cartas, board, stacks e pot.
-- Controles anterior/próxima/play/timeline.
-- Busca por cartas, mão, horário e posição.
-- Botão para salvar uma mão selecionada no Banco de Mãos.
-
-## Banco
-Não precisa executar SQL novo.
-
-## Instalação
-Substitua os arquivos no GitHub, faça commit e aguarde o deploy da Vercel.
+## Novidades do Replayer
+- Mesa visual inspirada na experiência da GG Poker
+- Baralho de 4 cores
+- Stack em fichas e em big blinds
+- Posições no lugar dos nicks anônimos da Hand History
+- Fichas/apostas visíveis na mesa a cada ação
+- Etiqueta da ação atual junto ao jogador
+- Velocidades de reprodução 1x, 1,5x, 2x e 3x
+- Hero mantido visualmente na parte inferior da mesa
+- Correção do cálculo de contribuição pré-flop para não contar ante como aposta
