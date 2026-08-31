@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.1 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.2 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -27,12 +27,12 @@ function loginView(){
   forgot.onclick=()=>forgotPasswordView(email.value.trim())
 }
 function forgotPasswordView(prefill=''){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.1 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.2 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
   backLogin.onclick=loginView
   sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail.'}
 }
 function newPasswordView(){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.1 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.4.2 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
   savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},600)}
 }
 
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.4.1 • CLOUD</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.4.2 • CLOUD</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -173,6 +173,10 @@ function parseGgHand(block){
       else {steps.push(a);if(streetActions[street])streetActions[street].push(line)}
     }
   }
+  // Street markers update board/state but are not counted as replay actions.
+  let streetNow='preflop',boardNow=[];const clean=[]
+  for(const x of steps){if(x.kind==='street'){streetNow=x.street;boardNow=[...(x.board||[])];continue}clean.push({...x,street:streetNow,boardAtAction:[...boardNow]})}
+  steps=clean
   const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,]+)/),finalPot=potm?+potm[1].replace(/,/g,''):0
   const positionMap=derivePositions(seats,buttonSeat)
   return {handId,tournamentId,tournamentName,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,raw:block}
@@ -202,12 +206,28 @@ function replayWorkspaceHtml(){
   return `<div class="replay-layout"><div class="panel replay-list-panel"><div class="replay-summary"><b>${hs.length} mãos detectadas</b><span class="muted">${esc(replayState.sourceName||'Hand History')}</span></div><input id="replaySearch" placeholder="Buscar cartas, mão, horário..."><div id="replayHandList" class="replay-hand-list">${replayHandListHtml(hs,h)}</div></div><div id="replayStage">${replayStageHtml(h)}</div></div>`
 }
 function replayHandListHtml(list,selected){
-  return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0;return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></button>`}).join('')
+  return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
-  const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat),heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero)),idx=ordered.findIndex(x=>x.name===p.name),rel=(idx-heroIndex+ordered.length)%ordered.length
-  const angle=(90+(360/ordered.length)*rel)*Math.PI/180
+  const pos=h.positionMap[p.name]||'',n=h.seats.length
+  const layouts={
+    8:{'BB':[50,17],'UTG':[72,25],'UTG+1':[88,45],'MP':[82,72],'HJ':[50,84],'CO':[18,72],'BTN':[12,45],'SB':[28,25]},
+    9:{'BB':[50,16],'UTG':[70,22],'UTG+1':[86,38],'MP1':[87,66],'MP2':[69,82],'HJ':[50,85],'CO':[31,82],'BTN':[13,66],'SB':[14,38]}
+  }
+  // Rotate the semantic layout so HERO remains at the bottom while preserving seat spacing.
+  const base=layouts[n]?.[pos]
+  if(base){
+    const heroPos=h.positionMap[h.hero]||'',heroBase=layouts[n]?.[heroPos]
+    if(heroBase){const a=Math.atan2(base[1]-50,base[0]-50),ha=Math.atan2(heroBase[1]-50,heroBase[0]-50),r=Math.hypot(base[0]-50,(base[1]-50)*1.12),na=a-ha+Math.PI/2;return {left:50+r*Math.cos(na),top:50+(r*Math.sin(na))/1.12}}
+    return {left:base[0],top:base[1]}
+  }
+  const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat),heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero)),idx=ordered.findIndex(x=>x.name===p.name),rel=(idx-heroIndex+ordered.length)%ordered.length,angle=(90+(360/ordered.length)*rel)*Math.PI/180
   return {left:50+43*Math.cos(angle),top:50+39*Math.sin(angle)}
+}
+function replayBetCoords(left,top){
+  // Dedicated betting point on the ray from each seat toward the center.
+  const dx=left-50,dy=top-50,dist=Math.hypot(dx,dy)||1,target=25
+  return {left:50+dx*Math.max(0,(dist-target)/dist),top:50+dy*Math.max(0,(dist-target)/dist)}
 }
 function replayStageHtml(h){
   if(!h)return '<div class="panel">Selecione uma mão.</div>'
@@ -215,7 +235,7 @@ function replayStageHtml(h){
   const currentPlayer=step?.kind==='action'?step.player:''
   const seats=h.seats.map(p=>{
     const {left,top}=replayPlayerCoords(h,p),ps=st.players[p.name]||{},known=knownOpponentCards(h,p.name),cards=p.name===h.hero?h.heroCards:(replayState.showOpponentCards?known:(ps.cards||[])),pos=h.positionMap[p.name]||`Seat ${p.seat}`,stackBb=h.bb?ps.stack/h.bb:0,bet=st.streetContrib[p.name]||0
-    const chipLeft=50+(left-50)*.62,chipTop=50+(top-50)*.62,actLeft=50+(left-50)*.80,actTop=50+(top-50)*.80
+    const bp=replayBetCoords(left,top),chipLeft=bp.left,chipTop=bp.top,actLeft=50+(left-50)*.78,actTop=50+(top-50)*.78
     const action=currentPlayer===p.name?replayActionLabel(step,h):'',displayName=p.name===h.hero?'HERO':'OPONENTE'
     return `<div class="replay-player ${ps.folded?'folded':''} ${p.name===h.hero?'hero':''} ${currentPlayer===p.name?'acting':''}" style="left:${left}%;top:${top}%"><div class="mini-cards">${cards.length?cards.map(cardHtml).join(''):'<span class="card-back">?</span><span class="card-back">?</span>'}</div><div class="player-name">${displayName}</div><div class="player-position">${esc(pos)}${/BTN/.test(pos)?'<span class="dealer-chip">D</span>':''}</div><div class="player-stack">${fmtFullChips(ps.stack)} <span>(${stackBb.toFixed(1)}bb)</span></div></div>${bet>0?`<div class="table-bet" style="left:${chipLeft}%;top:${chipTop}%"><span class="chip-stack"><i></i><i></i><i></i></span><b>${fmtChips(bet)}</b><small>${h.bb?(bet/h.bb).toFixed(1)+'bb':''}</small></div>`:''}${action?`<div class="player-action ${step.type==='fold'?'fold-action':''}" style="left:${actLeft}%;top:${actTop}%">${esc(action)}</div>`:''}`
   }).join('')
