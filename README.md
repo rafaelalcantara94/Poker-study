@@ -1,10 +1,10 @@
-# Poker Study V5.5 — Replayer Layout
+# Poker Study V5.5.1 — Replayer Visual Fix
 
-Correções do Replayer:
-- Assentos em 4 camadas: cartas, nome, posição, stack + BB.
-- Cartas continuam em maior evidência, sem cobrir stack/posição.
-- Antes e blinds são aplicados automaticamente antes da primeira ação e não aparecem na timeline.
-- Torneios GG podem ser salvos localmente no navegador via IndexedDB e reabertos sem novo upload.
-- Equilab mantido sem mudanças funcionais.
+Correções focadas no mockup aprovado:
+- cartas sempre acima da plaquinha de posição/stack;
+- pot e board separados da marca d’água POKER STUDY;
+- marca d’água reposicionada e mais discreta;
+- timeline separa SHOWDOWN de RIVER;
+- mantém Equilab, torneios salvos e demais recursos da V5.5.
 
 Não requer SQL novo.

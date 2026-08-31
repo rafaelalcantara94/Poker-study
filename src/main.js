@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.5 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.5.1 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -27,7 +27,7 @@ function loginView(){
   forgot.onclick=()=>forgotPasswordView(email.value.trim())
 }
 function forgotPasswordView(prefill=''){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.5 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.5.1 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
   backLogin.onclick=loginView
   sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail.'}
 }
@@ -230,10 +230,9 @@ function replayBetCoords(left,top){
   return {left:50+dx*Math.max(0,(dist-target)/dist),top:50+dy*Math.max(0,(dist-target)/dist)}
 }
 function replayTimelineHtml(h){
-  const groups=['preflop','flop','turn','river']
-  const labels={preflop:'PRÉ-FLOP',flop:'FLOP',turn:'TURN',river:'RIVER'}
-  let actionIndex=0
-  return `<div class="replay-timeline">${groups.map(street=>{const acts=h.steps.map((x,i)=>({x,i})).filter(o=>o.x.street===street);if(!acts.length)return '';return `<section><b>${labels[street]}</b><div>${acts.map(({x,i})=>{const pos=h.positionMap[x.player]||'',lab=replayActionLabel(x,h);return `<button class="timeline-action ${i===replayState.step?'current':''} type-${x.type}" data-replay-step="${i}"><small>${esc(pos)}</small><strong>${esc(lab)}</strong></button>`}).join('')}</div></section>`}).join('')}</div>`
+  const groups=['preflop','flop','turn','river','showdown']
+  const labels={preflop:'PRÉ-FLOP',flop:'FLOP',turn:'TURN',river:'RIVER',showdown:'SHOWDOWN'}
+  return `<div class="replay-timeline">${groups.map(group=>{const acts=h.steps.map((x,i)=>({x,i,group:['show','collect'].includes(x.type)?'showdown':x.street})).filter(o=>o.group===group);if(!acts.length)return '';return `<section><b>${labels[group]}</b><div>${acts.map(({x,i})=>{const pos=h.positionMap[x.player]||'',lab=replayActionLabel(x,h);return `<button class="timeline-action ${i===replayState.step?'current':''} type-${x.type}" data-replay-step="${i}"><small>${esc(pos)}</small><strong>${esc(lab)}</strong></button>`}).join('')}</div></section>`}).join('')}</div>`
 }
 function replayStageHtml(h){
   if(!h)return '<div class="panel">Selecione uma mão.</div>'
