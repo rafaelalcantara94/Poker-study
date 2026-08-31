@@ -1,4 +1,4 @@
-# Poker Study V5.4.2 — Replayer Layout
+# Poker Study V5.5 — Replayer Layout
 
 Correções do Replayer:
 - Assentos em 4 camadas: cartas, nome, posição, stack + BB.
