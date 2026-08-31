@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.9 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.9.1 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.9 • REPLAYER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.9.1 • REPLAYER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -208,7 +208,7 @@ function replayHandListHtml(list,selected){
   return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
-  // V5.9: strict three-zone geometry.
+  // V5.9.1: final replay geometry — seats frozen, bets clamped to a safe inner felt orbit.
   // Every seat uses ONE vertical axis: cards first, info directly below.
   // Bets live on a separate inner orbit, so chips never sit behind a player.
   const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat)
@@ -216,27 +216,27 @@ function replayPlayerCoords(h,p){
   const idx=Math.max(0,ordered.findIndex(x=>x.name===p.name))
   const rel=(idx-heroIndex+ordered.length)%ordered.length,n=ordered.length
   const slots8=[
-    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:68},
-    {left:27,top:72,infoLeft:27,infoTop:85,betLeft:37,betTop:65},
-    {left:10,top:48,infoLeft:10,infoTop:61,betLeft:29,betTop:52},
-    {left:27,top:17,infoLeft:27,infoTop:30,betLeft:37,betTop:38},
-    {left:50,top:11,infoLeft:50,infoTop:24,betLeft:50,betTop:36},
-    {left:73,top:17,infoLeft:73,infoTop:30,betLeft:63,betTop:38},
-    {left:90,top:48,infoLeft:90,infoTop:61,betLeft:71,betTop:52},
-    {left:73,top:72,infoLeft:73,infoTop:85,betLeft:63,betTop:65}
+    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:66},
+    {left:27,top:72,infoLeft:27,infoTop:85,betLeft:40,betTop:63},
+    {left:10,top:48,infoLeft:10,infoTop:61,betLeft:33,betTop:54},
+    {left:27,top:17,infoLeft:27,infoTop:30,betLeft:40,betTop:43},
+    {left:50,top:11,infoLeft:50,infoTop:24,betLeft:50,betTop:40},
+    {left:73,top:17,infoLeft:73,infoTop:30,betLeft:60,betTop:43},
+    {left:90,top:48,infoLeft:90,infoTop:61,betLeft:67,betTop:54},
+    {left:73,top:72,infoLeft:73,infoTop:85,betLeft:60,betTop:63}
   ]
   const slots9=[
-    // 9-max gets its own wider outer orbit. Cards and info stay on one axis;
-    // bets use a smaller inner ellipse so nothing overlaps the seats.
-    {left:50,top:79,infoLeft:50,infoTop:91,betLeft:50,betTop:67},
-    {left:28,top:76,infoLeft:28,infoTop:88,betLeft:39,betTop:65},
-    {left:9,top:60,infoLeft:9,infoTop:72,betLeft:29,betTop:58},
-    {left:8,top:36,infoLeft:8,infoTop:48,betLeft:29,betTop:44},
-    {left:28,top:15,infoLeft:28,infoTop:27,betLeft:39,betTop:35},
-    {left:50,top:9,infoLeft:50,infoTop:21,betLeft:50,betTop:33},
-    {left:72,top:15,infoLeft:72,infoTop:27,betLeft:61,betTop:35},
-    {left:92,top:36,infoLeft:92,infoTop:48,betLeft:71,betTop:44},
-    {left:91,top:60,infoLeft:91,infoTop:72,betLeft:71,betTop:58}
+    // 9-max keeps its dedicated outer seat ring. Bets are deliberately much
+    // farther inward so even the top/diagonal stacks stay fully on the felt.
+    {left:50,top:79,infoLeft:50,infoTop:91,betLeft:50,betTop:65},
+    {left:28,top:76,infoLeft:28,infoTop:88,betLeft:41,betTop:63},
+    {left:9,top:60,infoLeft:9,infoTop:72,betLeft:35,betTop:57},
+    {left:8,top:36,infoLeft:8,infoTop:48,betLeft:35,betTop:49},
+    {left:28,top:15,infoLeft:28,infoTop:27,betLeft:41,betTop:43},
+    {left:50,top:9,infoLeft:50,infoTop:21,betLeft:50,betTop:40},
+    {left:72,top:15,infoLeft:72,infoTop:27,betLeft:59,betTop:43},
+    {left:92,top:36,infoLeft:92,infoTop:48,betLeft:65,betTop:49},
+    {left:91,top:60,infoLeft:91,infoTop:72,betLeft:65,betTop:57}
   ]
   if(n===8)return {...slots8[rel],rel}
   if(n===9)return {...slots9[rel],rel}
