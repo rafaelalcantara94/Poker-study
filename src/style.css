@@ -315,3 +315,74 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
   .icm-replayer .seat-cards .playing-card,.icm-replayer .seat-cards .card-back{width:42px;height:57px}
   .icm-replayer .seat-info{min-width:112px}
 }
+
+
+/* V5.9 — dedicated 9-max geometry + visual polish (8-max coordinates untouched) */
+.icm-replayer .poker-table-wrap{
+  background:
+    radial-gradient(ellipse at 50% 45%,rgba(67,74,81,.34) 0,rgba(35,40,46,.28) 42%,rgba(16,20,25,.72) 82%),
+    linear-gradient(135deg,#272c32,#171b20 66%,#111418);
+}
+.icm-replayer .poker-scene .poker-table{
+  background:
+    radial-gradient(ellipse at 50% 44%,rgba(42,173,69,.26),transparent 43%),
+    radial-gradient(circle at 30% 28%,rgba(255,255,255,.035) 0 1px,transparent 1.5px) 0 0/9px 9px,
+    linear-gradient(180deg,#087c20 0%,#087019 48%,#055b14 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(73,211,91,.72),
+    inset 0 0 30px rgba(0,31,7,.72),
+    inset 0 -16px 25px rgba(0,0,0,.20),
+    0 0 0 4px #454a50,
+    0 0 0 8px #181b1e,
+    0 15px 32px rgba(0,0,0,.68);
+}
+.icm-replayer .poker-scene .poker-table:before{
+  content:"";position:absolute;inset:7px;border:1px solid rgba(128,238,145,.28);pointer-events:none;
+}
+.icm-replayer .seat-cards .playing-card{
+  border:2px solid rgba(255,255,255,.92);
+  box-shadow:0 3px 6px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.icm-replayer .seat-cards .card-back{
+  border:2px solid #f4f4f4;
+  background:
+    linear-gradient(45deg,rgba(255,255,255,.07) 25%,transparent 25% 75%,rgba(255,255,255,.07) 75%) 0 0/8px 8px,
+    linear-gradient(135deg,#ed3f36,#a91216 72%);
+  box-shadow:0 3px 7px rgba(0,0,0,.58),inset 0 0 0 2px rgba(255,255,255,.1);
+}
+.icm-replayer .seat-info{
+  background:linear-gradient(180deg,rgba(41,45,50,.98),rgba(15,17,20,.98));
+  border-color:#636a72;
+  box-shadow:0 4px 10px rgba(0,0,0,.68),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.icm-replayer .pot-display{
+  box-shadow:0 3px 9px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.icm-replayer .chip-stack{position:relative;width:22px;height:19px;display:inline-block;margin-right:5px;vertical-align:middle;filter:drop-shadow(0 3px 2px rgba(0,0,0,.38))}
+.icm-replayer .chip-stack i{position:absolute;left:1px;width:20px;height:8px;border-radius:50%;border:1px solid #6f4700;background:repeating-linear-gradient(90deg,#f6c735 0 4px,#fff2aa 4px 6px,#d88d16 6px 10px)}
+.icm-replayer .chip-stack i:nth-child(1){bottom:0}.icm-replayer .chip-stack i:nth-child(2){bottom:5px}.icm-replayer .chip-stack i:nth-child(3){bottom:10px}
+.icm-replayer .table-bet{display:flex;align-items:center;justify-content:center;gap:1px;text-align:left;text-shadow:0 1px 2px #000}
+.icm-replayer .table-bet b{font-size:12px}.icm-replayer .table-bet small{font-size:9px;opacity:.88}
+.icm-replayer .table-felt-mark{font-weight:900;letter-spacing:1px;text-shadow:0 1px rgba(255,255,255,.03)}
+
+/* 9-max only: smaller felt and wider player ring. 8-max stays exactly as V5.8.1. */
+.icm-replayer .poker-scene.players-9 .poker-table{
+  left:20%;right:20%;top:33%;bottom:22%;
+}
+.icm-replayer .poker-scene.players-9 .seat-cards .playing-card,
+.icm-replayer .poker-scene.players-9 .seat-cards .card-back{
+  width:43px;height:59px;
+}
+.icm-replayer .poker-scene.players-9 .seat-info{
+  min-width:112px;padding:4px 7px;
+}
+.icm-replayer .poker-scene.players-9 .seat-info b{font-size:10px}
+.icm-replayer .poker-scene.players-9 .seat-info span{font-size:9px}
+.icm-replayer .poker-scene.players-9 .table-center{top:47%}
+.icm-replayer .poker-scene.players-9 .table-felt-mark{top:66%;font-size:23px}
+@media(max-width:1200px){
+  .icm-replayer .poker-scene.players-9{min-width:960px}
+  .icm-replayer .poker-scene.players-9 .seat-cards .playing-card,
+  .icm-replayer .poker-scene.players-9 .seat-cards .card-back{width:39px;height:54px}
+  .icm-replayer .poker-scene.players-9 .seat-info{min-width:104px}
+}

@@ -1,5 +1,6 @@
-# Poker Study V5.8.1 — Seat Alignment Pass
+# Poker Study V5.9
 
-Correção visual focada no Replayer: cartas e informações passam a compartilhar o mesmo eixo em todos os assentos, sempre com as cartas acima; apostas/fichas usam uma órbita interna separada para evitar sobreposição. Mantém o parser/board corrigido da V5.7.1 e os recursos da V5.8.
-
-Não exige SQL novo.
+- Layout 8-max preservado da V5.8.1.
+- Layout 9-max dedicado com órbita externa maior e mesa menor.
+- Visual polish: feltro com textura/iluminação, borda com profundidade, cartas e fichas mais detalhadas.
+- Sem alteração de banco de dados / SQL.
