@@ -1,10 +1,5 @@
-# Poker Study V5.8 — Mockup Fidelity Pass
+# Poker Study V5.8.1 — Seat Alignment Pass
 
-Refino visual do Replayer com o mockup ICM-style aprovado como fonte de verdade.
+Correção visual focada no Replayer: cartas e informações passam a compartilhar o mesmo eixo em todos os assentos, sempre com as cartas acima; apostas/fichas usam uma órbita interna separada para evitar sobreposição. Mantém o parser/board corrigido da V5.7.1 e os recursos da V5.8.
 
-- Slots individuais para cada assento 8-max e 9-max.
-- Cartas ancoradas na borda da mesa.
-- Informações dos jogadores realmente no anel externo.
-- Pontos de aposta independentes dentro do feltro.
-- Centro reservado para pot, board e marca Poker Study.
-- Sem alterações de banco de dados / SQL.
+Não exige SQL novo.

@@ -254,3 +254,64 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
  .icm-replayer .seat-cards .playing-card,.icm-replayer .seat-cards .card-back{width:42px;height:57px}
  .icm-replayer .seat-info{min-width:112px}
 }
+
+
+/* V5.8.1 — strict seat alignment + isolated betting orbit */
+.icm-replayer .poker-table-wrap{
+  min-height:680px;
+  padding:8px 18px 12px;
+  overflow:hidden;
+}
+.icm-replayer .poker-scene{
+  width:min(1140px,98%);
+  aspect-ratio:1.78/1;
+  overflow:visible;
+}
+.icm-replayer .poker-scene .poker-table{
+  left:18%;right:18%;top:31%;bottom:20%;
+  border-width:12px;
+}
+.icm-replayer .seat-cards,
+.icm-replayer .seat-info{
+  transform:translate(-50%,-50%);
+}
+.icm-replayer .seat-cards{
+  z-index:10;
+}
+.icm-replayer .seat-info{
+  z-index:11;
+  min-width:126px;
+  padding:5px 9px;
+}
+.icm-replayer .seat-cards .mini-cards{
+  gap:5px;
+  align-items:flex-end;
+  justify-content:center;
+}
+.icm-replayer .seat-cards .playing-card,
+.icm-replayer .seat-cards .card-back{
+  width:46px;height:63px;
+}
+.icm-replayer .table-bet{
+  z-index:7;
+  transform:translate(-50%,-50%);
+  min-width:72px;
+  text-align:left;
+}
+.icm-replayer .table-center{
+  left:50%;top:47%;
+  transform:translate(-50%,-50%);
+  z-index:5;
+}
+.icm-replayer .table-felt-mark{
+  top:67%;
+  z-index:2;
+  font-size:25px;
+  color:rgba(0,45,10,.24);
+}
+@media(max-width:1200px){
+  .icm-replayer .poker-table-wrap{min-height:620px}
+  .icm-replayer .poker-scene{min-width:930px}
+  .icm-replayer .seat-cards .playing-card,.icm-replayer .seat-cards .card-back{width:42px;height:57px}
+  .icm-replayer .seat-info{min-width:112px}
+}
