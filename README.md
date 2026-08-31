@@ -1,16 +1,10 @@
-# Poker Study V5.6 — Replayer Layout Rewrite
+# Poker Study V5.7 — Mockup Fidelity Pass
 
-Rebuild visual do Replayer usando o mockup ICM-style como referência.
+Refino visual do Replayer com o mockup ICM-style aprovado como fonte de verdade.
 
-## V5.6
-- Mesa agora é uma área central independente.
-- Cartas ficam sobre/encostadas na borda do feltro.
-- Posição + stack em BB/fichas ficam realmente fora da mesa.
-- Apostas/fichas ficam dentro do feltro em pontos próprios.
-- Board, pot e marca POKER STUDY usam zonas separadas no centro.
-- Removidos balões de ação sobre a mesa para reduzir poluição visual.
-- Hero permanece na posição inferior do replayer.
-- Mantidos Equilab, torneios salvos, mãos conhecidas, timeline e navegação entre mãos.
-- Corrigidos labels de versão para V5.6.
-
-Nenhuma migration SQL nova é necessária.
+- Slots individuais para cada assento 8-max e 9-max.
+- Cartas ancoradas na borda da mesa.
+- Informações dos jogadores realmente no anel externo.
+- Pontos de aposta independentes dentro do feltro.
+- Centro reservado para pot, board e marca Poker Study.
+- Sem alterações de banco de dados / SQL.

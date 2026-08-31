@@ -209,3 +209,18 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
   .icm-replayer .poker-table-wrap{min-height:500px;overflow:auto}
   .icm-replayer .poker-scene{min-width:760px}
 }
+
+
+/* V5.7 — Mockup fidelity pass */
+.icm-replayer .poker-table-wrap{min-height:650px;padding:8px 10px 4px;overflow:hidden}
+.icm-replayer .poker-scene{width:min(1120px,98%);aspect-ratio:1.72/1;margin:0 auto}
+.icm-replayer .poker-scene .poker-table{left:14%;right:14%;top:27%;bottom:23%;border-width:12px}
+.icm-replayer .seat-cards{transform:translate(-50%,-50%)}
+.icm-replayer .seat-info{transform:translate(-50%,-50%);min-width:126px;padding:5px 9px}
+.icm-replayer .seat-cards .playing-card,.icm-replayer .seat-cards .card-back{width:44px;height:60px}
+.icm-replayer .table-center{left:50%;top:45%;transform:translate(-50%,-50%)}
+.icm-replayer .pot-display{margin-bottom:13px}
+.icm-replayer .board-cards{min-height:64px}
+.icm-replayer .table-felt-mark{top:64%;font-size:24px;opacity:.62}
+.icm-replayer .table-bet{transform:translate(-50%,-50%)}
+@media(max-width:1200px){.icm-replayer .poker-table-wrap{min-height:590px}.icm-replayer .poker-scene{min-width:900px}.icm-replayer .seat-cards .playing-card,.icm-replayer .seat-cards .card-back{width:40px;height:55px}}

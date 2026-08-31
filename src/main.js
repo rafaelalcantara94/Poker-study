@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.6 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -27,12 +27,12 @@ function loginView(){
   forgot.onclick=()=>forgotPasswordView(email.value.trim())
 }
 function forgotPasswordView(prefill=''){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.6 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
   backLogin.onclick=loginView
   sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail.'}
 }
 function newPasswordView(){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.6 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
   savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},600)}
 }
 
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.6 • REPLAYER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.7 • REPLAYER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -209,26 +209,39 @@ function replayHandListHtml(list,selected){
   return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
-  // V5.6: players live in an outer scene, not inside the felt. HERO is always at 6 o'clock.
+  // V5.7: fixed ICM-style slots. Cards hug the rim; player info lives in the outer ring.
   const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat)
   const heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero))
   const idx=Math.max(0,ordered.findIndex(x=>x.name===p.name))
-  const rel=(idx-heroIndex+ordered.length)%ordered.length
-  const angle=(90+(360/ordered.length)*rel)*Math.PI/180
-  return {left:50+39*Math.cos(angle),top:50+29*Math.sin(angle),angle}
+  const rel=(idx-heroIndex+ordered.length)%ordered.length,n=ordered.length
+  const slots8=[
+    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:66},
+    {left:29,top:70,infoLeft:22,infoTop:82,betLeft:34,betTop:63},
+    {left:14,top:52,infoLeft:5.5,infoTop:52,betLeft:28,betTop:52},
+    {left:28,top:29,infoLeft:24,infoTop:15,betLeft:35,betTop:38},
+    {left:50,top:24,infoLeft:50,infoTop:10.5,betLeft:50,betTop:36},
+    {left:72,top:29,infoLeft:76,infoTop:15,betLeft:65,betTop:38},
+    {left:86,top:52,infoLeft:94.5,infoTop:52,betLeft:72,betTop:52},
+    {left:71,top:70,infoLeft:78,infoTop:82,betLeft:66,betTop:63}
+  ]
+  const slots9=[
+    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:66},
+    {left:30,top:72,infoLeft:23,infoTop:84,betLeft:35,betTop:64},
+    {left:14,top:58,infoLeft:5.5,infoTop:60,betLeft:28,betTop:56},
+    {left:18,top:37,infoLeft:9,infoTop:30,betLeft:30,betTop:42},
+    {left:38,top:25,infoLeft:36,infoTop:10.5,betLeft:41,betTop:36},
+    {left:62,top:25,infoLeft:64,infoTop:10.5,betLeft:59,betTop:36},
+    {left:82,top:37,infoLeft:91,infoTop:30,betLeft:70,betTop:42},
+    {left:86,top:58,infoLeft:94.5,infoTop:60,betLeft:72,betTop:56},
+    {left:70,top:72,infoLeft:77,infoTop:84,betLeft:65,betTop:64}
+  ]
+  if(n===8)return {...slots8[rel],rel}
+  if(n===9)return {...slots9[rel],rel}
+  const angle=(90+(360/n)*rel)*Math.PI/180,dx=Math.cos(angle),dy=Math.sin(angle)
+  return {left:50+37*dx,top:50+27*dy,infoLeft:50+47*dx,infoTop:50+40*dy,betLeft:50+23*dx,betTop:50+17*dy,rel}
 }
-function replayBetCoords(left,top){
-  // Betting points stay well inside the felt on the ray toward the centre.
-  const dx=left-50,dy=top-50
-  return {left:50+dx*.62,top:50+dy*.62}
-}
-function replayInfoCoords(left,top){
-  // Information plaques are intentionally outside the felt, while cards overlap its rim.
-  const dx=left-50,dy=top-50,ax=Math.abs(dx),ay=Math.abs(dy)
-  const sx=ax>ay?1.24:1.10
-  const sy=ay>=ax?1.48:1.24
-  return {left:50+dx*sx,top:50+dy*sy}
-}
+function replayBetCoords(pos){return {left:pos.betLeft,top:pos.betTop}}
+function replayInfoCoords(pos){return {left:pos.infoLeft,top:pos.infoTop}}
 function adjacentReplayHand(direction){
   const hs=replayState.hands||[];if(!hs.length||!replayState.selected)return null
   const i=hs.findIndex(x=>x.handId===replayState.selected.handId);if(i<0)return null
@@ -245,8 +258,8 @@ function replayStageHtml(h){
   const st=computeReplayState(h,replayState.step),step=h.steps[replayState.step],max=Math.max(0,h.steps.length-1),heroSeat=h.seats.find(x=>x.name===h.hero),heroPos=h.positionMap[h.hero]||'',heroBb=h.bb&&heroSeat?heroSeat.stack/h.bb:0
   const currentPlayer=step?.kind==='action'?step.player:''
   const seats=h.seats.map(p=>{
-    const {left,top}=replayPlayerCoords(h,p),ps=st.players[p.name]||{},known=knownOpponentCards(h,p.name),cards=p.name===h.hero?h.heroCards:(replayState.showOpponentCards?known:(ps.cards||[])),pos=h.positionMap[p.name]||`Seat ${p.seat}`,stackBb=h.bb?ps.stack/h.bb:0,bet=st.streetContrib[p.name]||0
-    const bp=replayBetCoords(left,top),ip=replayInfoCoords(left,top),action=currentPlayer===p.name?replayActionLabel(step,h):''
+    const coords=replayPlayerCoords(h,p),{left,top}=coords,ps=st.players[p.name]||{},known=knownOpponentCards(h,p.name),cards=p.name===h.hero?h.heroCards:(replayState.showOpponentCards?known:(ps.cards||[])),pos=h.positionMap[p.name]||`Seat ${p.seat}`,stackBb=h.bb?ps.stack/h.bb:0,bet=st.streetContrib[p.name]||0
+    const bp=replayBetCoords(coords),ip=replayInfoCoords(coords),action=currentPlayer===p.name?replayActionLabel(step,h):''
     const classes=`${ps.folded?'folded':''} ${p.name===h.hero?'hero':''} ${currentPlayer===p.name?'acting':''}`
     return `<div class="seat-cards ${classes}" style="left:${left}%;top:${top}%"><div class="mini-cards">${cards.length?cards.map(cardHtml).join(''):'<span class="card-back">?</span><span class="card-back">?</span>'}</div></div><div class="seat-info ${classes}" style="left:${ip.left}%;top:${ip.top}%"><b>${esc(pos)}${p.name===h.hero?' · HERO':''}</b><span>${stackBb.toFixed(1)}bb (${fmtFullChips(ps.stack)})</span></div>${bet>0?`<div class="table-bet" style="left:${bp.left}%;top:${bp.top}%"><span class="chip-stack"><i></i><i></i><i></i></span><b>${fmtChips(bet)}</b><small>${h.bb?(bet/h.bb).toFixed(1)+'bb':''}</small></div>`:''}`
   }).join('')
