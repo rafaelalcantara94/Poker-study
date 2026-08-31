@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7.1 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -27,12 +27,12 @@ function loginView(){
   forgot.onclick=()=>forgotPasswordView(email.value.trim())
 }
 function forgotPasswordView(prefill=''){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7.1 • RECUPERAÇÃO</small></div><h1>Recuperar senha</h1><p class="muted">Digite seu e-mail para receber um link de recuperação.</p><input id="resetEmail" type="email" value="${esc(prefill)}" placeholder="E-mail"><button class="btn" id="sendReset">Enviar link</button><button class="btn secondary" id="backLogin">Voltar</button><p id="resetMsg" class="muted"></p></div></main>`
   backLogin.onclick=loginView
   sendReset.onclick=async()=>{const e=resetEmail.value.trim();if(!e)return resetMsg.textContent='Digite seu e-mail.';sendReset.disabled=true;resetMsg.textContent='Enviando...';const {error}=await supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin});sendReset.disabled=false;resetMsg.textContent=error?error.message:'Pronto! Verifique seu e-mail.'}
 }
 function newPasswordView(){
-  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
+  app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7.1 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
   savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},600)}
 }
 
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.7 • REPLAYER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.7.1 • REPLAYER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -173,10 +173,9 @@ function parseGgHand(block){
       else {steps.push(a);if(streetActions[street])streetActions[street].push(line)}
     }
   }
-  // Street markers update board/state but are not counted as replay actions.
-  let streetNow='preflop',boardNow=[];const clean=[]
-  for(const x of steps){if(x.kind==='street'){streetNow=x.street;boardNow=[...(x.board||[])];continue}clean.push({...x,street:streetNow,boardAtAction:[...boardNow]})}
-  steps=clean
+  // Keep street transitions as visual replay events so the board can be dealt
+  // street by street (especially when players are all-in pre-flop). They are
+  // replayed, but are not counted as player actions in the UI.
   const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,]+)/),finalPot=potm?+potm[1].replace(/,/g,''):0
   const positionMap=derivePositions(seats,buttonSeat)
   return {handId,tournamentId,tournamentName,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,raw:block}
@@ -209,7 +208,7 @@ function replayHandListHtml(list,selected){
   return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
-  // V5.7: fixed ICM-style slots. Cards hug the rim; player info lives in the outer ring.
+  // V5.7.1: fixed ICM-style slots. Cards hug the rim; player info lives in the outer ring.
   const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat)
   const heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero))
   const idx=Math.max(0,ordered.findIndex(x=>x.name===p.name))
@@ -251,11 +250,20 @@ function adjacentReplayHand(direction){
 function replayTimelineHtml(h){
   const groups=['preflop','flop','turn','river','showdown']
   const labels={preflop:'PRÉ-FLOP',flop:'FLOP',turn:'TURN',river:'RIVER',showdown:'SHOWDOWN'}
-  return `<div class="replay-timeline">${groups.map(group=>{const acts=h.steps.map((x,i)=>({x,i,group:['show','collect'].includes(x.type)?'showdown':x.street})).filter(o=>o.group===group);if(!acts.length)return '';return `<section><b>${labels[group]}</b><div>${acts.map(({x,i})=>{const pos=h.positionMap[x.player]||'',lab=replayActionLabel(x,h);return `<button class="timeline-action ${i===replayState.step?'current':''} type-${x.type}" data-replay-step="${i}"><small>${esc(pos)}</small><strong>${esc(lab)}</strong></button>`}).join('')}</div></section>`}).join('')}</div>`
+  return `<div class="replay-timeline">${groups.map(group=>{const acts=h.steps.map((x,i)=>({x,i,group:['show','collect'].includes(x.type)?'showdown':x.street})).filter(o=>o.x.kind==='action'&&o.group===group);if(!acts.length)return '';return `<section><b>${labels[group]}</b><div>${acts.map(({x,i})=>{const pos=h.positionMap[x.player]||'',lab=replayActionLabel(x,h);return `<button class="timeline-action ${i===replayState.step?'current':''} type-${x.type}" data-replay-step="${i}"><small>${esc(pos)}</small><strong>${esc(lab)}</strong></button>`}).join('')}</div></section>`}).join('')}</div>`
 }
+function replayActionProgress(h,stepIndex){
+  const actionIndexes=h.steps.map((x,i)=>x.kind==='action'?i:-1).filter(i=>i>=0)
+  const total=actionIndexes.length
+  const current=h.steps[stepIndex]
+  if(current?.kind==='street')return {small:(current.label||current.street||'Street').toUpperCase(),text:current.street==='preflop'?'Início da mão':`*** ${(current.label||current.street).toUpperCase()} ***`}
+  const n=actionIndexes.filter(i=>i<=stepIndex).length
+  return {small:`Ação ${Math.max(1,n)} de ${total}`,text:current?replayActionText(current,h):'Início da mão'}
+}
+function firstReplayActionIndex(h){const i=h.steps.findIndex(x=>x.kind==='action');return i>=0?i:0}
 function replayStageHtml(h){
   if(!h)return '<div class="panel">Selecione uma mão.</div>'
-  const st=computeReplayState(h,replayState.step),step=h.steps[replayState.step],max=Math.max(0,h.steps.length-1),heroSeat=h.seats.find(x=>x.name===h.hero),heroPos=h.positionMap[h.hero]||'',heroBb=h.bb&&heroSeat?heroSeat.stack/h.bb:0
+  const st=computeReplayState(h,replayState.step),step=h.steps[replayState.step],max=Math.max(0,h.steps.length-1),heroSeat=h.seats.find(x=>x.name===h.hero),heroPos=h.positionMap[h.hero]||'',heroBb=h.bb&&heroSeat?heroSeat.stack/h.bb:0,progress=replayActionProgress(h,replayState.step)
   const currentPlayer=step?.kind==='action'?step.player:''
   const seats=h.seats.map(p=>{
     const coords=replayPlayerCoords(h,p),{left,top}=coords,ps=st.players[p.name]||{},known=knownOpponentCards(h,p.name),cards=p.name===h.hero?h.heroCards:(replayState.showOpponentCards?known:(ps.cards||[])),pos=h.positionMap[p.name]||`Seat ${p.seat}`,stackBb=h.bb?ps.stack/h.bb:0,bet=st.streetContrib[p.name]||0
@@ -264,7 +272,7 @@ function replayStageHtml(h){
     return `<div class="seat-cards ${classes}" style="left:${left}%;top:${top}%"><div class="mini-cards">${cards.length?cards.map(cardHtml).join(''):'<span class="card-back">?</span><span class="card-back">?</span>'}</div></div><div class="seat-info ${classes}" style="left:${ip.left}%;top:${ip.top}%"><b>${esc(pos)}${p.name===h.hero?' · HERO':''}</b><span>${stackBb.toFixed(1)}bb (${fmtFullChips(ps.stack)})</span></div>${bet>0?`<div class="table-bet" style="left:${bp.left}%;top:${bp.top}%"><span class="chip-stack"><i></i><i></i><i></i></span><b>${fmtChips(bet)}</b><small>${h.bb?(bet/h.bb).toFixed(1)+'bb':''}</small></div>`:''}`
   }).join('')
   const potBb=h.bb?st.pot/h.bb:0
-  return `<div class="panel replay-stage-panel icm-replayer"><div class="replay-head"><div><h2>${esc(h.heroCards.join(' '))} · ${esc(heroPos)} · ${heroBb.toFixed(1)}bb</h2><div class="muted">${esc(h.tournamentName)} · ${esc(h.blindText)} · ${esc(h.dateTime)}</div></div><div class="replay-head-actions"><button class="btn secondary" id="saveReplayTournament">💾 Salvar torneio</button><button class="btn secondary" id="toggleOpponentCards">${replayState.showOpponentCards?'🙈 Esconder mãos':'👁 Mostrar mãos conhecidas'}</button><button class="btn secondary" id="toggleEquilab">▦ Equilab</button><button class="btn" id="saveReplayHand">Salvar mão</button></div></div><div class="replay-main ${replayState.equilabOpen?'with-equilab':''}"><div class="replay-table-column"><div class="poker-table-wrap"><div class="poker-scene"><div class="poker-table"><div class="table-felt-mark">POKER STUDY</div><div class="table-center"><div class="pot-display"><span>POT</span><b>${fmtChips(st.pot)}</b><small>${potBb.toFixed(1)}bb</small></div><div class="board-cards">${st.board.length?st.board.map(cardHtml).join(''):'<span class="board-placeholder"></span>'.repeat(5)}</div></div></div>${seats}</div></div><div class="replay-controlbar"><div class="current-action"><small>Ação ${Math.min(replayState.step+1,h.steps.length)} de ${h.steps.length}</small><strong>${step?esc(replayActionText(step,h)):'Início da mão'}</strong></div><div class="replay-controls"><button class="btn secondary" id="replayFirst" title="Mão anterior">⏮</button><button class="btn secondary" id="replayPrev">◀ Anterior</button><button class="btn" id="replayPlay">${replayState.playing?'⏸ Pausar':'▶ Play'}</button><button class="btn secondary" id="replayNext">Próxima ▶</button><button class="btn secondary" id="replayLast" title="Próxima mão">⏭</button><label class="speed-control">Velocidade <select id="replaySpeed">${[1,1.5,2,3].map(v=>`<option value="${v}" ${replayState.speed===v?'selected':''}>${String(v).replace('.',',')}x</option>`).join('')}</select></label><input id="replayRange" type="range" min="0" max="${max}" value="${Math.min(replayState.step,max)}"></div></div>${replayTimelineHtml(h)}<details class="raw-actions"><summary>Ações da mão</summary>${h.steps.map((x,i)=>`<div class="raw-action ${i===replayState.step?'current':''}">${i+1}. ${esc(replayActionText(x,h))}</div>`).join('')}</details></div>${replayState.equilabOpen?equilabHtml(h,st):''}</div></div>`
+  return `<div class="panel replay-stage-panel icm-replayer"><div class="replay-head"><div><h2>${esc(h.heroCards.join(' '))} · ${esc(heroPos)} · ${heroBb.toFixed(1)}bb</h2><div class="muted">${esc(h.tournamentName)} · ${esc(h.blindText)} · ${esc(h.dateTime)}</div></div><div class="replay-head-actions"><button class="btn secondary" id="saveReplayTournament">💾 Salvar torneio</button><button class="btn secondary" id="toggleOpponentCards">${replayState.showOpponentCards?'🙈 Esconder mãos':'👁 Mostrar mãos conhecidas'}</button><button class="btn secondary" id="toggleEquilab">▦ Equilab</button><button class="btn" id="saveReplayHand">Salvar mão</button></div></div><div class="replay-main ${replayState.equilabOpen?'with-equilab':''}"><div class="replay-table-column"><div class="poker-table-wrap"><div class="poker-scene"><div class="poker-table"><div class="table-felt-mark">POKER STUDY</div><div class="table-center"><div class="pot-display"><span>POT</span><b>${fmtChips(st.pot)}</b><small>${potBb.toFixed(1)}bb</small></div><div class="board-cards">${st.board.length?st.board.map(cardHtml).join(''):'<span class="board-placeholder"></span>'.repeat(5)}</div></div></div>${seats}</div></div><div class="replay-controlbar"><div class="current-action"><small>${esc(progress.small)}</small><strong>${esc(progress.text)}</strong></div><div class="replay-controls"><button class="btn secondary" id="replayFirst" title="Mão anterior">⏮</button><button class="btn secondary" id="replayPrev">◀ Anterior</button><button class="btn" id="replayPlay">${replayState.playing?'⏸ Pausar':'▶ Play'}</button><button class="btn secondary" id="replayNext">Próxima ▶</button><button class="btn secondary" id="replayLast" title="Próxima mão">⏭</button><label class="speed-control">Velocidade <select id="replaySpeed">${[1,1.5,2,3].map(v=>`<option value="${v}" ${replayState.speed===v?'selected':''}>${String(v).replace('.',',')}x</option>`).join('')}</select></label><input id="replayRange" type="range" min="0" max="${max}" value="${Math.min(replayState.step,max)}"></div></div>${replayTimelineHtml(h)}<details class="raw-actions"><summary>Ações da mão</summary>${h.steps.map((x,i)=>`<div class="raw-action ${i===replayState.step?'current':''}">${x.kind==='street'?esc('*** '+(x.label||x.street).toUpperCase()+' ***'):esc(replayActionText(x,h))}</div>`).join('')}</details></div>${replayState.equilabOpen?equilabHtml(h,st):''}</div></div>`
 }
 function knownOpponentCards(h,name){
   if(name===h.hero)return h.heroCards||[]
@@ -345,7 +353,7 @@ function fmtFullChips(n){return Math.max(0,Math.round(+n||0)).toLocaleString('pt
 function cardHtml(c){const m=String(c).match(/^([2-9TJQKA])([cdhs])$/);if(!m)return `<span class="playing-card">${esc(c)}</span>`;const suit={c:'♣',d:'♦',h:'♥',s:'♠'}[m[2]];return `<span class="playing-card suit-${m[2]}"><span class="card-rank">${m[1]}</span><span class="card-suit">${suit}</span></span>`}
 let replayTimer=null
 function stopReplay(){if(replayTimer){clearInterval(replayTimer);replayTimer=null}replayState.playing=false}
-function selectReplayHand(id){const h=replayState.hands.find(x=>x.handId===id);if(!h)return;stopReplay();replayState.selected=h;replayState.step=0;document.getElementById('replayStage').innerHTML=replayStageHtml(h);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.classList.toggle('active',b.dataset.replayHand===id));bindReplayStage()}
+function selectReplayHand(id){const h=replayState.hands.find(x=>x.handId===id);if(!h)return;stopReplay();replayState.selected=h;replayState.step=firstReplayActionIndex(h);document.getElementById('replayStage').innerHTML=replayStageHtml(h);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.classList.toggle('active',b.dataset.replayHand===id));bindReplayStage()}
 function bindReplayStage(){
   const h=replayState.selected;if(!h)return
   const rerender=()=>{const el=document.getElementById('replayStage');if(!el)return;el.innerHTML=replayStageHtml(h);bindReplayStage()};document.querySelectorAll('[data-replay-step]').forEach(b=>b.onclick=()=>{stopReplay();replayState.step=+b.dataset.replayStep;rerender()})

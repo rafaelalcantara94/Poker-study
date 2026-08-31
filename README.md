@@ -1,4 +1,4 @@
-# Poker Study V5.7 — Mockup Fidelity Pass
+# Poker Study V5.7.1 — Mockup Fidelity Pass
 
 Refino visual do Replayer com o mockup ICM-style aprovado como fonte de verdade.
 
