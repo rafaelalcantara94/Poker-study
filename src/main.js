@@ -17,7 +17,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7.1 • REPLAYER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.8 • REPLAYER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -47,7 +47,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.7.1 • REPLAYER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V5.8 • REPLAYER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -208,36 +208,37 @@ function replayHandListHtml(list,selected){
   return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')}</b><span>${esc(pos)} · ${stack||'?'}bb</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
-  // V5.7.1: fixed ICM-style slots. Cards hug the rim; player info lives in the outer ring.
+  // V5.8: fixed composition copied from the approved mockup: cards on the rim,
+  // compact info immediately outside the felt, and bets projected inward.
   const ordered=[...h.seats].sort((a,b)=>a.seat-b.seat)
   const heroIndex=Math.max(0,ordered.findIndex(x=>x.name===h.hero))
   const idx=Math.max(0,ordered.findIndex(x=>x.name===p.name))
   const rel=(idx-heroIndex+ordered.length)%ordered.length,n=ordered.length
   const slots8=[
-    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:66},
-    {left:29,top:70,infoLeft:22,infoTop:82,betLeft:34,betTop:63},
-    {left:14,top:52,infoLeft:5.5,infoTop:52,betLeft:28,betTop:52},
-    {left:28,top:29,infoLeft:24,infoTop:15,betLeft:35,betTop:38},
-    {left:50,top:24,infoLeft:50,infoTop:10.5,betLeft:50,betTop:36},
-    {left:72,top:29,infoLeft:76,infoTop:15,betLeft:65,betTop:38},
-    {left:86,top:52,infoLeft:94.5,infoTop:52,betLeft:72,betTop:52},
-    {left:71,top:70,infoLeft:78,infoTop:82,betLeft:66,betTop:63}
+    {left:50,top:75,infoLeft:50,infoTop:88,betLeft:50,betTop:64},
+    {left:31,top:70,infoLeft:27,infoTop:82,betLeft:36,betTop:62},
+    {left:13,top:52,infoLeft:10,infoTop:64,betLeft:29,betTop:52},
+    {left:27,top:27,infoLeft:27,infoTop:39,betLeft:36,betTop:39},
+    {left:47,top:20,infoLeft:47,infoTop:32,betLeft:47,betTop:37},
+    {left:67,top:23,infoLeft:67,infoTop:35,betLeft:63,betTop:39},
+    {left:87,top:43,infoLeft:90,infoTop:55,betLeft:72,betTop:47},
+    {left:76,top:69,infoLeft:76,infoTop:81,betLeft:66,betTop:61}
   ]
   const slots9=[
-    {left:50,top:76,infoLeft:50,infoTop:89,betLeft:50,betTop:66},
-    {left:30,top:72,infoLeft:23,infoTop:84,betLeft:35,betTop:64},
-    {left:14,top:58,infoLeft:5.5,infoTop:60,betLeft:28,betTop:56},
-    {left:18,top:37,infoLeft:9,infoTop:30,betLeft:30,betTop:42},
-    {left:38,top:25,infoLeft:36,infoTop:10.5,betLeft:41,betTop:36},
-    {left:62,top:25,infoLeft:64,infoTop:10.5,betLeft:59,betTop:36},
-    {left:82,top:37,infoLeft:91,infoTop:30,betLeft:70,betTop:42},
-    {left:86,top:58,infoLeft:94.5,infoTop:60,betLeft:72,betTop:56},
-    {left:70,top:72,infoLeft:77,infoTop:84,betLeft:65,betTop:64}
+    {left:50,top:75,infoLeft:50,infoTop:88,betLeft:50,betTop:64},
+    {left:32,top:71,infoLeft:27,infoTop:83,betLeft:37,betTop:63},
+    {left:14,top:58,infoLeft:9,infoTop:68,betLeft:29,betTop:56},
+    {left:14,top:39,infoLeft:9,infoTop:30,betLeft:29,betTop:43},
+    {left:34,top:23,infoLeft:34,infoTop:35,betLeft:40,betTop:38},
+    {left:56,top:19,infoLeft:56,infoTop:31,betLeft:56,betTop:37},
+    {left:76,top:28,infoLeft:76,infoTop:40,betLeft:67,betTop:40},
+    {left:88,top:48,infoLeft:92,infoTop:59,betLeft:72,betTop:50},
+    {left:76,top:69,infoLeft:78,infoTop:81,betLeft:66,betTop:61}
   ]
   if(n===8)return {...slots8[rel],rel}
   if(n===9)return {...slots9[rel],rel}
   const angle=(90+(360/n)*rel)*Math.PI/180,dx=Math.cos(angle),dy=Math.sin(angle)
-  return {left:50+37*dx,top:50+27*dy,infoLeft:50+47*dx,infoTop:50+40*dy,betLeft:50+23*dx,betTop:50+17*dy,rel}
+  return {left:50+39*dx,top:50+30*dy,infoLeft:50+47*dx,infoTop:50+40*dy,betLeft:50+25*dx,betTop:50+18*dy,rel}
 }
 function replayBetCoords(pos){return {left:pos.betLeft,top:pos.betTop}}
 function replayInfoCoords(pos){return {left:pos.infoLeft,top:pos.infoTop}}
