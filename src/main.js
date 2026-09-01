@@ -18,7 +18,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.0 • HH STATS</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.0.1 • HH STATS</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -48,7 +48,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.0 • HH STATS</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.0.1 • HH STATS</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -153,7 +153,7 @@ function heroHandFacts(h){
 }
 function aggregateHhStats(facts){const n=facts.length,sum=k=>facts.filter(x=>x[k]).length,rate=(a,b)=>b?100*a/b:0;const bb=facts.reduce((a,x)=>a+x.netBb,0);return {hands:n,vpip:rate(sum('vpip'),n),pfr:rate(sum('pfr'),n),threeBet:rate(sum('threeBet'),n),fold3:rate(sum('foldTo3bet'),sum('faced3bet')),cbet:rate(sum('cbet'),sum('cbetOpp')),xr:rate(sum('xr'),sum('xrOpp')),wtsd:rate(sum('wentShowdown'),sum('sawFlop')),wsd:rate(facts.filter(x=>x.wentShowdown&&x.won).length,sum('wentShowdown')),wwsf:rate(facts.filter(x=>x.sawFlop&&x.won).length,sum('sawFlop')),bb100:n?bb/n*100:0,totalBb:bb}}
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">BETA</span></h2><p class="muted">Importe vários arquivos GG .txt. Os dados ficam neste navegador e são deduplicados pelo Hand ID.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple><button class="btn" id="importHhStats">Importar HH</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">BETA</span></h2><p class="muted">Importe vários arquivos GG .txt de uma vez ou selecione a pasta inteira de Hand Histories. Os dados ficam neste navegador e são deduplicados pelo Hand ID.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">Você pode usar Ctrl+A na seleção de arquivos ou escolher diretamente a pasta da GG.</div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhStatsViewHtml(facts){const s=aggregateHhStats(facts);if(!facts.length)return `<div class="panel"><p class="muted">Nenhuma HH importada para o tracker ainda.</p></div>`;const positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB'];const rows=positions.map(pos=>{const a=facts.filter(x=>x.position===pos);if(!a.length)return '';const z=aggregateHhStats(a);return `<tr><td><b>${pos}</b></td><td>${a.length}</td><td>${z.vpip.toFixed(1)}%</td><td>${z.pfr.toFixed(1)}%</td><td>${z.threeBet.toFixed(1)}%</td><td>${z.cbet.toFixed(1)}%</td><td>${z.xr.toFixed(1)}%</td><td class="${z.bb100>=0?'good':'bad'}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</td></tr>`}).join('');return `<div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%')}${statCard('PFR',s.pfr.toFixed(1)+'%')}${statCard('3Bet',s.threeBet.toFixed(1)+'%')}${statCard('Fold to 3Bet',s.fold3.toFixed(1)+'%')}${statCard('C-Bet Flop',s.cbet.toFixed(1)+'%')}${statCard('Check-Raise',s.xr.toFixed(1)+'%')}${statCard('WTSD',s.wtsd.toFixed(1)+'%')}${statCard('W$SD',s.wsd.toFixed(1)+'%')}${statCard('WWSF',s.wwsf.toFixed(1)+'%')}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'não é All-in EV')}</div><div class="panel"><h2>Por posição</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Mãos</th><th>VPIP</th><th>PFR</th><th>3Bet</th><th>CBet F</th><th>XR</th><th>bb/100</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="notice"><b>Sobre EV:</b> esta primeira versão mostra chip bb/100 calculado pelas fichas ganhas/perdidas nas HH. All-in Adjusted EV/EVbb/100 exige cálculo de equidade nos all-ins e será um módulo separado para não exibir uma estatística falsa.</div>`}
 async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];const el=document.getElementById('hhStatsView');if(el)el.innerHTML=hhStatsViewHtml(hhStatsCache)}
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
@@ -524,7 +524,34 @@ function bindPage(p){
     renderSavedReplays(loadText)
     if(replayState.hands.length){document.querySelectorAll('[data-replay-hand]').forEach(b=>b.onclick=()=>selectReplayHand(b.dataset.replayHand));replaySearch.oninput=()=>{const q=replaySearch.value.trim().toLowerCase(),a=replayState.hands.filter(h=>[h.handId,h.heroCards.join(' '),h.dateTime,h.positionMap[h.hero],h.tournamentName].some(v=>String(v||'').toLowerCase().includes(q)));replayHandList.innerHTML=replayHandListHtml(a,replayState.selected);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.onclick=()=>selectReplayHand(b.dataset.replayHand))};bindReplayStage()}
   }
-  if(p==='hhstats'){refreshHhStats();importHhStats.onclick=async()=>{const fs=[...hhStatsFiles.files];if(!fs.length)return alert('Selecione um ou mais arquivos .txt.');importHhStats.disabled=true;let total=0;for(const f of fs){const text=await f.text(),hands=parseGgHistory(text);if(!hands.length)continue;total+=hands.length;await saveHhStatsImport({id:f.name+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:f.name,importedAt:new Date().toISOString(),hands})}hhStatsStatus.textContent=`${total} mãos lidas. Duplicatas por Hand ID são ignoradas nas estatísticas.`;importHhStats.disabled=false;await refreshHhStats()};clearHhStats.onclick=async()=>{if(!confirm('Limpar todas as HH salvas no tracker deste navegador?'))return;await clearHhStatsImports();hhStatsStatus.textContent='Banco local limpo.';await refreshHhStats()}}
+  if(p==='hhstats'){
+    refreshHhStats()
+    const setBusy=busy=>{pickHhStatsFiles.disabled=busy;pickHhStatsFolder.disabled=busy;clearHhStats.disabled=busy}
+    const importFiles=async(files,source='arquivos')=>{
+      const fs=[...files].filter(f=>/\.txt$/i.test(f.name)||String(f.type||'').includes('text/plain'))
+      if(!fs.length)return alert('Não encontrei arquivos .txt nessa seleção.')
+      setBusy(true);let total=0,valid=0,ignored=0
+      try{
+        for(let i=0;i<fs.length;i++){
+          const f=fs[i],displayName=f.webkitRelativePath||f.name
+          hhStatsStatus.textContent=`Importando ${source}: ${i+1} de ${fs.length} arquivos... ${total.toLocaleString('pt-BR')} mãos lidas.`
+          const text=await f.text(),hands=parseGgHistory(text)
+          if(!hands.length){ignored++;continue}
+          valid++;total+=hands.length
+          await saveHhStatsImport({id:displayName+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:displayName,importedAt:new Date().toISOString(),hands})
+          if(i%8===0)await new Promise(r=>setTimeout(r,0))
+        }
+        await refreshHhStats()
+        hhStatsStatus.textContent=`Concluído: ${valid} arquivo${valid===1?'':'s'} importado${valid===1?'':'s'}, ${total.toLocaleString('pt-BR')} mãos lidas${ignored?` e ${ignored} arquivo${ignored===1?'':'s'} ignorado${ignored===1?'':'s'}`:''}. Duplicatas por Hand ID continuam sendo descartadas nas estatísticas.`
+      }catch(e){console.error(e);hhStatsStatus.textContent='Ocorreu um erro durante a importação. Tente novamente.'}
+      finally{setBusy(false);hhStatsFiles.value='';hhStatsFolder.value=''}
+    }
+    pickHhStatsFiles.onclick=()=>hhStatsFiles.click()
+    pickHhStatsFolder.onclick=()=>hhStatsFolder.click()
+    hhStatsFiles.onchange=()=>{if(hhStatsFiles.files.length)importFiles(hhStatsFiles.files,'arquivos selecionados')}
+    hhStatsFolder.onchange=()=>{if(hhStatsFolder.files.length)importFiles(hhStatsFolder.files,'pasta selecionada')}
+    clearHhStats.onclick=async()=>{if(!confirm('Limpar todas as HH salvas no tracker deste navegador?'))return;await clearHhStatsImports();hhStatsStatus.textContent='Banco local limpo.';await refreshHhStats()}
+  }
   if(p==='results')newResult.onclick=resultModal
   if(p==='goals'){newGoal.onclick=goalModal;document.querySelectorAll('[data-progress-goal]').forEach(b=>b.onclick=()=>goalProgress(b.dataset.progressGoal))}
   if(p==='importer'){readCsv.onclick=()=>{const f=csvFile.files[0];if(!f)return alert('Selecione um CSV.');const rd=new FileReader();rd.onload=()=>{const rows=parseCsv(rd.result);if(rows.length<2)return csvMapper.innerHTML='<p class="bad">CSV vazio ou inválido.</p>';csvState={headers:rows[0].map(x=>x.trim()),rows:rows.slice(1)};csvMapper.innerHTML=mappingUi(csvState.headers,csvState.rows);const b=document.getElementById('importCsv');if(b)b.onclick=importCsvRows};rd.readAsText(f)}}
