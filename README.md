@@ -1,4 +1,4 @@
-# Poker Study V6.1.1 — HH Stats Batch Import
+# Poker Study V6.3 — HH Stats V2
 
 Novo módulo **Stats HH (beta)** para importar múltiplas Hand Histories GG e calcular estatísticas do Hero.
 
@@ -29,3 +29,11 @@ As HH do tracker são salvas localmente no IndexedDB do navegador e deduplicadas
 - Filtros de data inicial/final por mão.
 - Auditoria respeita os filtros ativos.
 - Sem alteração de SQL/Supabase.
+
+
+## V6.3 — Stats V2 + integração com Replayer
+- Novos filtros: posição, stack efetivo e número de jogadores, além de modalidade e datas.
+- Auditorias de 3Bet, CBet Flop, Check-Raise e bb/100 respeitam todos os filtros ativos.
+- Dentro da auditoria, o botão **Abrir no Replayer** monta uma sessão somente com as mãos do numerador da stat.
+- O Replayer recebe um cabeçalho com o contexto da sessão e um botão para voltar ao Stats HH.
+- As HH continuam locais no IndexedDB; não é necessário reimportar nem executar SQL.
