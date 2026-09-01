@@ -21,3 +21,11 @@ As HH do tracker são salvas localmente no IndexedDB do navegador e deduplicadas
 - Clique em 3Bet, CBet F, XR e bb/100 por posição para abrir as mãos que compõem a estatística.
 - Exibe Hand ID, data, cartas, stack, ações relevantes e se a mão entrou no numerador.
 - Nenhuma alteração de banco/SQL.
+
+
+## V6.2 — modalidades e filtro de datas
+- HH Stats identifica NL Hold'em, PLO/Omaha, PLO5/Omaha 5 e outros.
+- NL Hold'em é o filtro padrão; Omaha não contamina mais as stats de Hold'em.
+- Filtros de data inicial/final por mão.
+- Auditoria respeita os filtros ativos.
+- Sem alteração de SQL/Supabase.

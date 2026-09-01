@@ -6,6 +6,8 @@ let user = null
 let db = { studies: [], hands: [], results: [], goals: [], tournaments: [] }
 let currentPage = 'dashboard'
 let hhStatsCache = []
+let hhStatsFilteredCache = []
+let hhStatsFilters = { game: 'holdem', start: '', end: '' }
 let recoveryMode = false
 let filters = { days: 30, site: 'all', format: 'all', start:'', end:'', minBuyin:'', maxBuyin:'', excludeSat:false }
 
@@ -18,7 +20,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.1.1 • HH STATS</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.2 • HH STATS</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -48,7 +50,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.1.1 • HH STATS</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.2 • HH STATS</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -138,6 +140,12 @@ function handCards(list){return `<div class="hand-grid">${list.length?list.map(h
 async function hhStatsImports(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readonly'),r=tx.objectStore(HH_STATS_STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
 async function saveHhStatsImport(rec){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
 async function clearHhStatsImports(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
+function detectGameType(h){
+  const text=`${h?.tournamentName||''} ${h?.raw||''}`.toLowerCase(),n=(h?.heroCards||[]).length
+  if(/omaha/.test(text)||n>=4){if(/5\s*card|plo\s*5|omaha\s*5/.test(text)||n>=5)return 'plo5';return 'omaha'}
+  if(/hold.?em/.test(text)||n===2)return 'holdem'
+  return 'other'
+}
 function heroHandFacts(h){
   const hero=h.hero;if(!hero)return null
   const acts=h.steps.filter(x=>x.kind==='action'),pre=acts.filter(x=>x.street==='preflop')
@@ -219,7 +227,7 @@ function heroHandFacts(h){
   const netBb=h.bb?(collected+returned-invested)/h.bb:0
   const pos=h.positionMap[hero]||'',stack=h.bb?((h.seats.find(x=>x.name===hero)?.stack||0)/h.bb):0
   const auditActions=acts.map(x=>({street:x.street,player:x.player,type:x.type,amount:x.amount||0,to:x.to||0}))
-  return {handId:h.handId,date:h.dateTime.slice(0,10),time:h.dateTime,position:pos,stack,players:h.seats.length,heroCards:h.heroCards||[],board:h.board||[],bb:h.bb||0,vpip,pfr,threeBetOpp,threeBet,faced3bet,foldTo3bet,cbetOpp,cbet,xrOppCount,xrCount,sawFlop,wentShowdown,won,netBb,auditActions}
+  return {handId:h.handId,date:h.dateTime.slice(0,10).replace(/\//g,'-'),time:h.dateTime,game:detectGameType(h),position:pos,stack,players:h.seats.length,heroCards:h.heroCards||[],board:h.board||[],bb:h.bb||0,vpip,pfr,threeBetOpp,threeBet,faced3bet,foldTo3bet,cbetOpp,cbet,xrOppCount,xrCount,sawFlop,wentShowdown,won,netBb,auditActions}
 }
 function aggregateHhStats(facts){
   const n=facts.length,bool=k=>facts.filter(x=>x[k]).length,num=k=>facts.reduce((a,x)=>a+(+x[k]||0),0),rate=(a,b)=>b?100*a/b:0
@@ -233,21 +241,45 @@ function aggregateHhStats(facts){
   return {hands:n,counts,vpip:rate(counts.vpip,n),pfr:rate(counts.pfr,n),threeBet:rate(counts.threeBet,counts.threeBetOpp),fold3:rate(counts.fold3,counts.faced3bet),cbet:rate(counts.cbet,counts.cbetOpp),xr:rate(counts.xr,counts.xrOpp),wtsd:rate(counts.wtsd,counts.sawFlop),wsd:rate(counts.wsd,counts.wtsd),wwsf:rate(counts.wwsf,counts.sawFlop),bb100:n?bb/n*100:0,totalBb:bb}
 }
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">AUDITADO</span></h2><p class="muted">Motor V6.1.1: oportunidades e resultados são recalculados diretamente das HH já importadas. 3Bet, Fold to 3Bet, C-Bet e Check-Raise usam denominadores de oportunidade.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente com o motor estatístico V6.1.1.</div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">JOGOS SEPARADOS</span></h2><p class="muted">Motor V6.2: Hold'em e Omaha são identificados automaticamente. Por padrão, as estatísticas exibem somente NL Hold'em.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão classificadas e recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
-function hhStatsViewHtml(facts){
-  const s=aggregateHhStats(facts);if(!facts.length)return `<div class="panel"><p class="muted">Nenhuma HH importada para o tracker ainda.</p></div>`
-  const c=s.counts,positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB']
-  const rows=positions.map(pos=>{const a=facts.filter(x=>x.position===pos);if(!a.length)return '';const z=aggregateHhStats(a),q=z.counts;return `<tr><td><b>${pos}</b></td><td>${a.length.toLocaleString('pt-BR')}</td><td>${z.vpip.toFixed(1)}%</td><td>${z.pfr.toFixed(1)}%</td><td><button class="stat-audit-link" data-audit-metric="3bet" data-audit-pos="${pos}" title="${q.threeBet}/${q.threeBetOpp} oportunidades">${z.threeBet.toFixed(1)}%</button></td><td><button class="stat-audit-link" data-audit-metric="cbet" data-audit-pos="${pos}" title="${q.cbet}/${q.cbetOpp} oportunidades">${z.cbet.toFixed(1)}%</button></td><td><button class="stat-audit-link" data-audit-metric="xr" data-audit-pos="${pos}" title="${q.xr}/${q.xrOpp} oportunidades">${z.xr.toFixed(1)}%</button></td><td><button class="stat-audit-link ${z.bb100>=0?'good':'bad'}" data-audit-metric="bb100" data-audit-pos="${pos}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</button></td></tr>`}).join('')
+function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
+function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
+  const gameCounts=totalFacts.reduce((m,x)=>(m[x.game]=(m[x.game]||0)+1,m),{})
+  if(!facts.length){return `<div class="panel"><h2>Nenhuma mão neste filtro</h2><p class="muted">Existem ${totalFacts.length.toLocaleString('pt-BR')} mãos importadas, mas nenhuma corresponde à modalidade/período selecionados.</p></div>`}
+  const s=aggregateHhStats(facts),c=s.counts,positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB']
+  const rows=positions.map(pos=>{const a=facts.filter(x=>x.position===pos);if(!a.length)return '';const z=aggregateHhStats(a),q=z.counts;return `<tr><td><b>${pos}</b></td><td>${a.length.toLocaleString('pt-BR')}</td><td>${z.vpip.toFixed(1)}%</td><td>${z.pfr.toFixed(1)}%</td><td><button class="stat-audit-link" data-audit-metric="3bet" data-audit-pos="${pos}" title="${q.threeBet}/${q.threeBetOpp} oportunidades">${hhPctDisplay(z.threeBet,q.threeBetOpp)}</button></td><td><button class="stat-audit-link" data-audit-metric="cbet" data-audit-pos="${pos}" title="${q.cbet}/${q.cbetOpp} oportunidades">${hhPctDisplay(z.cbet,q.cbetOpp)}</button></td><td><button class="stat-audit-link" data-audit-metric="xr" data-audit-pos="${pos}" title="${q.xr}/${q.xrOpp} oportunidades">${hhPctDisplay(z.xr,q.xrOpp)}</button></td><td><button class="stat-audit-link ${z.bb100>=0?'good':'bad'}" data-audit-metric="bb100" data-audit-pos="${pos}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</button></td></tr>`}).join('')
   const missingPos=facts.filter(x=>!x.position).length
-  return `<div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${statCard('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${statCard('3Bet',s.threeBet.toFixed(1)+'%',hhRateSub(c.threeBet,c.threeBetOpp))}${statCard('Fold to 3Bet',s.fold3.toFixed(1)+'%',hhRateSub(c.fold3,c.faced3bet))}${statCard('C-Bet Flop',s.cbet.toFixed(1)+'%',hhRateSub(c.cbet,c.cbetOpp))}${statCard('Check-Raise',s.xr.toFixed(1)+'%',hhRateSub(c.xr,c.xrOpp))}${statCard('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${statCard('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'showdowns'))}${statCard('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado em fichas; não é All-in EV')}</div>
-  <div class="panel hh-audit"><h2>Auditoria do motor estatístico</h2><div class="audit-grid"><div><small>3Bet</small><b>${c.threeBet.toLocaleString('pt-BR')}</b><span>em ${c.threeBetOpp.toLocaleString('pt-BR')} oportunidades</span></div><div><small>Fold to 3Bet</small><b>${c.fold3.toLocaleString('pt-BR')}</b><span>em ${c.faced3bet.toLocaleString('pt-BR')} vezes enfrentando 3bet após raise inicial</span></div><div><small>C-Bet Flop</small><b>${c.cbet.toLocaleString('pt-BR')}</b><span>em ${c.cbetOpp.toLocaleString('pt-BR')} oportunidades sem donk antes</span></div><div><small>Check-Raise</small><b>${c.xr.toLocaleString('pt-BR')}</b><span>em ${c.xrOpp.toLocaleString('pt-BR')} checks que enfrentaram aposta</span></div><div><small>Saw Flop</small><b>${c.sawFlop.toLocaleString('pt-BR')}</b><span>Hero ainda ativo ao chegar no flop</span></div><div><small>Posição ausente</small><b>${missingPos.toLocaleString('pt-BR')}</b><span>${missingPos?'mãos para revisar':'nenhuma mão sem posição'}</span></div></div><p class="muted">Clique em 3Bet, CBet F, XR ou bb/100 na tabela por posição para abrir as mãos que formam aquela estatística e auditar a classificação do parser.</p></div>
+  const breakdown=['holdem','omaha','plo5','other'].filter(k=>gameCounts[k]).map(k=>`${hhGameLabel(k)}: ${gameCounts[k].toLocaleString('pt-BR')}`).join(' · ')
+  return `<div class="notice hh-filter-result"><b>${facts.length.toLocaleString('pt-BR')} mãos no filtro atual</b> de ${totalFacts.length.toLocaleString('pt-BR')} importadas. <span class="muted">${breakdown}</span></div>
+  <div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${statCard('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${statCard('3Bet',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp))}${statCard('Fold to 3Bet',hhPctDisplay(s.fold3,c.faced3bet),hhRateSub(c.fold3,c.faced3bet))}${statCard('C-Bet Flop',hhPctDisplay(s.cbet,c.cbetOpp),hhRateSub(c.cbet,c.cbetOpp))}${statCard('Check-Raise',hhPctDisplay(s.xr,c.xrOpp),hhRateSub(c.xr,c.xrOpp))}${statCard('WTSD',hhPctDisplay(s.wtsd,c.sawFlop),hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${statCard('W$SD',hhPctDisplay(s.wsd,c.wtsd),hhRateSub(c.wsd,c.wtsd,'showdowns'))}${statCard('WWSF',hhPctDisplay(s.wwsf,c.sawFlop),hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado em fichas; não é All-in EV')}</div>
+  <div class="panel hh-audit"><h2>Auditoria do motor estatístico</h2><div class="audit-grid"><div><small>3Bet</small><b>${c.threeBet.toLocaleString('pt-BR')}</b><span>em ${c.threeBetOpp.toLocaleString('pt-BR')} oportunidades</span></div><div><small>Fold to 3Bet</small><b>${c.fold3.toLocaleString('pt-BR')}</b><span>em ${c.faced3bet.toLocaleString('pt-BR')} vezes enfrentando 3bet após raise inicial</span></div><div><small>C-Bet Flop</small><b>${c.cbet.toLocaleString('pt-BR')}</b><span>em ${c.cbetOpp.toLocaleString('pt-BR')} oportunidades sem donk antes</span></div><div><small>Check-Raise</small><b>${c.xr.toLocaleString('pt-BR')}</b><span>em ${c.xrOpp.toLocaleString('pt-BR')} checks que enfrentaram aposta</span></div><div><small>Saw Flop</small><b>${c.sawFlop.toLocaleString('pt-BR')}</b><span>Hero ainda ativo ao chegar no flop</span></div><div><small>Posição ausente</small><b>${missingPos.toLocaleString('pt-BR')}</b><span>${missingPos?'mãos para revisar':'nenhuma mão sem posição'}</span></div></div><p class="muted">As auditorias abaixo respeitam os mesmos filtros de modalidade e data aplicados à tela.</p></div>
   <div class="panel"><h2>Por posição</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Mãos</th><th>VPIP</th><th>PFR</th><th>3Bet</th><th>CBet F</th><th>XR</th><th>bb/100</th></tr></thead><tbody>${rows}</tbody></table></div></div>
-  <div class="notice"><b>V6.1.1 — auditoria profunda:</b> Saw Flop agora significa que o Hero realmente chegou ao flop (e não apenas que o board abriu depois de ele foldar); 3Bet/C-Bet/XR usam oportunidades reais; raises no cálculo de bb/100 contam somente fichas adicionais até o valor “to”. <b>EVbb/100 continua propositalmente fora desta versão</b> até implementarmos equidade de all-in.</div>`
+  <div class="notice"><b>V6.2:</b> modalidades agora são separadas automaticamente e o filtro padrão é NL Hold'em. O filtro de datas é aplicado por mão. Quando uma estatística não teve nenhuma oportunidade no recorte, exibimos <b>—</b> em vez de 0,0%. <b>EVbb/100 continua fora desta versão</b> até implementarmos equidade de all-in.</div>`
+}
+function applyHhStatsFilters(){
+  let a=[...hhStatsCache]
+  if(hhStatsFilters.game!=='all')a=a.filter(x=>x.game===hhStatsFilters.game)
+  if(hhStatsFilters.start)a=a.filter(x=>x.date>=hhStatsFilters.start)
+  if(hhStatsFilters.end)a=a.filter(x=>x.date<=hhStatsFilters.end)
+  hhStatsFilteredCache=a
+  const el=document.getElementById('hhStatsView');if(el){el.innerHTML=hhStatsViewHtml(a,hhStatsCache);bindHhAudit()}
+  const sum=document.getElementById('hhFilterSummary');if(sum){const d=hhStatsFilters.start||hhStatsFilters.end?`${hhStatsFilters.start||'início'} até ${hhStatsFilters.end||'hoje'}`:'todas as datas';sum.textContent=`Exibindo ${a.length.toLocaleString('pt-BR')} de ${hhStatsCache.length.toLocaleString('pt-BR')} mãos · ${hhGameLabel(hhStatsFilters.game)} · ${d}.`}
+}
+function bindHhStatsFilters(){
+  const g=document.getElementById('hhGameFilter'),a=document.getElementById('hhDateStart'),b=document.getElementById('hhDateEnd'),clear=document.getElementById('clearHhFilters')
+  if(!g)return
+  g.value=hhStatsFilters.game;a.value=hhStatsFilters.start;b.value=hhStatsFilters.end
+  g.onchange=()=>{hhStatsFilters.game=g.value;applyHhStatsFilters()}
+  a.onchange=()=>{hhStatsFilters.start=a.value;if(hhStatsFilters.end&&a.value>hhStatsFilters.end){hhStatsFilters.end=a.value;b.value=a.value}applyHhStatsFilters()}
+  b.onchange=()=>{hhStatsFilters.end=b.value;if(hhStatsFilters.start&&b.value<hhStatsFilters.start){hhStatsFilters.start=b.value;a.value=b.value}applyHhStatsFilters()}
+  clear.onclick=()=>{hhStatsFilters={game:'holdem',start:'',end:''};g.value='holdem';a.value='';b.value='';applyHhStatsFilters()}
+  applyHhStatsFilters()
 }
 function auditActionText(a){const v=a.to?` to ${a.to.toLocaleString('pt-BR')}`:a.amount?` ${a.amount.toLocaleString('pt-BR')}`:'';return `${a.player}: ${String(a.type).toUpperCase()}${v}`}
 function hhAuditModal(metric,pos){
-  const all=hhStatsCache.filter(x=>x.position===pos)
+  const all=hhStatsFilteredCache.filter(x=>x.position===pos)
   let rows=[],title='',den=0,num=0
   if(metric==='3bet'){rows=all.filter(x=>x.threeBetOpp);den=rows.length;num=rows.filter(x=>x.threeBet).length;title=`${pos} · 3Bet — ${num}/${den} oportunidades`}
   if(metric==='cbet'){rows=all.filter(x=>x.cbetOpp);den=rows.length;num=rows.filter(x=>x.cbet).length;title=`${pos} · C-Bet Flop — ${num}/${den} oportunidades`}
@@ -259,7 +291,7 @@ function hhAuditModal(metric,pos){
   openModal(title,html)
 }
 function bindHhAudit(){document.querySelectorAll('[data-audit-metric]').forEach(b=>b.onclick=()=>hhAuditModal(b.dataset.auditMetric,b.dataset.auditPos))}
-async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];const el=document.getElementById('hhStatsView');if(el){el.innerHTML=hhStatsViewHtml(hhStatsCache);bindHhAudit()}}
+async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];bindHhStatsFilters()}
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
 function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function savedReplayList(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readonly'),r=tx.objectStore(REPLAY_STORE).getAll();r.onsuccess=()=>resolve((r.result||[]).sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||'')));r.onerror=()=>reject(r.error)})}
