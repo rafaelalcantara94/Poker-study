@@ -18,7 +18,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.0.1 • HH STATS</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.1 • HH STATS</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -48,7 +48,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.0.1 • HH STATS</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.1 • HH STATS</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -139,22 +139,111 @@ async function hhStatsImports(){const d=await replayDb();return new Promise((res
 async function saveHhStatsImport(rec){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
 async function clearHhStatsImports(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
 function heroHandFacts(h){
-  const hero=h.hero;if(!hero)return null;const acts=h.steps.filter(x=>x.kind==='action'),pre=acts.filter(x=>x.street==='preflop'),flop=acts.filter(x=>x.street==='flop');
-  const heroPre=pre.filter(x=>x.player===hero),vpip=heroPre.some(x=>['call','bet','raise'].includes(x.type)),pfr=heroPre.some(x=>x.type==='raise');
-  let raisesBefore=0,threeBet=false,heroOpenIndex=-1,faced3bet=false,foldTo3bet=false;
-  pre.forEach((x,i)=>{if(x.type==='raise'){if(x.player===hero&&raisesBefore>=1)threeBet=true;if(x.player===hero&&heroOpenIndex<0)heroOpenIndex=i;raisesBefore++}if(heroOpenIndex>=0&&i>heroOpenIndex&&x.player!==hero&&x.type==='raise')faced3bet=true;if(faced3bet&&x.player===hero&&x.type==='fold')foldTo3bet=true});
-  const lastPfr=[...pre].reverse().find(x=>x.type==='raise')?.player||'';const sawFlop=h.steps.some(x=>x.kind==='street'&&x.street==='flop');
-  let cbetOpp=sawFlop&&lastPfr===hero,cbet=false;if(cbetOpp){const firstAgg=flop.find(x=>['bet','raise'].includes(x.type));cbet=firstAgg?.player===hero&&firstAgg?.type==='bet'}
-  let xrOpp=false,xr=false;for(const st of ['flop','turn','river']){const a=acts.filter(x=>x.street===st);const ci=a.findIndex(x=>x.player===hero&&x.type==='check');if(ci>=0&&a.slice(ci+1).some(x=>x.player!==hero&&x.type==='bet')){xrOpp=true;if(a.slice(ci+1).some(x=>x.player===hero&&x.type==='raise'))xr=true}}
-  const wentShowdown=acts.some(x=>x.player===hero&&x.type==='show'),won=acts.some(x=>x.player===hero&&x.type==='collect');
-  let invested=0,returned=0,collected=0;for(const x of [...h.forcedActions,...acts]){if(x.player!==hero)continue;if(['ante','sb','bb','call','bet'].includes(x.type))invested+=x.amount||0;else if(x.type==='raise')invested+=x.to||x.amount||0;else if(x.type==='return')returned+=x.amount||0;else if(x.type==='collect')collected+=x.amount||0}
-  const netBb=h.bb?(collected+returned-invested)/h.bb:0;const pos=h.positionMap[hero]||'';const stack=h.bb?((h.seats.find(x=>x.name===hero)?.stack||0)/h.bb):0;
-  return {handId:h.handId,date:h.dateTime.slice(0,10),position:pos,stack,players:h.seats.length,vpip,pfr,threeBet,faced3bet,foldTo3bet,cbetOpp,cbet,xrOpp,xr,sawFlop,wentShowdown,won,netBb}
+  const hero=h.hero;if(!hero)return null
+  const acts=h.steps.filter(x=>x.kind==='action'),pre=acts.filter(x=>x.street==='preflop')
+  const heroPre=pre.filter(x=>x.player===hero)
+  const vpip=heroPre.some(x=>['call','bet','raise'].includes(x.type)),pfr=heroPre.some(x=>x.type==='raise')
+
+  // 3Bet: the denominator is an actual opportunity (Hero acts while facing exactly one raise),
+  // not every hand. Fold-to-3Bet only applies when Hero made the first pre-flop raise and then
+  // faced the next raise before his response.
+  let raises=0,threeBetOpp=false,threeBet=false,heroInitialRaiser=false,faced3bet=false,foldTo3bet=false
+  for(let i=0;i<pre.length;i++){
+    const x=pre[i]
+    if(x.player===hero&&['fold','call','raise','check'].includes(x.type)&&raises===1){threeBetOpp=true;if(x.type==='raise')threeBet=true}
+    if(x.type==='raise'){
+      raises++
+      if(raises===1&&x.player===hero)heroInitialRaiser=true
+      else if(raises===2&&heroInitialRaiser&&x.player!==hero)faced3bet=true
+    }
+    if(faced3bet&&x.player===hero&&i>0){
+      if(['fold','call','raise'].includes(x.type)){foldTo3bet=x.type==='fold';break}
+    }
+  }
+
+  const lastPfr=[...pre].reverse().find(x=>x.type==='raise')?.player||''
+  const heroFoldPre=pre.some(x=>x.player===hero&&x.type==='fold')
+  const hasFlop=h.steps.some(x=>x.kind==='street'&&x.street==='flop')
+  const sawFlop=hasFlop&&!heroFoldPre
+
+  // C-bet opportunity: Hero was the final pre-flop aggressor, saw the flop and reached his
+  // first flop decision before any opponent bet/raise. Checks before Hero do not remove the opportunity.
+  const flop=acts.filter(x=>x.street==='flop')
+  let cbetOpp=false,cbet=false
+  if(sawFlop&&lastPfr===hero){
+    const hi=flop.findIndex(x=>x.player===hero)
+    if(hi>=0){
+      const facedLead=flop.slice(0,hi).some(x=>x.player!==hero&&['bet','raise'].includes(x.type))
+      if(!facedLead){cbetOpp=true;cbet=flop[hi].type==='bet'}
+    }
+  }
+
+  // Check-raise opportunities are counted by opportunity, not by hand. After each Hero check,
+  // look only until Hero's next action. A bet in that interval creates one XR opportunity.
+  let xrOppCount=0,xrCount=0
+  for(const st of ['flop','turn','river']){
+    const a=acts.filter(x=>x.street===st)
+    for(let i=0;i<a.length;i++){
+      if(a[i].player!==hero||a[i].type!=='check')continue
+      let betSeen=false,response=null
+      for(let j=i+1;j<a.length;j++){
+        const y=a[j]
+        if(y.player===hero){response=y;break}
+        if(['bet','raise'].includes(y.type))betSeen=true
+      }
+      if(betSeen){xrOppCount++;if(response?.type==='raise')xrCount++}
+    }
+  }
+
+  const wentShowdown=acts.some(x=>x.player===hero&&x.type==='show')
+  const won=acts.some(x=>x.player===hero&&x.type==='collect')
+
+  // Chip result: count only the incremental chips Hero actually puts into the pot. On a raise,
+  // "raises X to Y" means the contribution becomes Y, so adding Y again would double-count chips.
+  let invested=0,returned=0,collected=0,street='preflop',streetContrib=0
+  for(const x of h.forcedActions){
+    if(x.player!==hero)continue
+    if(x.type==='ante')invested+=x.amount||0
+    else if(['sb','bb'].includes(x.type)){const a=x.amount||0;invested+=a;streetContrib+=a}
+  }
+  for(const x of acts){
+    if(x.street!==street){street=x.street;streetContrib=0}
+    if(x.player!==hero)continue
+    if(['call','bet'].includes(x.type)){const a=x.amount||0;invested+=a;streetContrib+=a}
+    else if(x.type==='raise'){
+      const target=x.to||((x.amount||0)+streetContrib),add=Math.max(0,target-streetContrib)
+      invested+=add;streetContrib=target
+    }else if(x.type==='return')returned+=x.amount||0
+    else if(x.type==='collect')collected+=x.amount||0
+  }
+  const netBb=h.bb?(collected+returned-invested)/h.bb:0
+  const pos=h.positionMap[hero]||'',stack=h.bb?((h.seats.find(x=>x.name===hero)?.stack||0)/h.bb):0
+  return {handId:h.handId,date:h.dateTime.slice(0,10),position:pos,stack,players:h.seats.length,vpip,pfr,threeBetOpp,threeBet,faced3bet,foldTo3bet,cbetOpp,cbet,xrOppCount,xrCount,sawFlop,wentShowdown,won,netBb}
 }
-function aggregateHhStats(facts){const n=facts.length,sum=k=>facts.filter(x=>x[k]).length,rate=(a,b)=>b?100*a/b:0;const bb=facts.reduce((a,x)=>a+x.netBb,0);return {hands:n,vpip:rate(sum('vpip'),n),pfr:rate(sum('pfr'),n),threeBet:rate(sum('threeBet'),n),fold3:rate(sum('foldTo3bet'),sum('faced3bet')),cbet:rate(sum('cbet'),sum('cbetOpp')),xr:rate(sum('xr'),sum('xrOpp')),wtsd:rate(sum('wentShowdown'),sum('sawFlop')),wsd:rate(facts.filter(x=>x.wentShowdown&&x.won).length,sum('wentShowdown')),wwsf:rate(facts.filter(x=>x.sawFlop&&x.won).length,sum('sawFlop')),bb100:n?bb/n*100:0,totalBb:bb}}
+function aggregateHhStats(facts){
+  const n=facts.length,bool=k=>facts.filter(x=>x[k]).length,num=k=>facts.reduce((a,x)=>a+(+x[k]||0),0),rate=(a,b)=>b?100*a/b:0
+  const counts={
+    vpip:bool('vpip'),pfr:bool('pfr'),threeBet:num('threeBet'),threeBetOpp:num('threeBetOpp'),
+    fold3:bool('foldTo3bet'),faced3bet:bool('faced3bet'),cbet:bool('cbet'),cbetOpp:bool('cbetOpp'),
+    xr:num('xrCount'),xrOpp:num('xrOppCount'),sawFlop:bool('sawFlop'),wtsd:bool('wentShowdown'),
+    wsd:facts.filter(x=>x.wentShowdown&&x.won).length,wwsf:facts.filter(x=>x.sawFlop&&x.won).length
+  }
+  const bb=facts.reduce((a,x)=>a+x.netBb,0)
+  return {hands:n,counts,vpip:rate(counts.vpip,n),pfr:rate(counts.pfr,n),threeBet:rate(counts.threeBet,counts.threeBetOpp),fold3:rate(counts.fold3,counts.faced3bet),cbet:rate(counts.cbet,counts.cbetOpp),xr:rate(counts.xr,counts.xrOpp),wtsd:rate(counts.wtsd,counts.sawFlop),wsd:rate(counts.wsd,counts.wtsd),wwsf:rate(counts.wwsf,counts.sawFlop),bb100:n?bb/n*100:0,totalBb:bb}
+}
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">BETA</span></h2><p class="muted">Importe vários arquivos GG .txt de uma vez ou selecione a pasta inteira de Hand Histories. Os dados ficam neste navegador e são deduplicados pelo Hand ID.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">Você pode usar Ctrl+A na seleção de arquivos ou escolher diretamente a pasta da GG.</div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
-function hhStatsViewHtml(facts){const s=aggregateHhStats(facts);if(!facts.length)return `<div class="panel"><p class="muted">Nenhuma HH importada para o tracker ainda.</p></div>`;const positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB'];const rows=positions.map(pos=>{const a=facts.filter(x=>x.position===pos);if(!a.length)return '';const z=aggregateHhStats(a);return `<tr><td><b>${pos}</b></td><td>${a.length}</td><td>${z.vpip.toFixed(1)}%</td><td>${z.pfr.toFixed(1)}%</td><td>${z.threeBet.toFixed(1)}%</td><td>${z.cbet.toFixed(1)}%</td><td>${z.xr.toFixed(1)}%</td><td class="${z.bb100>=0?'good':'bad'}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</td></tr>`}).join('');return `<div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%')}${statCard('PFR',s.pfr.toFixed(1)+'%')}${statCard('3Bet',s.threeBet.toFixed(1)+'%')}${statCard('Fold to 3Bet',s.fold3.toFixed(1)+'%')}${statCard('C-Bet Flop',s.cbet.toFixed(1)+'%')}${statCard('Check-Raise',s.xr.toFixed(1)+'%')}${statCard('WTSD',s.wtsd.toFixed(1)+'%')}${statCard('W$SD',s.wsd.toFixed(1)+'%')}${statCard('WWSF',s.wwsf.toFixed(1)+'%')}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'não é All-in EV')}</div><div class="panel"><h2>Por posição</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Mãos</th><th>VPIP</th><th>PFR</th><th>3Bet</th><th>CBet F</th><th>XR</th><th>bb/100</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="notice"><b>Sobre EV:</b> esta primeira versão mostra chip bb/100 calculado pelas fichas ganhas/perdidas nas HH. All-in Adjusted EV/EVbb/100 exige cálculo de equidade nos all-ins e será um módulo separado para não exibir uma estatística falsa.</div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill warn">AUDITADO</span></h2><p class="muted">Motor V6.1: oportunidades e resultados são recalculados diretamente das HH já importadas. 3Bet, Fold to 3Bet, C-Bet e Check-Raise usam denominadores de oportunidade.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente com o motor estatístico V6.1.</div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
+function hhStatsViewHtml(facts){
+  const s=aggregateHhStats(facts);if(!facts.length)return `<div class="panel"><p class="muted">Nenhuma HH importada para o tracker ainda.</p></div>`
+  const c=s.counts,positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB']
+  const rows=positions.map(pos=>{const a=facts.filter(x=>x.position===pos);if(!a.length)return '';const z=aggregateHhStats(a),q=z.counts;return `<tr><td><b>${pos}</b></td><td>${a.length.toLocaleString('pt-BR')}</td><td>${z.vpip.toFixed(1)}%</td><td>${z.pfr.toFixed(1)}%</td><td title="${q.threeBet}/${q.threeBetOpp} oportunidades">${z.threeBet.toFixed(1)}%</td><td title="${q.cbet}/${q.cbetOpp} oportunidades">${z.cbet.toFixed(1)}%</td><td title="${q.xr}/${q.xrOpp} oportunidades">${z.xr.toFixed(1)}%</td><td class="${z.bb100>=0?'good':'bad'}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</td></tr>`}).join('')
+  const missingPos=facts.filter(x=>!x.position).length
+  return `<div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${statCard('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${statCard('3Bet',s.threeBet.toFixed(1)+'%',hhRateSub(c.threeBet,c.threeBetOpp))}${statCard('Fold to 3Bet',s.fold3.toFixed(1)+'%',hhRateSub(c.fold3,c.faced3bet))}${statCard('C-Bet Flop',s.cbet.toFixed(1)+'%',hhRateSub(c.cbet,c.cbetOpp))}${statCard('Check-Raise',s.xr.toFixed(1)+'%',hhRateSub(c.xr,c.xrOpp))}${statCard('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${statCard('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'showdowns'))}${statCard('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado em fichas; não é All-in EV')}</div>
+  <div class="panel hh-audit"><h2>Auditoria do motor estatístico</h2><div class="audit-grid"><div><small>3Bet</small><b>${c.threeBet.toLocaleString('pt-BR')}</b><span>em ${c.threeBetOpp.toLocaleString('pt-BR')} oportunidades</span></div><div><small>Fold to 3Bet</small><b>${c.fold3.toLocaleString('pt-BR')}</b><span>em ${c.faced3bet.toLocaleString('pt-BR')} vezes enfrentando 3bet após raise inicial</span></div><div><small>C-Bet Flop</small><b>${c.cbet.toLocaleString('pt-BR')}</b><span>em ${c.cbetOpp.toLocaleString('pt-BR')} oportunidades sem donk antes</span></div><div><small>Check-Raise</small><b>${c.xr.toLocaleString('pt-BR')}</b><span>em ${c.xrOpp.toLocaleString('pt-BR')} checks que enfrentaram aposta</span></div><div><small>Saw Flop</small><b>${c.sawFlop.toLocaleString('pt-BR')}</b><span>Hero ainda ativo ao chegar no flop</span></div><div><small>Posição ausente</small><b>${missingPos.toLocaleString('pt-BR')}</b><span>${missingPos?'mãos para revisar':'nenhuma mão sem posição'}</span></div></div><p class="muted">Passe o mouse sobre 3Bet, CBet F e XR na tabela por posição para ver numerador/denominador. Isso ajuda a detectar percentuais enganosos causados por amostras pequenas.</p></div>
+  <div class="panel"><h2>Por posição</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Mãos</th><th>VPIP</th><th>PFR</th><th>3Bet</th><th>CBet F</th><th>XR</th><th>bb/100</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="notice"><b>V6.1 — correções de auditoria:</b> Saw Flop agora significa que o Hero realmente chegou ao flop (e não apenas que o board abriu depois de ele foldar); 3Bet/C-Bet/XR usam oportunidades reais; raises no cálculo de bb/100 contam somente fichas adicionais até o valor “to”. <b>EVbb/100 continua propositalmente fora desta versão</b> até implementarmos equidade de all-in.</div>`
+}
 async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];const el=document.getElementById('hhStatsView');if(el)el.innerHTML=hhStatsViewHtml(hhStatsCache)}
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
 function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}

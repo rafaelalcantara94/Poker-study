@@ -425,3 +425,11 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 
 /* V6.0 — HH Stats */
 .hhstats-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.hhstats-head h2{margin-top:0}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:14px 0}.stat-card{background:linear-gradient(180deg,#1c2634,#141d29);border:1px solid #304159;border-radius:12px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)}.stat-card small{display:block;color:#8fb4e8;font-size:11px;text-transform:uppercase;letter-spacing:.45px}.stat-card strong{display:block;font-size:25px;margin-top:5px}.stat-card span{display:block;color:#8190a4;font-size:10px;margin-top:3px}.table-scroll{overflow:auto}.table-scroll table{width:100%;border-collapse:collapse}.table-scroll th,.table-scroll td{padding:10px 12px;border-bottom:1px solid #2c3745;text-align:right}.table-scroll th:first-child,.table-scroll td:first-child{text-align:left}.good{color:#66d17a}.bad{color:#ff6b72}
+
+/* V6.1 — HH Stats audit */
+.hh-audit .audit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.hh-audit .audit-grid>div{border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:12px;display:grid;gap:3px}
+.hh-audit .audit-grid small{color:#7fb0ff;text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+.hh-audit .audit-grid b{font-size:22px}
+.hh-audit .audit-grid span{font-size:12px;color:var(--muted)}
+@media(max-width:900px){.hh-audit .audit-grid{grid-template-columns:1fr 1fr}}

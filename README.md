@@ -1,4 +1,4 @@
-# Poker Study V6.0.1 — HH Stats Batch Import
+# Poker Study V6.1 — HH Stats Batch Import
 
 Novo módulo **Stats HH (beta)** para importar múltiplas Hand Histories GG e calcular estatísticas do Hero.
 
@@ -9,7 +9,7 @@ As HH do tracker são salvas localmente no IndexedDB do navegador e deduplicadas
 **SQL:** não é necessário nesta versão.
 
 
-## V6.0.1
+## V6.1
 - Seleção de vários arquivos HH de uma vez.
 - Importação de pasta inteira via seletor de diretório (Chrome/Edge).
 - Leitura recursiva dos .txt da pasta escolhida.
