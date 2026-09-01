@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V6.4 • HH STATS</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V7.0 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V6.4 • HH STATS</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V7.0 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -346,73 +346,54 @@ function aggregateHhStats(facts){
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V6.4: núcleo do tracker com stats pré-flop/pós-flop, filtros e revisão direta no Replayer.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V7.0: dashboard compacto do tracker, com células clicáveis e revisão direta no Replayer.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
+function trackerCell(label,value,sample,metric,pos='all',tone=''){
+  const clickable=metric?`data-audit-metric="${metric}" data-audit-pos="${pos}"`:''
+  return `<button class="v7-stat-row ${tone}" ${clickable}><span>${label}</span><b>${value}</b><small>${sample}</small></button>`
+}
+function trackerPosRows(facts,metric,valueKey,oppKey,hitKey,positions=['UTG','HJ','CO','BTN','SB','BB']){
+  return positions.map(pos=>{
+    const a=facts.filter(x=>x.position===pos);if(!a.length)return ''
+    const z=aggregateHhStats(a),c=z.counts
+    const map={rfi:['rfi','rfiOpp'],threeBet:['threeBet','threeBetOpp'],call3:['call3','faced3bet'],fold3:['fold3','faced3bet'],squeeze:['squeeze','squeezeOpp'],fourBet:['fourBet','fourBetOpp'],steal:['steal','stealOpp'],foldBbSteal:['foldBbSteal','bbStealOpp'],cbet:['cbet','cbetOpp'],cbetT:['cbetT','cbetTOpp'],cbetR:['cbetR','cbetROpp'],foldCbetF:['foldCbetF','facedCbetF'],xrF:['xrF','xrFOpp'],xrT:['xrT','xrTOpp'],xrR:['xrR','xrROpp']}
+    const [numK,denK]=map[valueKey]||[];const den=denK?c[denK]:a.length;const num=numK?c[numK]:0;const val=den?`${z[valueKey].toFixed(1)}%`:'—'
+    return trackerCell(pos,val,den?den.toLocaleString('pt-BR'):'—',metric,pos)
+  }).join('')
+}
+function trackerPanel(title,body,wide=''){return `<section class="v7-panel ${wide}"><header><b>${title}</b><span>Ver mais →</span></header><div class="v7-panel-body">${body}</div></section>`}
 function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const gameCounts=totalFacts.reduce((m,x)=>(m[x.game]=(m[x.game]||0)+1,m),{})
-  if(!facts.length){return `<div class="panel"><h2>Nenhuma mão neste filtro</h2><p class="muted">Existem ${totalFacts.length.toLocaleString('pt-BR')} mãos importadas, mas nenhuma corresponde aos filtros selecionados.</p></div>`}
-  const s=aggregateHhStats(facts),c=s.counts,positions=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB']
-  const rows=positions.map(pos=>{
-    const a=facts.filter(x=>x.position===pos);if(!a.length)return ''
-    const z=aggregateHhStats(a),q=z.counts
-    return `<tr>
-      <td><b>${pos}</b></td><td>${a.length.toLocaleString('pt-BR')}</td>
-      <td>${z.vpip.toFixed(1)}%</td>
-      <td><button class="stat-audit-link" data-audit-metric="rfi" data-audit-pos="${pos}" title="${q.rfi}/${q.rfiOpp}">${hhPctDisplay(z.rfi,q.rfiOpp)}</button></td>
-      <td><button class="stat-audit-link" data-audit-metric="3bet" data-audit-pos="${pos}" title="${q.threeBet}/${q.threeBetOpp}">${hhPctDisplay(z.threeBet,q.threeBetOpp)}</button></td>
-      <td><button class="stat-audit-link" data-audit-metric="fold3" data-audit-pos="${pos}" title="${q.fold3}/${q.faced3bet}">${hhPctDisplay(z.fold3,q.faced3bet)}</button></td>
-      <td><button class="stat-audit-link" data-audit-metric="cbet" data-audit-pos="${pos}" title="${q.cbet}/${q.cbetOpp}">${hhPctDisplay(z.cbet,q.cbetOpp)}</button></td>
-      <td><button class="stat-audit-link" data-audit-metric="xrf" data-audit-pos="${pos}" title="${q.xrF}/${q.xrFOpp}">${hhPctDisplay(z.xrF,q.xrFOpp)}</button></td>
-      <td><button class="stat-audit-link ${z.bb100>=0?'good':'bad'}" data-audit-metric="bb100" data-audit-pos="${pos}">${z.bb100>=0?'+':''}${z.bb100.toFixed(1)}</button></td>
-    </tr>`
-  }).join('')
-  const missingPos=facts.filter(x=>!x.position).length
+  if(!facts.length)return `<div class="panel"><h2>Nenhuma mão neste filtro</h2><p class="muted">Existem ${totalFacts.length.toLocaleString('pt-BR')} mãos importadas, mas nenhuma corresponde aos filtros selecionados.</p></div>`
+  const s=aggregateHhStats(facts),c=s.counts
   const breakdown=['holdem','omaha','plo5','other'].filter(k=>gameCounts[k]).map(k=>`${hhGameLabel(k)}: ${gameCounts[k].toLocaleString('pt-BR')}`).join(' · ')
-  return `<div class="notice hh-filter-result"><b>${facts.length.toLocaleString('pt-BR')} mãos no filtro atual</b> de ${totalFacts.length.toLocaleString('pt-BR')} importadas. <span class="muted">${breakdown}</span></div>
-
-  <div class="stats-section-title"><div><b>Visão geral</b><span>Volume, frequência e resultado em fichas</span></div></div>
-  <div class="stats-grid">${statCard('Mãos',s.hands.toLocaleString('pt-BR'))}${statCard('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${statCard('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${statCard('Chip bb/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado em fichas; não é All-in EV')}</div>
-
-  <div class="stats-section-title"><div><b>Pré-flop</b><span>As porcentagens usam oportunidades reais como denominador</span></div></div>
-  <div class="stats-grid tracker-grid">
-    ${auditStatCard('RFI',hhPctDisplay(s.rfi,c.rfiOpp),hhRateSub(c.rfi,c.rfiOpp),'rfi')}
-    ${auditStatCard('Limp',hhPctDisplay(s.limp,c.limpOpp),hhRateSub(c.limp,c.limpOpp),'limp')}
-    ${auditStatCard('3Bet',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet')}
-    ${auditStatCard('Squeeze',hhPctDisplay(s.squeeze,c.squeezeOpp),hhRateSub(c.squeeze,c.squeezeOpp),'squeeze')}
-    ${auditStatCard('Call 3Bet',hhPctDisplay(s.call3,c.faced3bet),hhRateSub(c.call3,c.faced3bet),'call3')}
-    ${auditStatCard('Fold to 3Bet',hhPctDisplay(s.fold3,c.faced3bet),hhRateSub(c.fold3,c.faced3bet),'fold3')}
-    ${auditStatCard('4Bet após open',hhPctDisplay(s.fourBet,c.fourBetOpp),hhRateSub(c.fourBet,c.fourBetOpp),'4bet')}
-    ${auditStatCard('Steal CO/BTN/SB',hhPctDisplay(s.steal,c.stealOpp),hhRateSub(c.steal,c.stealOpp),'steal')}
-    ${auditStatCard('Fold BB vs Steal',hhPctDisplay(s.foldBbSteal,c.bbStealOpp),hhRateSub(c.foldBbSteal,c.bbStealOpp),'foldbbsteal')}
-  </div>
-
-  <div class="stats-section-title"><div><b>Pós-flop</b><span>Barrels, resposta a C-Bet e check-raise por street</span></div></div>
-  <div class="stats-grid tracker-grid">
-    ${auditStatCard('C-Bet Flop',hhPctDisplay(s.cbet,c.cbetOpp),hhRateSub(c.cbet,c.cbetOpp),'cbet')}
-    ${auditStatCard('C-Bet Turn',hhPctDisplay(s.cbetT,c.cbetTOpp),hhRateSub(c.cbetT,c.cbetTOpp),'cbett')}
-    ${auditStatCard('C-Bet River',hhPctDisplay(s.cbetR,c.cbetROpp),hhRateSub(c.cbetR,c.cbetROpp),'cbetr')}
-    ${auditStatCard('Fold vs C-Bet F',hhPctDisplay(s.foldCbetF,c.facedCbetF),hhRateSub(c.foldCbetF,c.facedCbetF),'foldcbetf')}
-    ${auditStatCard('XR Flop',hhPctDisplay(s.xrF,c.xrFOpp),hhRateSub(c.xrF,c.xrFOpp),'xrf')}
-    ${auditStatCard('XR Turn',hhPctDisplay(s.xrT,c.xrTOpp),hhRateSub(c.xrT,c.xrTOpp),'xrt')}
-    ${auditStatCard('XR River',hhPctDisplay(s.xrR,c.xrROpp),hhRateSub(c.xrR,c.xrROpp),'xrr')}
-  </div>
-
-  <div class="stats-section-title"><div><b>Showdown</b><span>Frequência de chegada e resultado</span></div></div>
-  <div class="stats-grid">${statCard('WTSD',hhPctDisplay(s.wtsd,c.sawFlop),hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${statCard('W$SD',hhPctDisplay(s.wsd,c.wtsd),hhRateSub(c.wsd,c.wtsd,'showdowns'))}${statCard('WWSF',hhPctDisplay(s.wwsf,c.sawFlop),hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}</div>
-
-  <div class="panel hh-audit"><h2>Auditoria do motor estatístico</h2><div class="audit-grid">
-    <div><small>RFI</small><b>${c.rfi.toLocaleString('pt-BR')}</b><span>em ${c.rfiOpp.toLocaleString('pt-BR')} pots não abertos</span></div>
-    <div><small>3Bet</small><b>${c.threeBet.toLocaleString('pt-BR')}</b><span>em ${c.threeBetOpp.toLocaleString('pt-BR')} oportunidades</span></div>
-    <div><small>Fold to 3Bet</small><b>${c.fold3.toLocaleString('pt-BR')}</b><span>em ${c.faced3bet.toLocaleString('pt-BR')} vezes enfrentando 3Bet após open</span></div>
-    <div><small>C-Bet Flop</small><b>${c.cbet.toLocaleString('pt-BR')}</b><span>em ${c.cbetOpp.toLocaleString('pt-BR')} oportunidades</span></div>
-    <div><small>XR Flop</small><b>${c.xrF.toLocaleString('pt-BR')}</b><span>em ${c.xrFOpp.toLocaleString('pt-BR')} oportunidades</span></div>
-    <div><small>Posição ausente</small><b>${missingPos.toLocaleString('pt-BR')}</b><span>${missingPos?'mãos para revisar':'nenhuma mão sem posição'}</span></div>
-  </div><p class="muted">Clique em qualquer card auditável ou nas porcentagens da tabela por posição. O Replayer abre somente as mãos do numerador da stat.</p></div>
-
-  <div class="panel"><h2>Por posição</h2><div class="table-scroll"><table><thead><tr><th>Posição</th><th>Mãos</th><th>VPIP</th><th>RFI</th><th>3Bet</th><th>F3B</th><th>CBet F</th><th>XR F</th><th>bb/100</th></tr></thead><tbody>${rows}</tbody></table></div></div>
-  <div class="notice"><b>V6.4 — Tracker Core:</b> RFI, Limp, Squeeze, Call/Fold/4Bet vs 3Bet, Steal, Fold BB vs Steal, C-Bet F/T/R, Fold vs C-Bet Flop e XR por street. <b>EVbb/100 continua separado</b> até o módulo de equidade de all-in.</div>`
+  const top=(label,val,sub,metric='',tone='')=>`<button class="v7-kpi ${tone}" ${metric?`data-audit-metric="${metric}" data-audit-pos="all"`:''}><small>${label}</small><strong>${val}</strong><span>${sub}</span></button>`
+  const pos=['UTG','HJ','CO','BTN','SB','BB']
+  const showdown=`<div class="v7-showdown">${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'showdowns'))}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}${top('CHIP BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'não é All-in EV','bb100',s.bb100>=0?'positive':'negative')}</div>`
+  return `<div class="v7-dashboard">
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Clique em qualquer stat para auditar e abrir as mãos no Replayer</em></div>
+    <div class="v7-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet')}${top('FOLD TO 3BET',hhPctDisplay(s.fold3,c.faced3bet),hhRateSub(c.fold3,c.faced3bet),'fold3')}${top('C-BET FLOP',hhPctDisplay(s.cbet,c.cbetOpp),hhRateSub(c.cbet,c.cbetOpp),'cbet','positive')}${top('CHECK-RAISE F',hhPctDisplay(s.xrF,c.xrFOpp),hhRateSub(c.xrF,c.xrFOpp),'xrf','accent')}${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'SD'))}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'chip bb/100','bb100',s.bb100>=0?'orange':'negative')}</div>
+    <div class="v7-help">ⓘ Estatísticas compactas: valor no centro, amostra à direita. Clique numa linha para ver as mãos.</div>
+    <div class="v7-grid">
+      ${trackerPanel('RFI (OPEN RAISE)',trackerPosRows(facts,'rfi','rfi',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.rfi,c.rfiOpp),c.rfiOpp.toLocaleString('pt-BR'),'rfi','all','total'))}
+      ${trackerPanel('3BET',trackerPosRows(facts,'3bet','threeBet',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.threeBet,c.threeBetOpp),c.threeBetOpp.toLocaleString('pt-BR'),'3bet','all','total'))}
+      ${trackerPanel('CALL 3BET',trackerPosRows(facts,'call3','call3',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.call3,c.faced3bet),c.faced3bet.toLocaleString('pt-BR'),'call3','all','total'))}
+      ${trackerPanel('FOLD TO 3BET',trackerPosRows(facts,'fold3','fold3',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.fold3,c.faced3bet),c.faced3bet.toLocaleString('pt-BR'),'fold3','all','total'))}
+      ${trackerPanel('SQUEEZE',trackerPosRows(facts,'squeeze','squeeze',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.squeeze,c.squeezeOpp),c.squeezeOpp.toLocaleString('pt-BR'),'squeeze','all','total'))}
+      ${trackerPanel('STEAL (CO/BTN/SB)',trackerPosRows(facts,'steal','steal',null,null,['CO','BTN','SB'])+trackerCell('TOTAL',hhPctDisplay(s.steal,c.stealOpp),c.stealOpp.toLocaleString('pt-BR'),'steal','all','total'))}
+      ${trackerPanel('FOLD BB VS STEAL',trackerCell('CO',hhPctDisplay(aggregateHhStats(facts.filter(x=>x.position==='BB')).foldBbSteal,aggregateHhStats(facts.filter(x=>x.position==='BB')).counts.bbStealOpp),aggregateHhStats(facts.filter(x=>x.position==='BB')).counts.bbStealOpp.toLocaleString('pt-BR'),'foldbbsteal','BB')+trackerCell('TOTAL',hhPctDisplay(s.foldBbSteal,c.bbStealOpp),c.bbStealOpp.toLocaleString('pt-BR'),'foldbbsteal','all','total'))}
+      ${trackerPanel('4BET APÓS OPEN',trackerPosRows(facts,'4bet','fourBet',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.fourBet,c.fourBetOpp),c.fourBetOpp.toLocaleString('pt-BR'),'4bet','all','total'))}
+      ${trackerPanel('C-BET FLOP (SRP)',trackerCell('TOTAL',hhPctDisplay(s.cbet,c.cbetOpp),c.cbetOpp.toLocaleString('pt-BR'),'cbet','all','total')+trackerPosRows(facts,'cbet','cbet',null,null,['BTN','SB','BB']))}
+      ${trackerPanel('C-BET TURN (BARREL)',trackerCell('TOTAL',hhPctDisplay(s.cbetT,c.cbetTOpp),c.cbetTOpp.toLocaleString('pt-BR'),'cbett','all','total')+trackerPosRows(facts,'cbett','cbetT',null,null,['BTN','SB','BB']))}
+      ${trackerPanel('C-BET RIVER (BARREL)',trackerCell('TOTAL',hhPctDisplay(s.cbetR,c.cbetROpp),c.cbetROpp.toLocaleString('pt-BR'),'cbetr','all','total')+trackerPosRows(facts,'cbetr','cbetR',null,null,['BTN','SB','BB']))}
+      ${trackerPanel('FOLD VS C-BET FLOP',trackerCell('TOTAL',hhPctDisplay(s.foldCbetF,c.facedCbetF),c.facedCbetF.toLocaleString('pt-BR'),'foldcbetf','all','total')+trackerPosRows(facts,'foldcbetf','foldCbetF',null,null,['BTN','SB','BB']))}
+      ${trackerPanel('CHECK-RAISE',trackerCell('FLOP',hhPctDisplay(s.xrF,c.xrFOpp),c.xrFOpp.toLocaleString('pt-BR'),'xrf')+trackerCell('TURN',hhPctDisplay(s.xrT,c.xrTOpp),c.xrTOpp.toLocaleString('pt-BR'),'xrt')+trackerCell('RIVER',hhPctDisplay(s.xrR,c.xrROpp),c.xrROpp.toLocaleString('pt-BR'),'xrr')+trackerCell('TOTAL',hhPctDisplay(s.xr,c.xrOpp),c.xrOpp.toLocaleString('pt-BR'),'xr','all','total'),'v7-wide')}
+    </div>
+    <section class="v7-showdown-wrap"><header><b>SHOWDOWN & RESULTADO</b><span>Amostra do filtro atual</span></header>${showdown}</section>
+    <div class="v7-footnote">ⓘ Amostras pequenas podem gerar volatilidade. Use modalidade, data, stack, posição e nº de jogadores para análises mais precisas. EVbb/100 continua separado até implementarmos equidade de all-in.</div>
+  </div>`
 }
 
 function hhStackMatch(stack,bucket){
