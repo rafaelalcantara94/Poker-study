@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V7.4 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V7.5 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V7.4 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V7.5 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -460,24 +460,72 @@ function aggregateHhStats(facts){
   }
 }
 
+
+
+// --- V7.5 LeakFinder benchmark engine --------------------------------------
+// Benchmarks transcritos da referência H2N fornecida pelo usuário.
+// Só classificamos stats/contextos explicitamente suportados pela referência.
+const V75_BENCHMARKS={
+  overall:{
+    vpip:{min:29,max:32,label:'VPIP'},
+    pfr:{min:20,max:24,label:'PFR'},
+    threeBet:{min:10,max:11,label:'3Bet'},
+    wwsf:{min:46,max:null,label:'WWSF'}
+  },
+  rfi:{
+    UTG:{min:18,max:20,label:'RFI EP/UTG'},
+    HJ:{min:28,max:30,label:'RFI HJ'},
+    CO:{min:37,max:39,label:'RFI CO'},
+    BTN:{min:50,max:55,label:'RFI BTN'},
+    SB:{min:40,max:50,label:'RFI SB'}
+  },
+  threeBet:{
+    UTG:{min:6,max:7,label:'3Bet total EP/UTG'},
+    HJ:{min:8,max:9,label:'3Bet total HJ'},
+    CO:{min:9,max:10,label:'3Bet total CO'},
+    BTN:{min:10,max:11,label:'3Bet total BTN'},
+    SB:{min:10,max:15,label:'3Bet total SB'},
+    BB:{min:10,max:15,label:'3Bet total BB'}
+  }
+}
+const V75_MIN_SAMPLE={overall:500,rate:100}
+function v75RangeText(b){if(!b)return '';if(b.max==null)return `${b.min}%+`;if(b.min==null)return `até ${b.max}%`;return `${b.min}–${b.max}%`}
+function v75Benchmark(scope,key,pos='all'){
+  if(scope==='overall')return V75_BENCHMARKS.overall[key]||null
+  const group=V75_BENCHMARKS[scope]||{};return group[pos]||null
+}
+function v75Classify(value,den,b,kind='rate'){
+  if(!b)return {state:'neutral',label:'Sem benchmark',range:''}
+  const minSample=kind==='overall'?V75_MIN_SAMPLE.overall:V75_MIN_SAMPLE.rate
+  if(!den||den<minSample)return {state:'sample',label:'Amostra insuficiente',range:v75RangeText(b)}
+  if(b.min!=null&&value<b.min)return {state:'tight',label:'Too Tight',range:v75RangeText(b)}
+  if(b.max!=null&&value>b.max)return {state:'aggro',label:'Aggro',range:v75RangeText(b)}
+  return {state:'great',label:'Great',range:v75RangeText(b)}
+}
+function v75BenchBadge(info){if(!info||info.state==='neutral')return '';return `<span class="v75-bench-label ${info.state}" title="Faixa de referência: ${info.range}"><i></i>${info.label}<em>${info.range}</em></span>`}
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V7.4: All-in EV/EVbb/100 integrado ao gráfico, relatório e exportação.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V7.5: benchmarks validados ativados no LeakFinder + All-in EV/EVbb/100.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
-function trackerCell(label,value,sample,metric,pos='all',tone=''){
+function trackerCell(label,value,sample,metric,pos='all',tone='',benchInfo=null){
   const clickable=metric?`data-audit-metric="${metric}" data-audit-pos="${pos}"`:''
-  return `<button class="v7-stat-row ${tone}" ${clickable}><span>${label}</span><b>${value}</b><small>${sample}</small></button>`
+  const bench=benchInfo||{state:'neutral',label:'',range:''}
+  const tip=bench.state!=='neutral'?`title="${bench.label} · referência ${bench.range}"`:''
+  return `<button class="v7-stat-row ${tone} bench-${bench.state}" ${clickable} ${tip}><span>${label}</span><b>${bench.state!=='neutral'?'<i></i>':''}${value}</b><small>${sample}${bench.state!=='neutral'?`<em>${bench.label} · ${bench.range}</em>`:''}</small></button>`
 }
 function trackerPosRows(facts,metric,valueKey,oppKey,hitKey,positions=['UTG','HJ','CO','BTN','SB','BB']){
   return positions.map(pos=>{
     const a=facts.filter(x=>x.position===pos);if(!a.length)return ''
     const z=aggregateHhStats(a),c=z.counts
     const map={rfi:['rfi','rfiOpp'],threeBet:['threeBet','threeBetOpp'],call3:['call3','faced3bet'],fold3:['fold3','faced3bet'],squeeze:['squeeze','squeezeOpp'],fourBet:['fourBet','fourBetOpp'],steal:['steal','stealOpp'],foldBbSteal:['foldBbSteal','bbStealOpp'],cbet:['cbet','cbetOpp'],cbetT:['cbetT','cbetTOpp'],cbetR:['cbetR','cbetROpp'],foldCbetF:['foldCbetF','facedCbetF'],xrF:['xrF','xrFOpp'],xrT:['xrT','xrTOpp'],xrR:['xrR','xrROpp']}
-    const [numK,denK]=map[valueKey]||[];const den=denK?c[denK]:a.length;const num=numK?c[numK]:0;const val=den?`${z[valueKey].toFixed(1)}%`:'—'
-    return trackerCell(pos,val,den?den.toLocaleString('pt-BR'):'—',metric,pos)
+    const [numK,denK]=map[valueKey]||[];const den=denK?c[denK]:a.length;const valNum=den?z[valueKey]:0;const val=den?`${valNum.toFixed(1)}%`:'—'
+    let bench=null
+    if(valueKey==='rfi')bench=v75Classify(valNum,den,v75Benchmark('rfi','',pos))
+    if(valueKey==='threeBet')bench=v75Classify(valNum,den,v75Benchmark('threeBet','',pos))
+    return trackerCell(pos,val,den?den.toLocaleString('pt-BR'):'—',metric,pos,'',bench)
   }).join('')
 }
 function trackerPanel(title,body,wide='',metric=''){
@@ -494,7 +542,7 @@ function v71BbVsSteal(facts){
   return `<section class="v71-bb-panel"><header><b>BB VS STEAL — DEFESA POR POSIÇÃO DO OPENER</b><span>Células usam apenas oportunidades reais</span></header><div class="v71-bb-grid">${rows}</div></section>`
 }
 function v71SideRail(){return `<aside class="v71-side">
-  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">Benchmarks em calibração: a V7.4 só classificará stats quando houver referência validada para o contexto.</div></section>
+  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">V7.5: benchmarks ativos apenas onde a referência fornecida foi validada. Stats sem referência permanecem neutras.</div></section>
   <section><h4>AÇÕES RÁPIDAS</h4><div class="v71-actions"><button data-v71-action="pdf">▤ Relatório completo (PDF)</button><button data-v71-action="csv">▧ Exportar para CSV</button><button data-v71-action="evolution">⌁ Gráfico de evolução</button><button data-v71-action="compare">◫ Comparar períodos</button><button data-v71-action="notes">▱ Notas e marcações</button></div></section>
   <section class="v71-tip"><h4>ⓘ DICA</h4><p>Clique em qualquer estatística para ver o detalhamento e abrir as mãos no Replayer.</p><strong>♠</strong></section>
 </aside>`}
@@ -503,16 +551,17 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   if(!facts.length)return `<div class="panel"><h2>Nenhuma mão neste filtro</h2><p class="muted">Existem ${totalFacts.length.toLocaleString('pt-BR')} mãos importadas, mas nenhuma corresponde aos filtros selecionados.</p></div>`
   const s=aggregateHhStats(facts),c=s.counts
   const breakdown=['holdem','omaha','plo5','other'].filter(k=>gameCounts[k]).map(k=>`${hhGameLabel(k)}: ${gameCounts[k].toLocaleString('pt-BR')}`).join(' · ')
-  const top=(label,val,sub,metric='',tone='')=>`<button class="v7-kpi ${tone}" ${metric?`data-audit-metric="${metric}" data-audit-pos="all"`:''}><small>${label}</small><strong>${val}</strong><span>${sub}</span></button>`
+  const top=(label,val,sub,metric='',tone='',benchInfo=null)=>{const b=benchInfo||{state:'neutral'};return `<button class="v7-kpi ${tone} bench-${b.state}" ${metric?`data-audit-metric="${metric}" data-audit-pos="all"`:''} ${b.state!=='neutral'?`title="${b.label} · referência ${b.range}"`:''}><small>${label}</small><strong>${val}</strong><span>${sub}</span>${v75BenchBadge(b)}</button>`}
   const pos=['UTG','HJ','CO','BTN','SB','BB']
-  const showdown=`<div class="v7-showdown">${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'showdowns'))}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'))}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'positive':'negative')}${top('EVBB/100',(s.evbb100>=0?'+':'')+s.evbb100.toFixed(1),`${s.allinAvailable}/${s.allinCount} all-ins`,'',s.evbb100>=0?'positive':'negative')}</div>`
+  const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
+  const showdown=`<div class="v7-showdown">${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops vistos'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'showdowns'))}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'positive':'negative')}${top('EVBB/100',(s.evbb100>=0?'+':'')+s.evbb100.toFixed(1),`${s.allinAvailable}/${s.allinCount} all-ins`,'',s.evbb100>=0?'positive':'negative')}</div>`
   return `<div class="v7-dashboard">
     <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Clique em qualquer stat para auditar e abrir as mãos no Replayer</em></div>
-    <div class="v7-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'))}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'))}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet')}${top('FOLD TO 3BET',hhPctDisplay(s.fold3,c.faced3bet),hhRateSub(c.fold3,c.faced3bet),'fold3')}${top('C-BET FLOP',hhPctDisplay(s.cbet,c.cbetOpp),hhRateSub(c.cbet,c.cbetOpp),'cbet','positive')}${top('CHECK-RAISE F',hhPctDisplay(s.xrF,c.xrFOpp),hhRateSub(c.xrF,c.xrFOpp),'xrf','accent')}${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'SD'))}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'chip bb/100','bb100',s.bb100>=0?'orange':'negative')}${top('EVBB/100',(s.evbb100>=0?'+':'')+s.evbb100.toFixed(1),`${s.allinAvailable}/${s.allinCount} all-ins`,'',s.evbb100>=0?'positive':'negative')}</div>
-    <div class="v7-help">ⓘ Estatísticas compactas: valor no centro, amostra à direita. Clique numa linha para ver as mãos.</div>
+    <div class="v7-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('FOLD TO 3BET',hhPctDisplay(s.fold3,c.faced3bet),hhRateSub(c.fold3,c.faced3bet),'fold3')}${top('C-BET FLOP',hhPctDisplay(s.cbet,c.cbetOpp),hhRateSub(c.cbet,c.cbetOpp),'cbet','positive')}${top('CHECK-RAISE F',hhPctDisplay(s.xrF,c.xrFOpp),hhRateSub(c.xrF,c.xrFOpp),'xrf','accent')}${top('WTSD',s.wtsd.toFixed(1)+'%',hhRateSub(c.wtsd,c.sawFlop,'flops'))}${top('W$SD',s.wsd.toFixed(1)+'%',hhRateSub(c.wsd,c.wtsd,'SD'))}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'chip bb/100','bb100',s.bb100>=0?'orange':'negative')}${top('EVBB/100',(s.evbb100>=0?'+':'')+s.evbb100.toFixed(1),`${s.allinAvailable}/${s.allinCount} all-ins`,'',s.evbb100>=0?'positive':'negative')}</div>
+    <div class="v7-help">ⓘ LeakFinder V7.5: stats com benchmark validado recebem cor automática. Passe o mouse para ver a faixa de referência; clique para auditar as mãos.</div>
     <div class="v71-layout"><main class="v71-main"><div class="v7-grid">
       ${trackerPanel('RFI (OPEN RAISE)',trackerPosRows(facts,'rfi','rfi',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.rfi,c.rfiOpp),c.rfiOpp.toLocaleString('pt-BR'),'rfi','all','total'))}
-      ${trackerPanel('3BET',trackerPosRows(facts,'3bet','threeBet',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.threeBet,c.threeBetOpp),c.threeBetOpp.toLocaleString('pt-BR'),'3bet','all','total'))}
+      ${trackerPanel('3BET',trackerPosRows(facts,'3bet','threeBet',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.threeBet,c.threeBetOpp),c.threeBetOpp.toLocaleString('pt-BR'),'3bet','all','total',b3))}
       ${trackerPanel('CALL 3BET',trackerPosRows(facts,'call3','call3',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.call3,c.faced3bet),c.faced3bet.toLocaleString('pt-BR'),'call3','all','total'))}
       ${trackerPanel('FOLD TO 3BET',trackerPosRows(facts,'fold3','fold3',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.fold3,c.faced3bet),c.faced3bet.toLocaleString('pt-BR'),'fold3','all','total'))}
       ${trackerPanel('SQUEEZE',trackerPosRows(facts,'squeeze','squeeze',null,null,pos)+trackerCell('TOTAL',hhPctDisplay(s.squeeze,c.squeezeOpp),c.squeezeOpp.toLocaleString('pt-BR'),'squeeze','all','total'))}
@@ -527,7 +576,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
     </div>
     ${v71BbVsSteal(facts)}
     <section class="v7-showdown-wrap"><header><b>SHOWDOWN & RESULTADO</b><span>Amostra do filtro atual</span></header>${showdown}</section>
-    <div class="v7-footnote">ⓘ Amostras pequenas podem gerar volatilidade. Use modalidade, data, stack, posição e nº de jogadores para análises mais precisas. All-in EV: exato em all-ins pós-flop; pré-flop usa simulação determinística. Mãos sem cartas adversárias conhecidas permanecem sem ajuste.</div>
+    <div class="v7-footnote">ⓘ Benchmarks V7.5: referência H2N fornecida pelo usuário; classificação só aparece em stats/contextos explicitamente suportados. Amostra mínima: 500 mãos para VPIP/PFR e 100 oportunidades para rates. Demais stats permanecem neutras. All-in EV: exato pós-flop; pré-flop usa simulação determinística.</div>
     </main>${v71SideRail()}</div>
   </div>`
 }
