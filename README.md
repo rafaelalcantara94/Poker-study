@@ -1,4 +1,4 @@
-# Poker Study V7.0 — Tracker Dashboard
+# Poker Study V7.4 — All-in EV Beta
 
 Novo módulo **Stats HH (beta)** para importar múltiplas Hand Histories GG e calcular estatísticas do Hero.
 
@@ -65,3 +65,15 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Notas do Tracker salvas localmente no navegador.
 - Gráfico em BB preservado; All-in EV continua pendente até validação do motor de equidade.
 - Sem migração SQL.
+
+
+## V7.4 — All-in EV / EVbb/100
+- Nova linha amarela de All-in EV no gráfico de evolução.
+- EVbb/100 exibido no painel e no relatório.
+- Cálculo em big blinds usando o BB de cada Hand History.
+- Equity exata quando o all-in ocorre no flop, turn ou river.
+- All-ins pré-flop usam simulação determinística estável para manter o navegador responsivo em bases grandes.
+- Side pots elegíveis ao Hero são tratados pelas contribuições finais da mão.
+- All-ins sem cartas conhecidas dos oponentes não recebem ajuste e são informados na cobertura do motor.
+- CSV inclui net_bb, allin_ev_bb, ev_delta_bb, equity e método.
+- Não exige SQL novo nem reimportação das HH já salvas.
