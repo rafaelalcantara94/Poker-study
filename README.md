@@ -51,3 +51,7 @@ As HH do tracker são salvas localmente no IndexedDB do navegador e deduplicadas
 - Mantém modalidade, posição, stack, tamanho da mesa e datas
 
 Não exige SQL novo e não exige reimportar as Hand Histories já salvas no navegador.
+
+
+## V7.2.1
+Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max sem espalhar dezenas de milhares de valores como argumentos e renderização com amostragem visual eficiente.
