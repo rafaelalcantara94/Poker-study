@@ -1,4 +1,4 @@
-# Poker Study V7.5 — All-in EV Beta
+# Poker Study V7.6 — All-in EV Beta
 
 Novo módulo **Stats HH (beta)** para importar múltiplas Hand Histories GG e calcular estatísticas do Hero.
 
@@ -67,7 +67,7 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Sem migração SQL.
 
 
-## V7.5 — All-in EV / EVbb/100
+## V7.6 — All-in EV / EVbb/100
 - Nova linha amarela de All-in EV no gráfico de evolução.
 - EVbb/100 exibido no painel e no relatório.
 - Cálculo em big blinds usando o BB de cada Hand History.
@@ -79,7 +79,7 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Não exige SQL novo nem reimportação das HH já salvas.
 
 
-## V7.5 — LeakFinder benchmarks
+## V7.6 — LeakFinder benchmarks
 - Ativa classificação automática Great / Too Tight / Aggro / Amostra insuficiente apenas para benchmarks explicitamente legíveis na referência H2N fornecida pelo usuário.
 - Benchmarks iniciais: VPIP 29–32, PFR 20–24, 3Bet geral 10–11, WWSF 46+, RFI por posição (UTG/EP 18–20, HJ 28–30, CO 37–39, BTN 50–55, SB 40–50) e 3Bet total por posição (UTG/EP 6–7, HJ 8–9, CO 9–10, BTN 10–11, SB/BB 10–15).
 - Stats sem benchmark validado permanecem neutras.

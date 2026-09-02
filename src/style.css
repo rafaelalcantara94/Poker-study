@@ -493,3 +493,12 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 /* V7.5 — LeakFinder benchmark classifications */
 .v75-bench-label{display:flex!important;align-items:center;gap:5px;margin-top:5px!important;font-size:8px!important;font-weight:800!important;line-height:1!important}.v75-bench-label i,.v7-stat-row b i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}.v75-bench-label em{font-style:normal;font-weight:500;opacity:.75;margin-left:auto}.v75-bench-label.great{color:#54d86a!important}.v75-bench-label.tight{color:#ffd32a!important}.v75-bench-label.aggro{color:#ff5c50!important}.v75-bench-label.sample{color:#8192aa!important}.v75-bench-label.great i,.bench-great b i{background:#54d86a}.v75-bench-label.tight i,.bench-tight b i{background:#ffd32a}.v75-bench-label.aggro i,.bench-aggro b i{background:#ff5c50}.v75-bench-label.sample i,.bench-sample b i{background:#8192aa}
 .v7-stat-row b{color:#dbe6f4}.v7-stat-row.bench-great b{color:#54d86a}.v7-stat-row.bench-tight b{color:#ffd32a}.v7-stat-row.bench-aggro b{color:#ff6258}.v7-stat-row.bench-sample b{color:#91a0b4}.v7-stat-row small em{display:block;font-style:normal;font-size:7px;line-height:1.15;margin-top:2px}.v7-stat-row.bench-great small em{color:#54d86a}.v7-stat-row.bench-tight small em{color:#d6b92b}.v7-stat-row.bench-aggro small em{color:#e06b66}.v7-stat-row.bench-sample small em{color:#8192aa}.v7-kpi.bench-great{border-color:#2d6040}.v7-kpi.bench-tight{border-color:#6b5d1e}.v7-kpi.bench-aggro{border-color:#733c39}.v7-kpi.bench-sample{border-color:#425064}
+
+/* V7.6 — advanced leakfinder */
+.v76-section{margin-top:12px}
+.v76-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:10px 2px 8px;color:#eef5ff}
+.v76-title b{font-size:14px}.v76-title span{font-size:11px;color:#87a9d8}
+.v76-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.v76-grid .v7-wide{grid-column:span 2}
+.v76-note{margin:8px 0 2px;padding:9px 11px;border:1px solid #2c4160;border-radius:8px;background:#101d31;color:#88a9d5;font-size:11px;line-height:1.4}
+@media(max-width:1250px){.v76-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
