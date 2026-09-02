@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V7.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V7.2 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V7.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V7.2 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -348,7 +348,7 @@ function aggregateHhStats(facts){
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V7.1: dashboard compacto do tracker, com células clicáveis e revisão direta no Replayer.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V7.2: tracker interativo com painéis auditáveis, ações rápidas e gráfico de resultados em big blinds.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
@@ -365,7 +365,10 @@ function trackerPosRows(facts,metric,valueKey,oppKey,hitKey,positions=['UTG','HJ
     return trackerCell(pos,val,den?den.toLocaleString('pt-BR'):'—',metric,pos)
   }).join('')
 }
-function trackerPanel(title,body,wide=''){return `<section class="v7-panel ${wide}"><header><b>${title}</b><span>Ver mais →</span></header><div class="v7-panel-body">${body}</div></section>`}
+function trackerPanel(title,body,wide='',metric=''){
+  const inferred=metric||({'RFI (OPEN RAISE)':'rfi','3BET':'3bet','CALL 3BET':'call3','FOLD TO 3BET':'fold3','SQUEEZE':'squeeze','STEAL (CO/BTN/SB)':'steal','FOLD BB VS STEAL':'foldbbsteal','4BET APÓS OPEN':'4bet','C-BET FLOP (SRP)':'cbet','C-BET TURN (BARREL)':'cbett','C-BET RIVER (BARREL)':'cbetr','FOLD VS C-BET FLOP':'foldcbetf','CHECK-RAISE':'xr'})[title]||''
+  return `<section class="v7-panel ${wide}"><header><b>${title}</b>${inferred?`<button class="v72-more" data-audit-metric="${inferred}" data-audit-pos="all">Ver mais →</button>`:'<span></span>'}</header><div class="v7-panel-body">${body}</div></section>`
+}
 function v71BbVsSteal(facts){
   const rows=['CO','BTN','SB'].map(op=>{
     const a=facts.filter(x=>x.position==='BB'&&x.bbVsStealOpp&&x.bbStealOpener===op),n=a.length
@@ -376,7 +379,7 @@ function v71BbVsSteal(facts){
   return `<section class="v71-bb-panel"><header><b>BB VS STEAL — DEFESA POR POSIÇÃO DO OPENER</b><span>Células usam apenas oportunidades reais</span></header><div class="v71-bb-grid">${rows}</div></section>`
 }
 function v71SideRail(){return `<aside class="v71-side">
-  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">Benchmarks em calibração: a V7.1 não pinta stats sem uma referência validada.</div></section>
+  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">Benchmarks em calibração: a V7.2 só classificará stats quando houver referência validada para o contexto.</div></section>
   <section><h4>AÇÕES RÁPIDAS</h4><div class="v71-actions"><button data-v71-action="pdf">▤ Relatório completo (PDF)</button><button data-v71-action="csv">▧ Exportar para CSV</button><button data-v71-action="evolution">⌁ Gráfico de evolução</button><button data-v71-action="compare">◫ Comparar períodos</button><button data-v71-action="notes">▱ Notas e marcações</button></div></section>
   <section class="v71-tip"><h4>ⓘ DICA</h4><p>Clique em qualquer estatística para ver o detalhamento e abrir as mãos no Replayer.</p><strong>♠</strong></section>
 </aside>`}
@@ -533,7 +536,35 @@ function hhAuditModal(metric,pos){
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(hits,replayLabel)
 }
 
-function bindHhAudit(){document.querySelectorAll('[data-audit-metric]').forEach(b=>b.onclick=()=>hhAuditModal(b.dataset.auditMetric,b.dataset.auditPos))}
+function hhEvolutionSeries(facts){
+  const a=[...(facts||[])].sort((x,y)=>String(x.date||'').localeCompare(String(y.date||''))||String(x.handId||'').localeCompare(String(y.handId||'')))
+  let total=0,show=0,non=0
+  return a.map((x,i)=>{const v=Number(x.netBb)||0;total+=v;if(x.wentShowdown)show+=v;else non+=v;return {i:i+1,date:x.date||'',total,show,non}})
+}
+function hhEvolutionSvg(facts){
+  const pts=hhEvolutionSeries(facts);if(!pts.length)return '<p class="muted">Sem mãos neste filtro.</p>'
+  const W=1100,H=430,P=48,vals=pts.flatMap(x=>[x.total,x.show,x.non,0]),mn=Math.min(...vals),mx=Math.max(...vals),span=(mx-mn)||1
+  const x=i=>P+(i/Math.max(1,pts.length-1))*(W-P*2),y=v=>H-P-((v-mn)/span)*(H-P*2)
+  const path=k=>pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ')
+  const grid=[0,.25,.5,.75,1].map(t=>{const v=mx-(mx-mn)*t,yy=P+(H-P*2)*t;return `<line x1="${P}" x2="${W-P}" y1="${yy}" y2="${yy}"/><text x="8" y="${yy+4}">${v.toFixed(0)}bb</text>`}).join('')
+  return `<div class="v72-chart-legend"><span class="green">● Total</span><span class="red">● Non-showdown</span><span class="blue">● Showdown</span><span class="yellow">● All-in EV (em desenvolvimento)</span></div><svg class="v72-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico acumulado em big blinds"><g class="v72-grid">${grid}</g><path class="line green" d="${path('total')}"/><path class="line red" d="${path('non')}"/><path class="line blue" d="${path('show')}"/></svg><div class="v72-chart-summary"><b>${pts.length.toLocaleString('pt-BR')} mãos</b><span>Total: ${(pts.at(-1).total>=0?'+':'')+pts.at(-1).total.toFixed(1)}bb</span><span>Showdown: ${(pts.at(-1).show>=0?'+':'')+pts.at(-1).show.toFixed(1)}bb</span><span>Non-showdown: ${(pts.at(-1).non>=0?'+':'')+pts.at(-1).non.toFixed(1)}bb</span></div>`
+}
+function hhEvolutionModal(){openModal('Gráfico de evolução — big blinds',`<div class="audit-modal-note">Linhas calculadas mão a mão usando o BB de cada Hand History. Verde = resultado total; vermelha = potes sem showdown; azul = potes com showdown. A linha de All-in EV só será ativada quando o motor de equidade estiver validado.</div>${hhEvolutionSvg(hhStatsFilteredCache)}`)}
+function hhCompareModal(){
+  const a=[...hhStatsFilteredCache].sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));if(a.length<2)return alert('Amostra insuficiente para comparar períodos.')
+  const mid=Math.floor(a.length/2),A=a.slice(0,mid),B=a.slice(mid),sa=aggregateHhStats(A),sb=aggregateHhStats(B)
+  const row=(lab,x,y,fmt=v=>v.toFixed(1)+'%')=>`<tr><td>${lab}</td><td>${fmt(x)}</td><td>${fmt(y)}</td><td>${(y-x)>=0?'+':''}${fmt(y-x)}</td></tr>`
+  openModal('Comparar períodos',`<div class="audit-modal-note">Comparação rápida divide o filtro atual em duas metades cronológicas com o mesmo número aproximado de mãos.</div><table class="table"><thead><tr><th>Stat</th><th>1ª metade</th><th>2ª metade</th><th>Δ</th></tr></thead><tbody>${row('VPIP',sa.vpip,sb.vpip)}${row('PFR',sa.pfr,sb.pfr)}${row('3Bet',sa.threeBet,sb.threeBet)}${row('C-Bet F',sa.cbet,sb.cbet)}${row('XR F',sa.xrF,sb.xrF)}${row('bb/100',sa.bb100,sb.bb100,v=>(v>=0?'+':'')+v.toFixed(1))}</tbody></table>`)
+}
+function hhExportCsv(){
+  const rows=[['hand_id','date','game','position','players','stack_bb','net_bb','showdown','vpip','pfr','rfi','three_bet','cbet_flop','xr_flop']]
+  for(const x of hhStatsFilteredCache)rows.push([x.handId,x.date,x.game,x.position,x.players,x.stack.toFixed(2),x.netBb.toFixed(4),x.wentShowdown?1:0,x.vpip?1:0,x.pfr?1:0,x.rfi?1:0,x.threeBet?1:0,x.cbet?1:0,x.xrFlop>0?1:0])
+  const q=v=>'"'+String(v??'').replaceAll('"','""')+'"',csv=rows.map(r=>r.map(q).join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`poker-study-stats-${new Date().toISOString().slice(0,10)}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
+function bindV72Actions(){
+  document.querySelectorAll('[data-v71-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.v71Action;if(a==='evolution')return hhEvolutionModal();if(a==='compare')return hhCompareModal();if(a==='csv')return hhExportCsv();if(a==='pdf'){hhEvolutionModal();setTimeout(()=>window.print(),250);return}if(a==='notes')return route('hands')})
+}
+function bindHhAudit(){document.querySelectorAll('[data-audit-metric]').forEach(b=>b.onclick=()=>hhAuditModal(b.dataset.auditMetric,b.dataset.auditPos));bindV72Actions()}
 async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];bindHhStatsFilters()}
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
 function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
