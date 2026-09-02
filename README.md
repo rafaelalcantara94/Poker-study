@@ -53,5 +53,15 @@ As HH do tracker são salvas localmente no IndexedDB do navegador e deduplicadas
 Não exige SQL novo e não exige reimportar as Hand Histories já salvas no navegador.
 
 
-## V7.2.1
+## V7.3
 Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max sem espalhar dezenas de milhares de valores como argumentos e renderização com amostragem visual eficiente.
+
+
+## V7.3 — Functionality Pass
+- Ações rápidas agora executam funções reais.
+- Relatório completo com resumo, gráfico, posições e impressão/Salvar PDF.
+- Comparação de períodos com dois intervalos escolhidos pelo usuário.
+- Exportação CSV respeita filtros atuais.
+- Notas do Tracker salvas localmente no navegador.
+- Gráfico em BB preservado; All-in EV continua pendente até validação do motor de equidade.
+- Sem migração SQL.
