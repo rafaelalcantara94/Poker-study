@@ -1,6 +1,6 @@
-# Poker Study V7.8.1 — Automatic LeakFinder
+# Poker Study V7.8.2 — Automatic LeakFinder
 
-V7.8.1 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
+V7.8.2 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
 
 **SQL:** não é necessário nesta versão.
 
@@ -95,6 +95,15 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Amostra mínima: 500 mãos em stats gerais e 100 oportunidades em rates.
 
 
-## V7.8.1
+## V7.8.2
 - Corrige direção estratégica dos benchmarks de fold: acima da faixa = Too Tight; abaixo = Aggro.
 - Resumo automático enfatiza o nome da stat e deixa Too Tight/Aggro como diagnóstico secundário.
+
+
+## V7.8.2 — Leak Review Target
+- O Resumo automático agora escolhe o conjunto correto para revisão.
+- Frequência abaixo do benchmark: abre oportunidades em que a ação NÃO foi executada.
+- Frequência acima do benchmark: abre as mãos em que a ação foi executada.
+- A lógica vale também para stats de fold: o alvo é determinado pela direção numérica do desvio, enquanto Too Tight/Aggro continua sendo a interpretação estratégica.
+- O botão Abrir no Replayer envia exatamente esse subconjunto.
+- Sem alteração de banco/SQL.
