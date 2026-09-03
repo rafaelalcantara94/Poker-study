@@ -1,3 +1,9 @@
+# Poker Study V7.8 — Automatic LeakFinder
+
+V7.8 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
+
+**SQL:** não é necessário nesta versão.
+
 # Poker Study V7.7 — Unified LeakFinder + Audit
 
 V7.7 integra a análise clássica ao LeakFinder avançado, exibe apenas stats com benchmark validado e corrige denominadores de Blind War, Probe/Donk e OOP Multiway Sandwich.
