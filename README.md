@@ -1,6 +1,6 @@
-# Poker Study V8.1 — Strategic Range Engine (Beta)
+# Poker Study V8.1.1 — Strategic Range Engine (Beta)
 
-V8.1 adiciona a primeira camada estratégica de revisão de 3Bet. O motor NÃO é GTO/solver: ele usa uma triagem conservadora para remover folds triviais e priorizar mãos plausíveis para estudo, usando combo do Hero, posição do opener, posição do Hero e stack efetivo.
+V8.1.1 adiciona a primeira camada estratégica de revisão de 3Bet. O motor NÃO é GTO/solver: ele usa uma triagem conservadora para remover folds triviais e priorizar mãos plausíveis para estudo, usando combo do Hero, posição do opener, posição do Hero e stack efetivo.
 
 - Leak baixo de 3Bet/3Bet nAI continua partindo das oportunidades reais sem a ação.
 - A fila enviada ao Replayer passa por uma triagem estratégica beta.
