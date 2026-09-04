@@ -1,4 +1,13 @@
-# Poker Study V8.0.2 — Automatic LeakFinder
+# Poker Study V8.1 — Strategic Range Engine (Beta)
+
+V8.1 adiciona a primeira camada estratégica de revisão de 3Bet. O motor NÃO é GTO/solver: ele usa uma triagem conservadora para remover folds triviais e priorizar mãos plausíveis para estudo, usando combo do Hero, posição do opener, posição do Hero e stack efetivo.
+
+- Leak baixo de 3Bet/3Bet nAI continua partindo das oportunidades reais sem a ação.
+- A fila enviada ao Replayer passa por uma triagem estratégica beta.
+- Premiums, pares médios contextuais, Axs blockers, broadways e alguns suited connectors tardios podem virar candidatos.
+- Lixos evidentes como 62o/39o/64s em contextos sem justificativa deixam de dominar a lista.
+- O painel deixa explícito que candidato NÃO significa “deveria 3betar”.
+- Nenhuma mudança de SQL e nenhuma reimportação de HH é necessária.
 
 V8.0.2 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
 

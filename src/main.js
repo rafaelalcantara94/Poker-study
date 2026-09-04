@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.0.2 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.1 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.0.2 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.1 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -443,9 +443,15 @@ function heroHandFacts(h){
   const stack=h.bb?((h.seats.find(x=>x.name===hero)?.stack||0)/h.bb):0
   const auditActions=acts.map(x=>({street:x.street,player:x.player,type:x.type,amount:x.amount||0,to:x.to||0,text:x.text||''}))
   const advanced=v76AdvancedFacts(h,{position:pos,threeBetOpp,threeBet,faced3bet,fourBetOpp,fourBet,sawFlop})
+  const threeBetOpener=pf.raises?.[0]||null
+  const threeBetOpenerPos=threeBetOpener?(h.positionMap[threeBetOpener.player]||''):''
+  const heroStartChips=h.seats.find(x=>x.name===hero)?.stack||0
+  const openerStartChips=threeBetOpener?h.seats.find(x=>x.name===threeBetOpener.player)?.stack||0:0
+  const threeBetEffectiveBb=h.bb&&threeBetOpener?Math.min(heroStartChips,openerStartChips||heroStartChips)/h.bb:stack
   return {
     handId:h.handId,date:h.dateTime.slice(0,10).replace(/\//g,'-'),time:h.dateTime,game:detectGameType(h),
     position:pos,preflopState:pf.state,stack,players:h.seats.length,heroCards:(h.heroCards||[]).slice(0,2),board:h.board||[],bb:h.bb||0,
+    threeBetOpenerPos,threeBetEffectiveBb,
     vpip,pfr,rfiOpp,rfi,limpOpp,limp,threeBetOpp,threeBet,squeezeOpp,squeeze,
     faced3bet,foldTo3bet,call3bet,fourBetOpp,fourBet,stealOpp,steal,bbVsStealOpp,foldBbVsSteal,bbStealOpener,bbStealResponse,
     cbetOpp,cbet,cbetTurnOpp,cbetTurn,cbetRiverOpp,cbetRiver,facedCbetFlop,foldVsCbetFlop,
@@ -671,7 +677,7 @@ function v75BenchBadge(info){if(!info||info.state==='neutral')return '';return `
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.0.1: análise unificada, auditoria de denominadores e somente stats com benchmark validado visíveis.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.1: oportunidades pré-flop auditadas + triagem estratégica beta para revisão de 3Bet.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
@@ -707,7 +713,7 @@ function v71BbVsSteal(facts){
   return `<section class="v71-bb-panel"><header><b>BB VS STEAL — DEFESA POR POSIÇÃO DO OPENER</b><span>Células usam apenas oportunidades reais</span></header><div class="v71-bb-grid">${rows}</div></section>`
 }
 function v71SideRail(){return `<aside class="v71-side">
-  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">V8.0.1: o painel exibe apenas stats com benchmark validado. Cinza agora significa somente amostra insuficiente.</div></section>
+  <section><h4>LEGENDA DE DESEMPENHO</h4><div class="v71-legend"><p><i class="aggro"></i><b>Aggro</b><small>acima da faixa de referência</small></p><p><i class="great"></i><b>Great</b><small>dentro da faixa de referência</small></p><p><i class="tight"></i><b>Too Tight</b><small>abaixo da faixa de referência</small></p><p><i class="sample"></i><b>Amostra insuficiente</b><small>sem classificação</small></p></div><div class="v71-calibration">V8.1: benchmarks validados + triagem estratégica beta para 3Bet. Cinza significa amostra insuficiente.</div></section>
   <section><h4>AÇÕES RÁPIDAS</h4><div class="v71-actions"><button data-v71-action="pdf">▤ Relatório completo (PDF)</button><button data-v71-action="csv">▧ Exportar para CSV</button><button data-v71-action="evolution">⌁ Gráfico de evolução</button><button data-v71-action="compare">◫ Comparar períodos</button><button data-v71-action="notes">▱ Notas e marcações</button></div></section>
   <section class="v71-tip"><h4>ⓘ DICA</h4><p>Clique em qualquer estatística para ver o detalhamento e abrir as mãos no Replayer.</p><strong>♠</strong></section>
 </aside>`}
@@ -851,7 +857,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.0.1: somente stats com benchmark validado ficam visíveis</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.1: benchmarks validados + Strategic Range Engine beta</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
     ${v78LeakSummaryHtml(facts)}
@@ -931,21 +937,44 @@ function v80HoleShape(cards=[]){
   const hi=i1>=i2?r1:r2,lo=i1>=i2?r2:r1,pair=r1===r2,suited=c[0].slice(1).toLowerCase()===c[1].slice(1).toLowerCase()
   return {hi,lo,pair,suited,hiI:Math.max(i1,i2),loI:Math.min(i1,i2),gap:Math.max(i1,i2)-Math.min(i1,i2)-1,label:pair?hi+lo:hi+lo+(suited?'s':'o')}
 }
-function v80StrategicCandidate(x,metric){
-  // Camada de triagem, não solver/GTO: remove lixo evidente e mantém uma faixa deliberadamente ampla para revisão humana.
-  if(!['3bet'].includes(metric))return true
-  const h=v80HoleShape(x.heroCards);if(!h)return false
-  if(h.pair)return h.hiI>=4 // 66+
-  const A=h.hi==='A',K=h.hi==='K',Q=h.hi==='Q',J=h.hi==='J',T=h.hi==='T'
-  if(A&&h.loI>=10)return true // AQ+
-  if(A&&h.suited&&h.loI>=0)return true // A2s+
-  if(K&&h.lo==='Q')return true
-  if(h.suited&&K&&h.loI>=8)return true // KTs+
-  if(h.suited&&Q&&h.loI>=8)return true // QTs+
-  if(h.suited&&J&&h.loI>=8)return true // JTs+
-  if(h.suited&&T&&h.lo==='9')return true
-  return false
+function v81ThreeBetCandidateInfo(x){
+  // Strategic Range Engine BETA. Não é solver/GTO e não afirma que a mão "deveria" ser 3Bet.
+  // Serve apenas para retirar folds triviais da fila e priorizar combos plausíveis para revisão humana.
+  const h=v80HoleShape(x.heroCards);if(!h)return {keep:false,reason:'cartas não identificadas'}
+  const hero=String(x.position||''),op=String(x.threeBetOpenerPos||x.pfrPos||''),eff=Number(x.threeBetEffectiveBb||x.stack||0)
+  const lateOpen=['CO','BTN','SB'].includes(op),midOpen=['HJ','MP','MP1','MP2'].includes(op),earlyOpen=['UTG','UTG+1'].includes(op)
+  const heroLate=['BTN','SB','BB'].includes(hero),heroBlind=['SB','BB'].includes(hero)
+  const rank='23456789TJQKA',idx=r=>rank.indexOf(r),hi=idx(h.hi),lo=idx(h.lo)
+  const broadway=r=>['T','J','Q','K','A'].includes(r)
+  // Premium/value: sempre vale revisar se foi uma oportunidade real sem 3Bet.
+  if(h.pair&&hi>=9)return {keep:true,score:100,reason:'par premium (JJ+)'}
+  if(h.hi==='A'&&lo>=10)return {keep:true,score:98,reason:'AQ+'}
+  if(h.suited&&h.hi==='A'&&lo>=9)return {keep:true,score:94,reason:'AJs+'}
+  if(h.suited&&h.hi==='K'&&h.lo==='Q')return {keep:true,score:92,reason:'KQs'}
+  // Pares médios: candidatos amplos, especialmente vs opens de posições mais tardias.
+  if(h.pair&&hi>=5){ // 77-TT
+    if(lateOpen||heroBlind||eff<=35)return {keep:true,score:82,reason:'par médio em spot de resteal/3Bet'}
+    if(midOpen&&hi>=7)return {keep:true,score:76,reason:'99-TT vs open intermediário'}
+    return {keep:false,reason:'par médio fora da triagem conservadora'}
+  }
+  // Blockers Axs: mantém A2s-A5s sobretudo em posições tardias/blinds.
+  if(h.suited&&h.hi==='A'&&['2','3','4','5'].includes(h.lo)&&(lateOpen||heroLate))return {keep:true,score:80,reason:'Axs blocker'}
+  // Broadways e suited broadways.
+  if(h.hi==='A'&&h.lo==='J'&&!h.suited&&(lateOpen||heroLate))return {keep:true,score:78,reason:'AJo em contexto tardio'}
+  if(h.hi==='K'&&h.lo==='Q'&&!h.suited&&(lateOpen||heroBlind))return {keep:true,score:77,reason:'KQo em contexto tardio'}
+  if(h.suited&&broadway(h.hi)&&broadway(h.lo))return {keep:true,score:75,reason:'broadway suited'}
+  if(h.suited&&h.hi==='K'&&lo>=8&&(lateOpen||heroBlind))return {keep:true,score:70,reason:'KTs+ suited'}
+  if(h.suited&&h.hi==='Q'&&lo>=8&&(lateOpen||heroBlind))return {keep:true,score:68,reason:'QTs+ suited'}
+  // Suited connectors/gappers: só entram em contexto tardio e stacks com espaço para 3Bet não-all-in.
+  const connector=h.suited&&h.gap<=1&&hi>=7 // 98s+, T8s+, etc.
+  if(connector&&lateOpen&&heroLate&&eff>=18)return {keep:true,score:60,reason:'suited connector/gapper em contexto tardio'}
+  return {keep:false,reason:'fold trivial fora da triagem beta'}
 }
+function v80StrategicCandidate(x,metric){
+  if(metric==='3bet'||metric==='threeBetNAI')return v81ThreeBetCandidateInfo(x).keep
+  return true
+}
+
 function hhAuditModal(metric,pos,reviewTarget='hits'){
   const all=pos==='all'?[...hhStatsFilteredCache]:hhStatsFilteredCache.filter(x=>x.position===pos)
   const labelPos=pos==='all'?'Filtro atual':pos
@@ -1014,13 +1043,17 @@ function hhAuditModal(metric,pos,reviewTarget='hits'){
   }
   let reviewRows=metric==='bb100'?rows:(reviewTarget==='misses'?rows.filter(missFor):hits)
   const opportunityRows=[...reviewRows]
-  const strategicEligible=reviewTarget==='misses'&&metric==='3bet'
-  const strategicRows=strategicEligible?reviewRows.filter(x=>v80StrategicCandidate(x,metric)):reviewRows
-  if(strategicEligible)reviewRows=strategicRows
+  const advParts=metric.startsWith('adv|')?metric.split('|'):null
+  const strategicMetric=metric==='3bet'?'3bet':(advParts?.[1]==='threeBetNAI'?'threeBetNAI':'')
+  const strategicEligible=reviewTarget==='misses'&&!!strategicMetric
+  const strategicRows=strategicEligible?reviewRows.filter(x=>v80StrategicCandidate(x,strategicMetric)):reviewRows
+  if(strategicEligible){
+    reviewRows=strategicRows.sort((a,b)=>(v81ThreeBetCandidateInfo(b).score||0)-(v81ThreeBetCandidateInfo(a).score||0))
+  }
   const reviewCount=reviewRows.length
   const reviewWord=reviewTarget==='misses'?'oportunidades sem a ação':'mãos com a ação'
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'candidatos estratégicos':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
-  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} oportunidades sem 3Bet → ${reviewCount.toLocaleString('pt-BR')} candidatos após triagem estratégica beta. A triagem é ampla e NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} oportunidades sem 3Bet → ${reviewCount.toLocaleString('pt-BR')} candidatos após Strategic Range Engine V8.1 beta. Remove folds triviais usando combo, posição do opener, posição do Hero e stack efetivo. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
@@ -1031,7 +1064,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits'){
     if(streetMode==='river'||streetMode==='postflop')return aa
     return aa
   }
-  const html=`${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?'○ oportunidade perdida':'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
+  const html=`${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Range Engine estiver ativo, a lista é apenas uma fila conservadora de candidatos para revisão.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(v81ThreeBetCandidateInfo(x).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?'◎ candidato beta':'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
   openModal(title,html)
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(reviewRows,replayLabel)
 }
