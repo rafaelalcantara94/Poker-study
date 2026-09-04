@@ -543,3 +543,9 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .v835-class-chip.active b{color:#fff;background:#6b3fd1}
 .v835-row-class{display:inline-flex;margin-left:5px;padding:1px 4px;border:1px solid #344b66;border-radius:4px;color:#8eabd0;font-style:normal;font-size:6px;font-weight:800;vertical-align:1px}
 @media(max-width:900px){.v835-handclass-head{align-items:flex-start;flex-direction:column}.v835-handclass-chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:3px}.v835-class-chip{flex:0 0 auto}}
+
+/* V8.3.6 — full opportunity universe + priority scope */
+.v836-priority-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 0 10px;margin-bottom:9px;border-bottom:1px solid #293b52}
+.v836-priority-row>div:first-child{display:grid;gap:2px}.v836-priority-row>div:first-child b{font-size:11px;color:#eef5ff}.v836-priority-row>div:first-child span{font-size:8px;color:#829fc4}
+.v836-priority-chips{display:flex;gap:6px;flex-wrap:wrap}.v836-priority-chip{display:flex;align-items:center;gap:7px;border:1px solid #344861;background:#142135;color:#cbd8e8;border-radius:999px;padding:6px 9px;cursor:pointer;font:inherit;font-size:9px}.v836-priority-chip b{min-width:19px;text-align:center;color:#91acd0;background:#0d1727;border-radius:999px;padding:2px 5px;font-size:8px}.v836-priority-chip:hover{border-color:#765cff;background:#1a2940}.v836-priority-chip.active{border-color:#55c984;background:#173527;color:#effff5;box-shadow:0 0 0 1px rgba(85,201,132,.12)}.v836-priority-chip.active b{color:#fff;background:#28774c}
+@media(max-width:900px){.v836-priority-row{align-items:flex-start;flex-direction:column}.v836-priority-chips{width:100%;overflow-x:auto;flex-wrap:nowrap}.v836-priority-chip{flex:0 0 auto}}
