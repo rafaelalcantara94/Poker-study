@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.1.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.1.2 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.1.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.1.2 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -308,12 +308,13 @@ function heroHandFacts(h){
   // open shove = não (não existe decisão normal de 3Bet a ser medida aqui).
   const threeBetOpp=!!heroFirst&&['FACING_OPEN','FACING_OPEN_CALLERS'].includes(state)&&!pf.incomingAllIn
   const threeBet=threeBetOpp&&heroFirst.type==='raise'
+  const threeBetOutcome=threeBetOpp?(heroFirst.type==='raise'?(v76IsAllInAction(heroFirst)?'raise_ai':'raise_nai'):heroFirst.type):''
   const squeezeOpp=threeBetOpp&&state==='FACING_OPEN_CALLERS'
   const squeeze=squeezeOpp&&heroFirst.type==='raise'
 
   // Resposta do Hero depois de ELE ter sido o open raiser. Para existir uma
   // oportunidade válida de 4Bet, a 3Bet enfrentada precisa ser não-all-in.
-  let heroInitialRaiser=false,faced3bet=false,foldTo3bet=false,call3bet=false,fourBet=false,fourBetOpp=false
+  let heroInitialRaiser=false,faced3bet=false,foldTo3bet=false,call3bet=false,fourBet=false,fourBetOpp=false,fourBetOutcome=''
   const firstRaiseIndex=pre.findIndex(x=>x.type==='raise')
   if(firstRaiseIndex>=0&&pre[firstRaiseIndex].player===hero){
     heroInitialRaiser=true
@@ -329,6 +330,7 @@ function heroHandFacts(h){
         call3bet=decision.type==='call'
         fourBetOpp=!/all-?in/i.test(incoming3bet.text||'')
         fourBet=fourBetOpp&&decision.type==='raise'
+        fourBetOutcome=fourBetOpp?(decision.type==='raise'?(v76IsAllInAction(decision)?'raise_ai':'raise_nai'):decision.type):''
       }
     }
   }
@@ -454,7 +456,7 @@ function heroHandFacts(h){
   return {
     handId:h.handId,date:h.dateTime.slice(0,10).replace(/\//g,'-'),time:h.dateTime,game:detectGameType(h),
     position:pos,preflopState:pf.state,stack,players:h.seats.length,heroCards:(h.heroCards||[]).slice(0,2),board:h.board||[],bb:h.bb||0,
-    threeBetOpenerPos,threeBetEffectiveBb,threeBetOpenBb,threeBetCallerCount,
+    threeBetOpenerPos,threeBetEffectiveBb,threeBetOpenBb,threeBetCallerCount,threeBetOutcome,fourBetOutcome,
     vpip,pfr,rfiOpp,rfi,limpOpp,limp,threeBetOpp,threeBet,squeezeOpp,squeeze,
     faced3bet,foldTo3bet,call3bet,fourBetOpp,fourBet,stealOpp,steal,bbVsStealOpp,foldBbVsSteal,bbStealOpener,bbStealResponse,
     cbetOpp,cbet,cbetTurnOpp,cbetTurn,cbetRiverOpp,cbetRiver,facedCbetFlop,foldVsCbetFlop,
@@ -860,7 +862,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.1.1: benchmarks validados + Strategic Range Engine contextual beta</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.1.2: Strategic Range + Action Outcome Engine beta</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
     ${v78LeakSummaryHtml(facts)}
@@ -941,7 +943,7 @@ function v80HoleShape(cards=[]){
   return {hi,lo,pair,suited,hiI:Math.max(i1,i2),loI:Math.min(i1,i2),gap:Math.max(i1,i2)-Math.min(i1,i2)-1,label:pair?hi+lo:hi+lo+(suited?'s':'o')}
 }
 function v81ThreeBetCandidateInfo(x){
-  // Strategic Range Engine V8.1.1 BETA — filtro CONTEXTUAL para revisão humana.
+  // Strategic Range Engine V8.1.2 BETA — filtro CONTEXTUAL para revisão humana.
   // Não é solver/GTO. A função só tenta retirar mãos que, apesar de pertencerem
   // ao denominador estatístico, quase nunca são úteis numa fila de revisão de 3Bet.
   const h=v80HoleShape(x.heroCards);if(!h)return {keep:false,reason:'cartas não identificadas',score:0}
@@ -1093,7 +1095,19 @@ function hhAuditModal(metric,pos,reviewTarget='hits'){
   const advParts=metric.startsWith('adv|')?metric.split('|'):null
   const strategicMetric=metric==='3bet'?'3bet':(advParts?.[1]==='threeBetNAI'?'threeBetNAI':'')
   const strategicEligible=reviewTarget==='misses'&&!!strategicMetric
-  if(strategicEligible)for(const x of reviewRows)x.__strategicMetric=strategicMetric
+  const outcomeCounts={fold:0,call:0,raise_ai:0,raise_nai:0,other:0}
+  if(strategicEligible){
+    for(const x of reviewRows){
+      const o=String(x.threeBetOutcome||'')
+      if(o in outcomeCounts)outcomeCounts[o]++;else outcomeCounts.other++
+      x.__strategicMetric=strategicMetric
+    }
+    // V8.1.2 Action Outcome Engine: para leak de 3Bet nAI baixo, shove não é
+    // passividade nem '3Bet perdida'. Ele é uma ação agressiva alternativa e
+    // sai da fila principal. A revisão estratégica fica restrita a Fold + Call.
+    reviewRows=reviewRows.filter(x=>['fold','call'].includes(String(x.threeBetOutcome||'')))
+  }
+  const passiveRows=[...reviewRows]
   const strategicRows=strategicEligible?reviewRows.filter(x=>v80StrategicCandidate(x,strategicMetric)):reviewRows
   if(strategicEligible){
     reviewRows=strategicRows.sort((a,b)=>(v81ThreeBetCandidateInfo(b).score||0)-(v81ThreeBetCandidateInfo(a).score||0))
@@ -1101,7 +1115,8 @@ function hhAuditModal(metric,pos,reviewTarget='hits'){
   const reviewCount=reviewRows.length
   const reviewWord=reviewTarget==='misses'?'oportunidades sem a ação':'mãos com a ação'
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'candidatos estratégicos':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
-  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} oportunidades sem 3Bet → ${reviewCount.toLocaleString('pt-BR')} candidatos após Strategic Range Engine V8.1.1 contextual beta. Remove folds triviais usando combo, posição do opener, posição do Hero e stack efetivo. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} oportunidades sem ${strategicMetric==='threeBetNAI'?'3Bet nAI':'3Bet'} · ${outcomeCounts.raise_ai.toLocaleString('pt-BR')} shoves excluídos · ${outcomeCounts.call.toLocaleString('pt-BR')} calls · ${outcomeCounts.fold.toLocaleString('pt-BR')} folds · ${passiveRows.length.toLocaleString('pt-BR')} decisões passivas válidas → ${reviewCount.toLocaleString('pt-BR')} candidatos estratégicos`:''
+  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Action Outcome Engine V8.1.2 exclui Raise AI da fila de leak nAI e revisa somente Fold/Call antes da triagem contextual. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
@@ -1112,7 +1127,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits'){
     if(streetMode==='river'||streetMode==='postflop')return aa
     return aa
   }
-  const html=`${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Range Engine estiver ativo, a lista é apenas uma fila conservadora de candidatos para revisão.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(v81ThreeBetCandidateInfo(x).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?'◎ candidato beta':'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
+  const html=`${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Range Engine estiver ativo, Raise AI é separado da fila de 3Bet nAI baixo e a lista estratégica revisa somente decisões Fold/Call. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(v81ThreeBetCandidateInfo(x).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?'◎ candidato beta':'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
   openModal(title,html)
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(reviewRows,replayLabel)
 }
