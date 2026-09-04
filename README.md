@@ -1,18 +1,11 @@
-# Poker Study V8.3 — Action Outcome Engine (Beta)
+# Poker Study V8.3.1 — Auditoria Estratégica + 4Bet Review
 
-V8.3 separa o resultado da decisão pré-flop em Fold / Call / Raise nAI / Raise AI antes da triagem estratégica.
+- Adiciona uma área de Auditoria Estratégica independente do Top 8 do Resumo de Leaks.
+- Acesso direto a RFI, 3Bet nAI, Fold to 3Bet nAI, 4Bet nAI/Total e Blind War.
+- O alvo de revisão é escolhido pela direção do desvio: frequência baixa -> decisões sem a ação; frequência alta -> ações executadas.
+- Corrige a revisão de 4Bet nAI/Total acima da faixa: execuções marginais sobem na prioridade e premiums óbvios deixam de dominar a fila.
+- RFI acima da faixa também prioriza a parte mais fraca dos opens executados.
+- A auditoria comum continua disponível sem triagem estratégica automática.
+- Não é solver/GTO; continua sendo uma fila heurística de revisão.
 
-Para leaks de 3Bet nAI abaixo do benchmark, Raise AI (shove) deixa de ser tratado como oportunidade passiva sem 3Bet nAI e é excluído da fila principal. A revisão estratégica passa a considerar somente Fold + Call e, em seguida, aplica o Strategic Range Engine contextual.
-
-O modal de auditoria mostra o funil real: oportunidades sem a ação, shoves excluídos, calls, folds, decisões passivas válidas e candidatos estratégicos finais.
-
-Não é solver/GTO e não afirma que os candidatos deveriam obrigatoriamente executar a ação.
-
-Sem mudanças de banco de dados / SQL. Não é necessário reimportar Hand Histories.
-
-
-## V8.3 — Strategic Priority Engine expandido
-- Expande a triagem contextual para RFI, 4Bet nAI/total, Fold to 3Bet nAI e Blind War (SB Walk / BB ISO nAI).
-- Mantém separação por resultado da ação e níveis Forte / Mix / Fronteira.
-- Heurística de revisão: não substitui solver/GTO.
-- Sem migração SQL.
+Sem mudanças SQL e sem necessidade de reimportar Hand Histories.
