@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.0.1.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.0.2 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.0.1.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.0.2 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -794,7 +794,7 @@ function v78LeakSummaryHtml(f){
   // Frequência abaixo da faixa = revisar oportunidades em que a ação NÃO aconteceu.
   // Frequência acima da faixa = revisar as mãos em que a ação aconteceu demais.
   const reviewTarget=x=>(x.bench.min!=null&&x.value<x.bench.min)?'misses':'hits'
-  const rows=top.map((x,i)=>`<button class="v78-leak-row ${severity(x)}" data-audit-metric="${x.metric}" data-audit-pos="${x.pos}" data-review-target="${reviewTarget(x)}" data-leak-review="1"><span class="rank">${i+1}</span><span class="main"><b>${x.statLabel}</b><small><strong class="v781-diagnosis ${x.state}">${x.diagnosis}</strong> · ${x.group} · ${x.den.toLocaleString('pt-BR')} oportunidades</small></span><span class="value"><b>${x.value.toFixed(1)}%</b><small>ref. ${v75RangeText(x.bench)}</small></span><span class="delta">${x.distance.toFixed(1)} p.p. ${dir(x)}</span><em>${sevLabel(x)}</em></button>`).join('')
+  const rows=top.map((x,i)=>`<button class="v78-leak-row ${severity(x)}" data-leak-metric="${x.metric}" data-leak-pos="${x.pos}" data-leak-target="${reviewTarget(x)}"><span class="rank">${i+1}</span><span class="main"><b>${x.statLabel}</b><small><strong class="v781-diagnosis ${x.state}">${x.diagnosis}</strong> · ${x.group} · ${x.den.toLocaleString('pt-BR')} oportunidades</small></span><span class="value"><b>${x.value.toFixed(1)}%</b><small>ref. ${v75RangeText(x.bench)}</small></span><span class="delta">${x.distance.toFixed(1)} p.p. ${dir(x)}</span><em>${sevLabel(x)}</em></button>`).join('')
   return `<section class="v78-leaks"><header><div><h3>🧠 Resumo automático de leaks</h3><p>Prioriza desvios pelo tamanho da diferença, amostra e importância do spot. É uma fila de revisão — não um veredito estratégico.</p></div><div class="v78-leak-counts"><span><b>${leaks.length}</b> desvios</span><span class="great"><b>${great}</b> dentro</span><span class="sample"><b>${sample}</b> pouca amostra</span></div></header>${top.length?`<div class="v78-leak-list">${rows}</div>`:`<div class="v78-no-leaks">Nenhum desvio com amostra suficiente neste filtro. 🎯</div>`}<footer>Clique em um leak: frequência baixa revisa oportunidades perdidas; frequência alta revisa as ações executadas em excesso. Depois, envie o conjunto certo ao Replayer.</footer></section>`
 }
 function v76AdvancedHtml(f){
@@ -1095,15 +1095,17 @@ function bindV72Actions(){
   document.querySelectorAll('[data-v71-action]').forEach(b=>b.onclick=()=>{const a=b.dataset.v71Action;if(a==='evolution')return hhEvolutionModal();if(a==='compare')return hhCompareModal();if(a==='csv')return hhExportCsv();if(a==='pdf')return hhReportModal();if(a==='notes')return hhNotesModal()})
 }
 function bindHhAudit(){
-  // Botões comuns de auditoria continuam abrindo o numerador por padrão.
-  document.querySelectorAll('[data-audit-metric]:not([data-leak-review="1"])').forEach(b=>b.onclick=()=>hhAuditModal(b.dataset.auditMetric,b.dataset.auditPos,b.dataset.reviewTarget||'hits'))
-  // LeakFinder usa uma ponte dedicada para não perder o alvo de revisão ao navegar
-  // entre o resumo, o modal de auditoria e o Replayer.
-  document.querySelectorAll('[data-leak-review="1"]').forEach(b=>b.onclick=(ev)=>{
+  // LeakFinder V8.0.2: rota totalmente separada dos botões comuns de auditoria.
+  // Isso impede que o alvo "misses" seja sobrescrito pelo padrão "hits".
+  document.querySelectorAll('[data-leak-metric]').forEach(b=>b.onclick=(ev)=>{
     ev.preventDefault();ev.stopPropagation();
-    const target=b.getAttribute('data-review-target')==='misses'?'misses':'hits';
-    hhAuditModal(b.getAttribute('data-audit-metric'),b.getAttribute('data-audit-pos')||'all',target)
+    const metric=b.dataset.leakMetric;
+    const pos=b.dataset.leakPos||'all';
+    const target=b.dataset.leakTarget==='misses'?'misses':'hits';
+    hhAuditModal(metric,pos,target)
   })
+  // Botões comuns continuam auditando ações executadas por padrão.
+  document.querySelectorAll('[data-audit-metric]').forEach(b=>b.onclick=()=>hhAuditModal(b.dataset.auditMetric,b.dataset.auditPos,b.dataset.reviewTarget||'hits'))
   bindV72Actions()
 }
 async function refreshHhStats(){const imports=await hhStatsImports();const byId=new Map();for(const r of imports)for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)byId.set(f.handId,f)}hhStatsCache=[...byId.values()];bindHhStatsFilters()}
