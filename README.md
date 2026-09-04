@@ -1,6 +1,6 @@
-# Poker Study V7.8.3 — Automatic LeakFinder
+# Poker Study V7.9 — Automatic LeakFinder
 
-V7.8.3 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
+V7.9 adiciona o Resumo Automático de Leaks: ranqueia somente stats com benchmark validado, levando em conta desvio, amostra e importância do spot, com clique para auditoria e Replayer.
 
 **SQL:** não é necessário nesta versão.
 
@@ -95,12 +95,12 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Amostra mínima: 500 mãos em stats gerais e 100 oportunidades em rates.
 
 
-## V7.8.3
+## V7.9
 - Corrige direção estratégica dos benchmarks de fold: acima da faixa = Too Tight; abaixo = Aggro.
 - Resumo automático enfatiza o nome da stat e deixa Too Tight/Aggro como diagnóstico secundário.
 
 
-## V7.8.3 — Leak Review Target
+## V7.9 — Leak Review Target
 - O Resumo automático agora escolhe o conjunto correto para revisão.
 - Frequência abaixo do benchmark: abre oportunidades em que a ação NÃO foi executada.
 - Frequência acima do benchmark: abre as mãos em que a ação foi executada.
@@ -109,7 +109,16 @@ Corrige o gráfico de evolução para grandes bases de HH: cálculo de min/max s
 - Sem alteração de banco/SQL.
 
 
-## V7.8.3 — Opportunity Audit
+## V7.9 — Opportunity Audit
 - Corrige denominadores pre-flop nAI: open shove não conta como oportunidade de 3Bet nAI; 3Bet shove não conta como oportunidade de 4Bet.
 - O LeakFinder passa a chamar misses de oportunidades válidas sem a ação, sem afirmar que seriam ações GTO obrigatórias.
 - Mantém separadas oportunidade estatística e recomendação estratégica.
+
+
+## V7.9 — Preflop State Engine
+- Reconstrói o estado da árvore pré-flop antes da primeira decisão voluntária do Hero: UNOPENED, LIMPED, FACING_OPEN, FACING_OPEN_CALLERS, FACING_3BET, FACING_4BET e estados de shove.
+- RFI nasce somente em pote unopened.
+- 3Bet nasce somente enfrentando exatamente um open não-all-in; open + callers também marca Squeeze.
+- 4Bet nasce somente quando o Hero abriu e enfrenta uma 3Bet não-all-in.
+- Open shoves/3Bet shoves deixam de contaminar denominadores de re-raise.
+- Esta versão melhora a validade estatística das oportunidades; ela NÃO decide quais combos deveriam executar a ação segundo GTO.
