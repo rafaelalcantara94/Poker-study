@@ -1,4 +1,4 @@
-# Poker Study V8.3.1 — Auditoria Estratégica + 4Bet Review
+# Poker Study V8.3.2 — Auditoria Estratégica + 4Bet Review
 
 - Adiciona uma área de Auditoria Estratégica independente do Top 8 do Resumo de Leaks.
 - Acesso direto a RFI, 3Bet nAI, Fold to 3Bet nAI, 4Bet nAI/Total e Blind War.

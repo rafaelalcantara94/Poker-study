@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.3.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.3.2 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.3.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.3.2 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -832,7 +832,7 @@ function v831StrategicAuditHtml(f){
     }).join('')
     return `<div class="v831-audit-group"><header>${group}</header><div>${rows}</div></div>`
   }).join('')
-  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.3.1 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
+  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.3.2 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
 }
 
 function v76AdvancedHtml(f){
@@ -889,7 +889,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.3.1: Auditoria Estratégica + 4Bet review</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.3.2: Auditoria Estratégica + 4Bet review</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
     ${v78LeakSummaryHtml(facts)}
@@ -897,7 +897,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
     <div class="v71-layout"><main class="v71-main">
       ${v77PreflopPanels(facts)}
       ${v76AdvancedHtml(facts)}
-      <div class="v7-footnote">ⓘ V8.3.1 adiciona Auditoria Estratégica direta para RFI, 3Bet nAI, F2 3Bet nAI, 4Bet e Blind War; o 4Bet alto prioriza execuções marginais para revisão. Benchmarks vêm da referência do time fornecida pelo usuário. All-in EV continua disponível no gráfico/relatório, embora EVbb/100 não apareça neste painel até receber benchmark próprio.</div>
+      <div class="v7-footnote">ⓘ V8.3.2 adiciona Auditoria Estratégica direta para RFI, 3Bet nAI, F2 3Bet nAI, 4Bet e Blind War; o 4Bet alto prioriza execuções marginais para revisão. Benchmarks vêm da referência do time fornecida pelo usuário. All-in EV continua disponível no gráfico/relatório, embora EVbb/100 não apareça neste painel até receber benchmark próprio.</div>
     </main>${v71SideRail()}</div>
   </div>`
 }
@@ -1114,12 +1114,45 @@ function v83StrategicInfo(x,metric,reviewTarget='misses'){
       reason=`4Bet executada · revisar possível excesso · ${h.label} · ${eff?eff.toFixed(0)+'bb':''}`
     }
   } else if(metric==='fold3'||metric==='fold3betNAI'){
-    // Para fold alto, prioriza folds com mãos fortes; para fold baixo, prioriza
-    // calls/raises marginais que merecem auditoria, sem declarar erro teórico.
+    // V8.3.2 — F2 3Bet nAI alto: não basta listar todo fold. A fila deve concentrar
+    // a região plausível de defesa (call/4Bet) e deixar folds triviais de fora.
+    // Continua sendo triagem heurística, não range GTO.
     if(reviewTarget==='hits'){
-      keep=pairAt('8')||ax||broad||(h.suited&&hi>=idx('J'))
-      score=Math.min(98,58+strength*.42)
-      reason=`Fold vs 3Bet · mão relativamente forte · ${eff?eff.toFixed(0)+'bb':''}`
+      const suited=h.suited, pair=h.pair
+      const early=['UTG','UTG+1','MP'].includes(pos), late=['CO','BTN','SB'].includes(pos)
+      const is=(a,b)=>h.hi===a&&h.lo===b
+      const axs=suited&&h.hi==='A'
+      let tag='',sc=0
+      const add=(ok,val,t)=>{if(ok&&val>sc){sc=val;tag=t}}
+      // Núcleo de defesa que merece revisão praticamente sempre.
+      add(pairAt('Q'),98,'QQ+ foldado vs 3Bet')
+      add(is('A','K'),97,'AK foldado vs 3Bet')
+      add(pairAt('J'),94,'JJ+ foldado vs 3Bet')
+      add(suited&&is('A','Q'),93,'AQs foldado vs 3Bet')
+      add(!suited&&!pair&&is('A','Q'),89,'AQo foldado vs 3Bet')
+      add(pairAt('T'),88,'TT+ na fronteira de defesa')
+      add(suited&&is('A','J'),87,'AJs na região de defesa')
+      add(suited&&is('K','Q'),86,'KQs na região de defesa')
+      // CO/BTN/SB: região naturalmente mais larga, mas ainda conservadora.
+      if(late){
+        add(pairAt('9'),84,'99+ late position')
+        add(suited&&is('A','T'),83,'ATs late position')
+        add(suited&&is('K','J'),82,'KJs late position')
+        add(suited&&is('Q','J'),80,'QJs late position')
+        add(suited&&is('J','T'),79,'JTs late position')
+        add(axs&&['5','4'].includes(h.lo),81,'A5s/A4s blocker')
+        if(pos==='BTN'){
+          add(pairAt('8'),80,'88+ BTN')
+          add(suited&&is('K','T'),79,'KTs BTN')
+          add(suited&&is('Q','T'),78,'QTs BTN')
+          add(suited&&is('T','9'),77,'T9s BTN · fronteira')
+        }
+      }
+      // KJo/QJo/AJo offsuit não sobem automaticamente para mix: são no máximo
+      // fronteira contextual. Isso evita o problema visto no CO, onde quase tudo virou mix.
+      if(late&&!early&&!suited&&!pair&&((is('A','J'))||(is('K','Q'))))add(true,76,`${h.label} offsuit · fronteira contextual`)
+      keep=sc>0; score=sc
+      reason=keep?`${tag} · fold vs 3Bet nAI · ${pos}${eff?' · '+eff.toFixed(0)+'bb':''}`:`${h.label} · fold trivial fora da fila prioritária`
     }else{
       keep=true;score=Math.min(92,62+Math.abs(60-strength)*.25)
       reason=`Continuou vs 3Bet · revisar defesa · ${eff?eff.toFixed(0)+'bb':''}`
@@ -1243,7 +1276,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const reviewWord=reviewTarget==='misses'?'oportunidades sem a ação':'mãos com a ação'
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'candidatos estratégicos priorizados':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
   const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} mãos na fila bruta · ${passiveRows.length.toLocaleString('pt-BR')} após Action Outcome · ${reviewCount.toLocaleString('pt-BR')} candidatos priorizados · ${v82TierSummary(reviewRows)}`:''
-  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.3.1 aplica resultado da ação + contexto pré-flop e ordena a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=reviewRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${reviewCount.toLocaleString('pt-BR')} ${strategicEligible?'candidatos estratégicos':reviewWord}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.3.2 aplica resultado da ação + contexto pré-flop e ordena a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
