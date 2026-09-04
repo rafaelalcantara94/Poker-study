@@ -517,3 +517,9 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .v78-leak-row .main small{display:flex;align-items:center;gap:4px;margin-top:2px}
 .v781-diagnosis{font-size:9px;font-weight:800}
 .v781-diagnosis.tight{color:#ffd24a}.v781-diagnosis.aggro{color:#ff6666}
+
+/* V8.2 — Strategic candidate priority tiers */
+.strategic-tier{display:inline-flex;align-items:center;margin-left:5px;padding:2px 5px;border-radius:5px;font-size:7px;font-style:normal;font-weight:900;letter-spacing:.02em;vertical-align:1px;border:1px solid #495a70;color:#aebcd0;background:#172236}
+.strategic-tier.strong{color:#ff8585;border-color:#744047;background:#2a181d}
+.strategic-tier.mix{color:#ffd467;border-color:#6d5b2c;background:#251f12}
+.strategic-tier.fringe{color:#91b8ef;border-color:#38516e;background:#132033}
