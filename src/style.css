@@ -559,3 +559,7 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 
 /* V8.5 — contexto do agressor */
 .v84-diag-grid.v85-four{grid-template-columns:1.05fr .85fr .85fr .85fr}.v84-diag-grid h4 small{font-size:8px;font-weight:400;text-transform:none;letter-spacing:0;color:#7895ba}.v84-diag-row:not(.static) em{white-space:nowrap}@media(max-width:1150px){.v84-diag-grid.v85-four{grid-template-columns:1fr 1fr}.v84-diag-grid.v85-four>div:nth-child(2){border-right:0}}@media(max-width:760px){.v84-diag-grid.v85-four{grid-template-columns:1fr}}
+/* V8.6 — Analytics Filter Fix */
+.filters .filter-search,.filters .filter-clear{min-height:42px;white-space:nowrap}
+.filters .filter-search{padding-inline:18px}
+@media (max-width:1100px){.filters{align-items:stretch}.filters .filter-search,.filters .filter-clear{flex:1}}
