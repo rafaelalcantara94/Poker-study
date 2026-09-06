@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.4.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.5 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.4.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.5 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -835,7 +835,7 @@ function v831StrategicAuditHtml(f){
     }).join('')
     return `<div class="v831-audit-group"><header>${group}</header><div>${rows}</div></div>`
   }).join('')
-  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.4.1 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
+  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.5 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
 }
 
 function v76AdvancedHtml(f){
@@ -1301,12 +1301,16 @@ function v84DiagnosisHtml(universe=[],prioritized=[],opts={}){
   const n=universe.length||0, pc=v835ClassCounts(universe), sc=Object.fromEntries(V84_STACKS.map(([k])=>[k,0]))
   for(const x of universe)sc[v84StackBucket(x.stack)]++
   const pct=v=>n?100*v/n:0
-  const classRows=V835_HAND_CLASSES.filter(x=>x[0]!=='all').map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-class="${k}" title="Abrir ${l} no Replayer"><span>${l}</span><b>${(pc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(pc[k]||0).toFixed(1)}%</em><i aria-hidden="true">›</i></button>`).join('')
-  const stackRows=V84_STACKS.map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-stack="${k}" title="Abrir ${l} no Replayer"><span>${l}</span><b>${(sc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(sc[k]||0).toFixed(1)}%</em><i aria-hidden="true">›</i></button>`).join('')
+  const classRows=V835_HAND_CLASSES.filter(x=>x[0]!=='all').map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-class="${k}"><span>${l}</span><b>${(pc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(pc[k]||0).toFixed(1)}%</em></button>`).join('')
+  const stackRows=V84_STACKS.map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-stack="${k}"><span>${l}</span><b>${(sc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(sc[k]||0).toFixed(1)}%</em></button>`).join('')
   const outcomes=opts.outcomes||{}, ototal=Object.values(outcomes).reduce((a,b)=>a+(+b||0),0)
   const ol=[['fold','Fold'],['call','Call'],['raise_nai','Raise nAI'],['raise_ai','Raise AI'],['other','Outras']].filter(([k])=>outcomes[k]>0)
   const outcomeRows=ol.length?ol.map(([k,l])=>`<div class="v84-diag-row static"><span>${l}</span><b>${(+outcomes[k]||0).toLocaleString('pt-BR')}</b><em>${ototal?(100*(+outcomes[k]||0)/ototal).toFixed(1):'0.0'}%</em></div>`).join(''):`<div class="v84-empty">Distribuição de decisão indisponível para esta stat.</div>`
-  return `<section class="v84-diagnosis"><header><div><h3>🔬 Diagnóstico do leak</h3><p>Descubra onde o comportamento está concentrado antes de abrir as mãos.</p></div><div class="v84-diag-kpis"><span><b>${n.toLocaleString('pt-BR')}</b> universo</span>${prioritized.length?`<span><b>${prioritized.length.toLocaleString('pt-BR')}</b> priorizadas</span>`:''}</div></header><div class="v84-diag-grid"><div><h4>Classe de mão</h4>${classRows}</div><div><h4>Stack efetivo</h4>${stackRows}</div><div><h4>Decisão observada</h4>${outcomeRows}</div></div><footer>Clique em uma classe ou faixa de stack para abrir somente esse recorte no Replayer. O diagnóstico descreve seus dados; não afirma que uma ação é GTO.</footer></section>`
+  const posOrder=['UTG','UTG+1','MP1','MP2','MP','HJ','CO','BTN','SB','BB'], ag=Object.fromEntries(posOrder.map(k=>[k,0]))
+  for(const x of universe){const k=x.threeBetOpenerPos||x.bbStealOpener||'';if(k in ag)ag[k]++}
+  const agRows=posOrder.filter(k=>ag[k]>0).map(k=>`<button type="button" class="v84-diag-row" data-v85-aggressor="${k}"><span>vs ${k}</span><b>${ag[k].toLocaleString('pt-BR')}</b><em>${pct(ag[k]).toFixed(1)}% ›</em></button>`).join('')
+  const agBlock=agRows?`<div><h4>Posição do agressor <small>· clique para abrir</small></h4>${agRows}</div>`:''
+  return `<section class="v84-diagnosis"><header><div><h3>🔬 Diagnóstico do leak</h3><p>Descubra onde o comportamento está concentrado antes de abrir as mãos.</p></div><div class="v84-diag-kpis"><span><b>${n.toLocaleString('pt-BR')}</b> universo</span>${prioritized.length?`<span><b>${prioritized.length.toLocaleString('pt-BR')}</b> priorizadas</span>`:''}</div></header><div class="v84-diag-grid ${agRows?'v85-four':''}"><div><h4>Classe de mão <small>· clique para abrir</small></h4>${classRows}</div><div><h4>Stack efetivo <small>· clique para abrir</small></h4>${stackRows}</div>${agBlock}<div><h4>Decisão observada</h4>${outcomeRows}</div></div><footer>Clique em classe, stack ou posição do agressor para abrir somente esse recorte no Replayer. O diagnóstico descreve seus dados; não afirma que uma ação é GTO.</footer></section>`
 }
 
 function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
@@ -1403,7 +1407,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const replayUniverseRows=strategicEligible?passiveRows:reviewRows
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'universo auditável + prioridades':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
   const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} mãos na fila bruta · ${passiveRows.length.toLocaleString('pt-BR')} no universo auditável · ${reviewCount.toLocaleString('pt-BR')} priorizadas · ${v82TierSummary(reviewRows)}`:''
-  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.4 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.5 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
@@ -1421,6 +1425,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(replayUniverseRows,replayLabel,{priorityFacts})
   document.querySelectorAll('[data-v84-class]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Class,cut=replayUniverseRows.filter(x=>v835HandClass(x.heroCards)===k),ids=new Set(cut.map(x=>x.handId));openHhFactsInReplayer(cut,`${replayLabel} · ${v835HandClassLabel(k)}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
   document.querySelectorAll('[data-v84-stack]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Stack,cut=replayUniverseRows.filter(x=>v84StackBucket(x.stack)===k),ids=new Set(cut.map(x=>x.handId)),lab=(V84_STACKS.find(x=>x[0]===k)||['',k])[1];openHhFactsInReplayer(cut,`${replayLabel} · ${lab}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
+  document.querySelectorAll('[data-v85-aggressor]').forEach(b=>b.onclick=()=>{const k=b.dataset.v85Aggressor,cut=replayUniverseRows.filter(x=>(x.threeBetOpenerPos||x.bbStealOpener||'')===k),ids=new Set(cut.map(x=>x.handId));openHhFactsInReplayer(cut,`${replayLabel} · vs ${k}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
 }
 
 function hhEvolutionSeries(facts){
