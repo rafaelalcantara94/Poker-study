@@ -1,4 +1,4 @@
-# Poker Study V8.3.6 — Full Opportunity Universe
+# Poker Study V8.4 — Full Opportunity Universe
 
 ## O que mudou
 
