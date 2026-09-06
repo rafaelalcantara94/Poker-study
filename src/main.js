@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.6 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.7 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.6 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.7 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -835,7 +835,7 @@ function v831StrategicAuditHtml(f){
     }).join('')
     return `<div class="v831-audit-group"><header>${group}</header><div>${rows}</div></div>`
   }).join('')
-  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.5 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
+  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.7 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
 }
 
 function v76AdvancedHtml(f){
@@ -1313,6 +1313,60 @@ function v84DiagnosisHtml(universe=[],prioritized=[],opts={}){
   return `<section class="v84-diagnosis"><header><div><h3>🔬 Diagnóstico do leak</h3><p>Descubra onde o comportamento está concentrado antes de abrir as mãos.</p></div><div class="v84-diag-kpis"><span><b>${n.toLocaleString('pt-BR')}</b> universo</span>${prioritized.length?`<span><b>${prioritized.length.toLocaleString('pt-BR')}</b> priorizadas</span>`:''}</div></header><div class="v84-diag-grid ${agRows?'v85-four':''}"><div><h4>Classe de mão <small>· clique para abrir</small></h4>${classRows}</div><div><h4>Stack efetivo <small>· clique para abrir</small></h4>${stackRows}</div>${agBlock}<div><h4>Decisão observada</h4>${outcomeRows}</div></div><footer>Clique em classe, stack ou posição do agressor para abrir somente esse recorte no Replayer. O diagnóstico descreve seus dados; não afirma que uma ação é GTO.</footer></section>`
 }
 
+
+function v87ConcentrationHtml(allRows=[],reviewRows=[],prioritized=[],opts={}){
+  const bench=opts.bench||null,hitFor=opts.hitFor,reviewTarget=opts.reviewTarget||'misses'
+  if(!bench||typeof hitFor!=='function'||allRows.length<30||!opts.strategic)return ''
+  const classLabel=k=>v835HandClassLabel(k),stackLabel=k=>(V84_STACKS.find(x=>x[0]===k)||['',k])[1]
+  const agPos=x=>String(x.threeBetOpenerPos||x.bbStealOpener||'')
+  const prioIds=new Set((prioritized||[]).map(x=>x.handId))
+  const defs=[
+    {keys:['ag','stack'],name:'Agressor + stack'},
+    {keys:['ag','class'],name:'Agressor + classe'},
+    {keys:['stack','class'],name:'Stack + classe'}
+  ]
+  const val=(x,k)=>k==='ag'?agPos(x):k==='stack'?v84StackBucket(x.stack):v835HandClass(x.heroCards)
+  const label=(k,v)=>k==='ag'?`vs ${v}`:k==='stack'?stackLabel(v):classLabel(v)
+  const slices=[]
+  for(const d of defs){
+    const groups=new Map()
+    for(const x of allRows){
+      const a=val(x,d.keys[0]),b=val(x,d.keys[1]);if(!a||!b)continue
+      const key=a+'||'+b;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)
+    }
+    for(const [key,g] of groups){
+      const n=g.length;if(n<20)continue
+      const hits=g.filter(hitFor).length,rate=100*hits/n
+      let delta=0
+      if(reviewTarget==='misses'&&bench.min!=null)delta=Math.max(0,bench.min-rate)
+      else if(reviewTarget==='hits'&&bench.max!=null)delta=Math.max(0,rate-bench.max)
+      if(delta<=0)continue
+      const [a,b]=key.split('||')
+      const reviewCut=(reviewRows||[]).filter(x=>val(x,d.keys[0])===a&&val(x,d.keys[1])===b)
+      const prio=reviewCut.filter(x=>prioIds.has(x.handId)).length
+      const score=delta*Math.log2(n+1)*(1+Math.min(.65,prio/Math.max(1,n)*4))
+      slices.push({d,a,b,n,hits,rate,delta,prio,reviewN:reviewCut.length,score})
+    }
+  }
+  slices.sort((a,b)=>b.score-a.score||b.n-a.n)
+  const top=[]
+  const used=new Set()
+  for(const x of slices){
+    const signature=[x.d.keys[0],x.a,x.d.keys[1],x.b].join('|')
+    if(used.has(signature))continue
+    used.add(signature);top.push(x);if(top.length>=4)break
+  }
+  if(!top.length)return ''
+  const ref=v75RangeText(bench)
+  const cards=top.map((x,i)=>{
+    const attrs={ag:'',stack:'',class:''};attrs[x.d.keys[0]]=x.a;attrs[x.d.keys[1]]=x.b
+    const lab1=label(x.d.keys[0],x.a),lab2=label(x.d.keys[1],x.b)
+    const dir=reviewTarget==='misses'?'abaixo':'acima'
+    return `<button type="button" class="v87-focus-card" data-v87-slice="1" data-v87-aggressor="${attrs.ag}" data-v87-stack="${attrs.stack}" data-v87-class="${attrs.class}"><span class="v87-rank">${i+1}</span><span class="v87-focus-main"><b>${lab1} · ${lab2}</b><small>${x.rate.toFixed(1)}% · ref ${ref} · ${x.delta.toFixed(1)} p.p. ${dir}</small></span><span class="v87-focus-sample"><b>${x.n.toLocaleString('pt-BR')}</b><small>oportunidades</small></span><span class="v87-focus-prio"><b>${x.prio}</b><small>priorizadas</small></span><span class="v87-arrow">›</span></button>`
+  }).join('')
+  return `<section class="v87-concentration"><header><div><h4>🎯 Onde revisar primeiro</h4><p>Recortes em que a frequência observada mais se afasta da referência, ponderados pela amostra. É um mapa dos seus dados — não uma prescrição GTO.</p></div><span>${reviewTarget==='misses'?'frequência baixa':'frequência alta'}</span></header><div class="v87-focus-list">${cards}</div></section>`
+}
+
 function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const all=pos==='all'?[...hhStatsFilteredCache]:hhStatsFilteredCache.filter(x=>x.position===pos)
   const labelPos=pos==='all'?'Filtro atual':pos
@@ -1407,7 +1461,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const replayUniverseRows=strategicEligible?passiveRows:reviewRows
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'universo auditável + prioridades':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
   const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} mãos na fila bruta · ${passiveRows.length.toLocaleString('pt-BR')} no universo auditável · ${reviewCount.toLocaleString('pt-BR')} priorizadas · ${v82TierSummary(reviewRows)}`:''
-  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.5 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.7 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
@@ -1418,14 +1472,26 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
     if(streetMode==='river'||streetMode==='postflop')return aa
     return aa
   }
+  const v87Entry=v78LeakEntries(hhStatsFilteredCache).find(e=>e.metric===metric&&e.pos===pos)
   const diagnosis=v84DiagnosisHtml(replayUniverseRows,strategicEligible?reviewRows:[],{outcomes:strategicEligible?outcomeCounts:{}})
-  const html=`${diagnosis}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
+  const concentration=v87ConcentrationHtml(rows,replayUniverseRows,strategicEligible?reviewRows:[],{bench:v87Entry?.bench||null,hitFor,reviewTarget,strategic:strategicEligible})
+  const html=`${diagnosis}${concentration}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
   openModal(title,html)
   const priorityFacts=strategicEligible?reviewRows:[]
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(replayUniverseRows,replayLabel,{priorityFacts})
   document.querySelectorAll('[data-v84-class]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Class,cut=replayUniverseRows.filter(x=>v835HandClass(x.heroCards)===k),ids=new Set(cut.map(x=>x.handId));openHhFactsInReplayer(cut,`${replayLabel} · ${v835HandClassLabel(k)}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
   document.querySelectorAll('[data-v84-stack]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Stack,cut=replayUniverseRows.filter(x=>v84StackBucket(x.stack)===k),ids=new Set(cut.map(x=>x.handId)),lab=(V84_STACKS.find(x=>x[0]===k)||['',k])[1];openHhFactsInReplayer(cut,`${replayLabel} · ${lab}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
   document.querySelectorAll('[data-v85-aggressor]').forEach(b=>b.onclick=()=>{const k=b.dataset.v85Aggressor,cut=replayUniverseRows.filter(x=>(x.threeBetOpenerPos||x.bbStealOpener||'')===k),ids=new Set(cut.map(x=>x.handId));openHhFactsInReplayer(cut,`${replayLabel} · vs ${k}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
+  document.querySelectorAll('[data-v87-slice]').forEach(b=>b.onclick=()=>{
+    const ag=b.dataset.v87Aggressor||'',st=b.dataset.v87Stack||'',cl=b.dataset.v87Class||''
+    let cut=[...replayUniverseRows]
+    if(ag)cut=cut.filter(x=>(x.threeBetOpenerPos||x.bbStealOpener||'')===ag)
+    if(st)cut=cut.filter(x=>v84StackBucket(x.stack)===st)
+    if(cl)cut=cut.filter(x=>v835HandClass(x.heroCards)===cl)
+    const ids=new Set(cut.map(x=>x.handId)),parts=[]
+    if(ag)parts.push(`vs ${ag}`);if(st)parts.push((V84_STACKS.find(x=>x[0]===st)||['',st])[1]);if(cl)parts.push(v835HandClassLabel(cl))
+    openHhFactsInReplayer(cut,`${replayLabel} · ${parts.join(' · ')}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})
+  })
 }
 
 function hhEvolutionSeries(facts){

@@ -1,14 +1,13 @@
-# Poker Study V8.4 — Full Opportunity Universe
+# Poker Study V8.7 — Smart Leak Concentration
 
-## O que mudou
+Baseada na V8.6. Mantém Analytics com filtros aplicados por Buscar/Limpar e o motor V8.5 aprovado.
 
-- Auditorias estratégicas agora preservam **todo o universo estatisticamente válido** da decisão.
-- O Strategic Priority Engine não elimina mais mãos do Replayer: ele apenas marca/prioriza um subconjunto.
-- Novo filtro **Escopo da revisão**: `Todas oportunidades` ou `Só priorizadas`.
-- O filtro **Classe de mão** funciona em conjunto com o escopo e passa a mostrar também Trash/Outras, A-high, gappers etc. quando existirem no universo válido.
-- Para stats nAI, ações agressivas incompatíveis (como shove quando estamos auditando falta de raise nAI) continuam fora da fila passiva principal.
-- Forte / Mix / Fronteira continuam sendo heurística de revisão, não decisão GTO.
+## V8.7
+- nova seção **Onde revisar primeiro** dentro do Diagnóstico do Leak;
+- cruza posição do agressor, stack efetivo e classe de mão;
+- calcula a frequência observada em cada recorte contra o benchmark já validado;
+- pondera o destaque pela amostra para evitar recortes minúsculos dominando o diagnóstico;
+- cada recorte é clicável e abre exatamente aquele conjunto no Replayer;
+- Forte/Mix/Fronteira continua sendo apenas priorização; o diagnóstico não afirma estratégia GTO.
 
-## Banco de dados
-
-Nenhuma alteração SQL. Não é necessário reimportar Hand Histories.
+Não requer SQL nem reimportação das HHs.
