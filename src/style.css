@@ -556,3 +556,11 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .v84-diag-grid{display:grid;grid-template-columns:1.15fr .9fr .9fr}.v84-diag-grid>div{padding:11px 13px;border-right:1px solid #293a50}.v84-diag-grid>div:last-child{border-right:0}.v84-diag-grid h4{margin:0 0 7px;font-size:10px;color:#eef5ff;text-transform:uppercase;letter-spacing:.04em}
 .v84-diag-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 55px 48px;gap:7px;align-items:center;padding:6px 7px;border:0;border-bottom:1px solid #24354a;background:transparent;color:#dce7f5;text-align:left;font:inherit;cursor:pointer}.v84-diag-row:last-child{border-bottom:0}.v84-diag-row:hover{background:#17263b}.v84-diag-row span{font-size:9px}.v84-diag-row b{font-size:10px;text-align:right}.v84-diag-row em{font-style:normal;font-size:8px;color:#83a1c7;text-align:right}.v84-diag-row.static{cursor:default}.v84-diag-row.static:hover{background:transparent}.v84-empty{font-size:9px;color:#8199b8;padding:8px 0}.v84-diagnosis>footer{padding:8px 13px;border-top:1px solid #293a50;color:#829dbf;font-size:9px}
 @media(max-width:950px){.v84-diagnosis>header{align-items:flex-start;flex-direction:column}.v84-diag-grid{grid-template-columns:1fr}.v84-diag-grid>div{border-right:0;border-bottom:1px solid #293a50}}
+
+/* V8.4.1 — clearer diagnosis drill-down affordance */
+.v84-diag-row:not(.static){grid-template-columns:minmax(0,1fr) 55px 48px 18px;border-radius:6px;transition:background .14s ease,border-color .14s ease,transform .14s ease;position:relative}
+.v84-diag-row:not(.static) i{font-style:normal;font-size:18px;line-height:1;color:#6f91bd;text-align:right;transition:transform .14s ease,color .14s ease}
+.v84-diag-row:not(.static):hover{background:#192b43;box-shadow:inset 3px 0 0 #6d8cff}
+.v84-diag-row:not(.static):hover i{color:#fff;transform:translateX(2px)}
+.v84-diag-row:not(.static):focus-visible{outline:2px solid #8aa8ff;outline-offset:-2px;background:#192b43}
+.v84-diag-grid>div:nth-child(-n+2) h4::after{content:'  ·  clique para abrir';font-size:8px;font-weight:500;text-transform:none;letter-spacing:0;color:#6f8daf}

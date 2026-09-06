@@ -1,4 +1,4 @@
-# Poker Study V8.4 — Full Opportunity Universe
+# Poker Study V8.4.1 — Diagnosis Drill-down Polish
 
 ## O que mudou
 

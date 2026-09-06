@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.4 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.4.1 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.4 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.4.1 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -835,7 +835,7 @@ function v831StrategicAuditHtml(f){
     }).join('')
     return `<div class="v831-audit-group"><header>${group}</header><div>${rows}</div></div>`
   }).join('')
-  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.4 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
+  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.4.1 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
 }
 
 function v76AdvancedHtml(f){
@@ -1301,8 +1301,8 @@ function v84DiagnosisHtml(universe=[],prioritized=[],opts={}){
   const n=universe.length||0, pc=v835ClassCounts(universe), sc=Object.fromEntries(V84_STACKS.map(([k])=>[k,0]))
   for(const x of universe)sc[v84StackBucket(x.stack)]++
   const pct=v=>n?100*v/n:0
-  const classRows=V835_HAND_CLASSES.filter(x=>x[0]!=='all').map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-class="${k}"><span>${l}</span><b>${(pc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(pc[k]||0).toFixed(1)}%</em></button>`).join('')
-  const stackRows=V84_STACKS.map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-stack="${k}"><span>${l}</span><b>${(sc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(sc[k]||0).toFixed(1)}%</em></button>`).join('')
+  const classRows=V835_HAND_CLASSES.filter(x=>x[0]!=='all').map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-class="${k}" title="Abrir ${l} no Replayer"><span>${l}</span><b>${(pc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(pc[k]||0).toFixed(1)}%</em><i aria-hidden="true">›</i></button>`).join('')
+  const stackRows=V84_STACKS.map(([k,l])=>`<button type="button" class="v84-diag-row" data-v84-stack="${k}" title="Abrir ${l} no Replayer"><span>${l}</span><b>${(sc[k]||0).toLocaleString('pt-BR')}</b><em>${pct(sc[k]||0).toFixed(1)}%</em><i aria-hidden="true">›</i></button>`).join('')
   const outcomes=opts.outcomes||{}, ototal=Object.values(outcomes).reduce((a,b)=>a+(+b||0),0)
   const ol=[['fold','Fold'],['call','Call'],['raise_nai','Raise nAI'],['raise_ai','Raise AI'],['other','Outras']].filter(([k])=>outcomes[k]>0)
   const outcomeRows=ol.length?ol.map(([k,l])=>`<div class="v84-diag-row static"><span>${l}</span><b>${(+outcomes[k]||0).toLocaleString('pt-BR')}</b><em>${ototal?(100*(+outcomes[k]||0)/ototal).toFixed(1):'0.0'}%</em></div>`).join(''):`<div class="v84-empty">Distribuição de decisão indisponível para esta stat.</div>`
