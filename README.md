@@ -1,4 +1,4 @@
-# Poker Study V9.3 — Review Destinations
+# Poker Study V9.4 — Leak Goals
 
 ## Novidades
 - Integra a Caixa de Revisões à Central de Leaks e ao Plano de Estudos.
@@ -11,4 +11,11 @@
 - Mantém snapshot/cache de performance do Stats HH.
 
 ## Banco de dados
-Nenhum SQL novo é necessário. Os destinos V9.3 usam o armazenamento local já existente das revisões.
+Nenhum SQL novo é necessário. A V9.4 cria metas automáticas dos leaks a partir das revisões já salvas e do snapshot local do Stats HH.
+
+
+## V9.4 — Leak Goals
+- Metas automáticas para leaks confirmados.
+- Objetivo orientado pela faixa de referência (aproximação, não aumento cego).
+- Linha de base, valor atual, oportunidades e progresso.
+- Metas manuais permanecem separadas.
