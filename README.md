@@ -32,11 +32,11 @@ Plano de Estudos agora inicia sessões executáveis na aba Estudos, com cronôme
 - Foco técnico usa o snapshot do Stats HH quando disponível, sem alterar cálculos estatísticos.
 - Sem alterações de banco/SQL.
 
-## V9.8.1 — Sessão de Estudo Guiada
+## V9.9 — Sessão de Estudo Guiada
 - sessão ativa agora exibe um fluxo de 3 etapas: revisar mãos, extrair aprendizado e fechar sessão;
 - cada mão relacionada aceita um aprendizado/decisão próprio, salvo localmente durante a sessão;
 - progresso visual das mãos revisadas;
 - abrir a mão no Replayer preserva a sessão ativa para retorno posterior;
 - conclusão grava também os aprendizados por mão no registro de Estudos;
-- atualização de branding do shell para V9.8.1.
+- atualização de branding do shell para V9.9.
 - Sem SQL novo.
