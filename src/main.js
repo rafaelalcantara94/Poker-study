@@ -11,6 +11,9 @@ let hhStatsFilters = { game: 'holdem', start: '', end: '', position: 'all', stac
 let hhPerfLast = {storage:0,facts:0,render:0,total:0,cached:0,recomputed:0}
 const hhFactsSessionCache = new Map()
 let hhImportsMemoryCache = null
+let hhPersistedSnapshot = null
+const HH_SNAPSHOT_STORE='hhStatsSnapshot'
+const HH_SNAPSHOT_KEY='main-v1'
 let hhStatsDataRevision = 0
 const hhStatsViewMemo = new Map()
 let hhReplayContext = null
@@ -149,12 +152,21 @@ async function hhStatsImports(force=false){
   hhImportsMemoryCache=rows
   return rows
 }
-async function saveHhStatsImport(rec){
+async function saveHhStatsImport(rec,invalidateSnapshot=true){
   const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})
   if(hhImportsMemoryCache){const i=hhImportsMemoryCache.findIndex(x=>x.id===rec.id);if(i>=0)hhImportsMemoryCache[i]=rec;else hhImportsMemoryCache.push(rec)}
-  hhStatsDataRevision++;hhStatsViewMemo.clear()
+  hhStatsDataRevision++;hhStatsViewMemo.clear();if(invalidateSnapshot){hhPersistedSnapshot=null;try{const d2=await replayDb();await new Promise((resolve,reject)=>{const tx=d2.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot invalidation failed',e)}}
 }
-async function clearHhStatsImports(){const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_STATS_STORE,'readwrite');tx.objectStore(HH_STATS_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});hhImportsMemoryCache=[];hhStatsCache=[];hhStatsFilteredCache=[];hhStatsDataRevision++;hhStatsViewMemo.clear()}
+async function clearHhStatsImports(){const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction([HH_STATS_STORE,HH_SNAPSHOT_STORE],'readwrite');tx.objectStore(HH_STATS_STORE).clear();tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});hhImportsMemoryCache=[];hhPersistedSnapshot=null;hhStatsCache=[];hhStatsFilteredCache=[];hhStatsDataRevision++;hhStatsViewMemo.clear()}
+async function hhStatsSnapshot(){
+  if(hhPersistedSnapshot)return hhPersistedSnapshot
+  try{const d=await replayDb();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readonly'),r=tx.objectStore(HH_SNAPSHOT_STORE).get(HH_SNAPSHOT_KEY);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});hhPersistedSnapshot=rec;return rec}catch(e){console.warn('HH snapshot read failed',e);return null}
+}
+async function saveHhStatsSnapshot(facts,html=''){
+  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:1};hhPersistedSnapshot=rec
+  try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot write failed',e)}
+}
+async function clearHhStatsSnapshot(){hhPersistedSnapshot=null;try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot clear failed',e)}}
 function detectGameType(h){
   const text=`${h?.tournamentName||''} ${h?.raw||''}`.toLowerCase(),n=(h?.heroCards||[]).length
   if(/omaha/.test(text)||n>=4){if(/5\s*card|plo\s*5|omaha\s*5/.test(text)||n>=5)return 'plo5';return 'omaha'}
@@ -699,7 +711,7 @@ function v75BenchBadge(info){if(!info||info.state==='neutral')return '';return `
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.1: oportunidades pré-flop auditadas + triagem estratégica beta para revisão de 3Bet.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div><div id="hhPerfBar" class="hh-perf-bar">⚡ Performance V8.9.1 · aguardando medição…</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.1: oportunidades pré-flop auditadas + triagem estratégica beta para revisão de 3Bet.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div><div id="hhPerfBar" class="hh-perf-bar">⚡ Performance V8.9.2 · aguardando medição…</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
@@ -930,7 +942,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.9.1: V2 + Performance</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.9.2: V2 + Performance</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
     ${v88StudyQueueHtml(facts)}
@@ -1637,26 +1649,35 @@ function bindHhAudit(){
   bindV72Actions()
 }
 async function refreshHhStats(){
-  const t0=performance.now(),imports=await hhStatsImports(),t1=performance.now(),byId=new Map();let cached=0,recomputed=0
-  for(const r of imports){
-    const cacheKey=r.id+'|'+(r.importedAt||'')+'|'+((r.hands||[]).length)
-    let facts=Array.isArray(r.facts)&&r.facts.length?r.facts:hhFactsSessionCache.get(cacheKey)
-    if(facts){cached+=facts.length}else{
-      facts=[]
-      for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
-      recomputed+=facts.length;hhFactsSessionCache.set(cacheKey,facts)
-      // Migração preguiçosa: grava os fatos derivados uma única vez para os próximos carregamentos.
-      try{await saveHhStatsImport({...r,facts,perfSchema:1})}catch(e){console.warn('HH facts cache persist failed',e)}
+  const t0=performance.now();let cached=0,recomputed=0,usedSnapshot=false
+  const snap=await hhStatsSnapshot()
+  if(snap&&Array.isArray(snap.facts)&&snap.facts.length){
+    hhStatsCache=snap.facts;cached=hhStatsCache.length;usedSnapshot=true
+    const t1=performance.now();bindHhStatsFilters();const t2=performance.now()
+    hhPerfLast={storage:t1-t0,facts:0,render:t2-t1,total:t2-t0,cached,recomputed}
+  }else{
+    const imports=await hhStatsImports(),t1=performance.now(),byId=new Map()
+    for(const r of imports){
+      const cacheKey=r.id+'|'+(r.importedAt||'')+'|'+((r.hands||[]).length)
+      let facts=Array.isArray(r.facts)&&r.facts.length?r.facts:hhFactsSessionCache.get(cacheKey)
+      if(facts){cached+=facts.length}else{
+        facts=[]
+        for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
+        recomputed+=facts.length;hhFactsSessionCache.set(cacheKey,facts)
+        try{await saveHhStatsImport({...r,facts,perfSchema:1},false)}catch(e){console.warn('HH facts cache persist failed',e)}
+      }
+      for(const f of facts)if(f?.handId)byId.set(f.handId,f)
+      if(recomputed&&recomputed%5000<50)await new Promise(r=>setTimeout(r,0))
     }
-    for(const f of facts)if(f?.handId)byId.set(f.handId,f)
-    if(recomputed&&recomputed%5000<50)await new Promise(r=>setTimeout(r,0))
+    const t2=performance.now();hhStatsCache=[...byId.values()];bindHhStatsFilters();const t3=performance.now()
+    hhPerfLast={storage:t1-t0,facts:t2-t1,render:t3-t2,total:t3-t0,cached,recomputed}
+    // Cria um snapshot compacto: nas próximas aberturas completas não é preciso desserializar as HH brutas.
+    saveHhStatsSnapshot(hhStatsCache).catch(()=>{})
   }
-  const t2=performance.now();hhStatsCache=[...byId.values()];bindHhStatsFilters();const t3=performance.now()
-  hhPerfLast={storage:t1-t0,facts:t2-t1,render:t3-t2,total:t3-t0,cached,recomputed}
-  const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V8.9.1</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}`
+  const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V8.9.2</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}${usedSnapshot?' · <b>snapshot</b>':''}`
 }
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
-function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,3);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_SNAPSHOT_STORE))r.result.createObjectStore(HH_SNAPSHOT_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function savedReplayList(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readonly'),r=tx.objectStore(REPLAY_STORE).getAll();r.onsuccess=()=>resolve((r.result||[]).sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||'')));r.onerror=()=>reject(r.error)})}
 async function saveReplayTournament(rec){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readwrite');tx.objectStore(REPLAY_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
 async function deleteReplayTournament(id){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readwrite');tx.objectStore(REPLAY_STORE).delete(id);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
