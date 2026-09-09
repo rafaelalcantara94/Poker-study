@@ -1,4 +1,4 @@
-# Poker Study V10.0 — Team Reload
+# Poker Study V10.0.1 — Team Reload
 
 Adiciona o módulo Reload preparado para times, com solicitação multi-site, visão do gestor, histórico, relatório financeiro, exportação CSV e Make Up por razão independente.
 
@@ -53,3 +53,10 @@ Plano de Estudos agora inicia sessões executáveis na aba Estudos, com cronôme
 
 ## V10.0 final DB sync
 Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como **Enviado** e notas de decisão usam `manager_note`.
+
+
+## V10.0.1
+- Seletor Jogador/Gestor fixo e visível no topo do Reload para owner/manager.
+- Adicionado site Outros.
+- Logos/assinaturas visuais dos sites refinados para maior fidelidade no card.
+- Nenhuma migração SQL adicional necessária.

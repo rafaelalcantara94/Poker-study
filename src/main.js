@@ -39,7 +39,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.0 • TEAM READY</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.0.1 • TEAM READY</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -69,7 +69,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.0 • TEAM READY</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.0.1 • TEAM READY</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -98,7 +98,8 @@ const RELOAD_SITES=[
   {id:'WPT Global',short:'WPT',mark:'WPT',cls:'wpt'},
   {id:'ChampionPoker',short:'Champion',mark:'♛',cls:'champion'},
   {id:'888Poker',short:'888',mark:'888',cls:'p888'},
-  {id:'Tiger',short:'Tiger',mark:'🐯',cls:'tiger'}
+  {id:'Tiger',short:'Tiger',mark:'TIGER',cls:'tiger'},
+  {id:'Outros',short:'Outros',mark:'•••',cls:'other'}
 ]
 const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
 const reloadDate=x=>new Date(x).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
@@ -129,12 +130,32 @@ function reload(){
 }
 function reloadStatusBadge(s){const labels={pending:'Pendente',approved:'Aprovado',paid:'Enviado',rejected:'Recusado'};return `<span class="reload-status ${s}">${labels[s]||s}</span>`}
 function siteMeta(site){return RELOAD_SITES.find(x=>x.id===site)||{id:site,short:site,mark:'$',cls:''}}
-function siteLogoHtml(site,small=false){const s=siteMeta(site);return `<span class="reload-site-logo ${s.cls} ${small?'small':''}">${esc(s.mark)}</span>`}
+function siteLogoHtml(site,small=false){
+  const s=siteMeta(site)
+  const logos={
+    'GG Poker':'<span class="brand-gg"><i>GG</i><em>POKER</em></span>',
+    'CoinPoker':'<span class="brand-coin"><i>∞</i><em>CoinPoker</em></span>',
+    'ACR / YaPoker':'<span class="brand-acr"><i>★</i><em>ACR</em></span>',
+    'PokerStars.com':'<span class="brand-stars"><i>★</i><em>PokerStars</em></span>',
+    'PokerStars.es':'<span class="brand-stars"><i>★</i><em>PokerStars.es</em></span>',
+    'WPT Global':'<span class="brand-wpt"><i>◆</i><em>WPT</em><small>GLOBAL</small></span>',
+    'ChampionPoker':'<span class="brand-champion"><i>♛</i><em>CHAMPION</em></span>',
+    '888Poker':'<span class="brand-888"><i>888</i><em>poker</em></span>',
+    'Tiger':'<span class="brand-tiger"><i>TIGER</i><em>POKER</em></span>',
+    'Outros':'<span class="brand-other"><i>•••</i><em>OUTROS</em></span>'
+  }
+  return `<span class="reload-site-logo ${s.cls} ${small?'small':''}">${logos[s.id]||esc(s.mark)}</span>`
+}
 function ownMakeupBalance(){return reloadData.makeup.filter(x=>x.player_id===user.id).reduce((a,x)=>a+(+x.amount||0),0)}
+function reloadRoleSwitcher(){
+  if(!isReloadManager())return ''
+  const m=currentMember(),teamName='Poker Team'
+  return `<div class="reload-rolebar"><div class="reload-view-toggle"><button id="openPlayerReloadTop" class="${reloadMode==='player'?'active':''}">👤 Visão do Jogador</button><button id="openManagerReloadTop" class="${reloadMode==='manager'?'active':''}">👥 Visão do Gestor</button></div><div class="reload-role-meta"><b>${esc(m?.display_name||'Rafael')}</b><span>${esc(teamName)} · ${m?.role==='owner'?'Owner':'Gestor'}</span></div></div>`
+}
 function playerReloadHtml(){
   const ownReq=reloadData.requests.filter(x=>x.player_id===user.id).slice(0,6)
   const makeup=ownMakeupBalance()
-  return `<section class="panel reload-player-head"><header><div><span class="reload-kicker">VISÃO DO JOGADOR</span><h2>💲 Reload</h2><p class="muted">Solicite seus aportes de forma rápida e organizada.</p></div>${isReloadManager()?'<button class="btn secondary" id="openManagerReload">👥 Visão do Gestor</button>':''}</header></section>
+  return `${reloadRoleSwitcher()}<section class="panel reload-player-head"><header><div><span class="reload-kicker">VISÃO DO JOGADOR</span><h2>💲 Reload</h2><p class="muted">Solicite seus aportes de forma rápida e organizada.</p></div><div class="reload-head-note">ⓘ Após enviar, seu pedido será analisado pelo gestor.<br><small>O histórico fica registrado no sistema.</small></div></header></section>
   <section class="panel reload-request-panel"><div class="reload-panel-title"><div><h3>Selecione os sites e informe os valores</h3><p>Preencha apenas os sites que deseja solicitar. Você pode pedir mais de um site na mesma requisição.</p></div><div class="reload-total-box"><small>Total da solicitação</small><strong id="reloadRequestTotal">R$ 0,00</strong><span id="reloadSiteCount">0 sites selecionados</span></div></div>
   <div class="reload-site-grid">${RELOAD_SITES.map(s=>`<article class="reload-site-card" data-reload-card="${esc(s.id)}">${siteLogoHtml(s.id)}<b>${esc(s.id)}</b><div class="money-input"><span>R$</span><input inputmode="decimal" data-reload-amount="${esc(s.id)}" placeholder="0,00"></div></article>`).join('')}</div>
   <label class="reload-note">Observações <small>(opcional)</small><textarea id="reloadNote" maxlength="300" placeholder="Ex.: urgente para grind de domingo, prioridade GG…"></textarea></label>
@@ -144,7 +165,7 @@ function playerReloadHtml(){
 function managerTopTabs(){return `<div class="reload-manager-tabs"><button class="${reloadTab==='requests'?'active':''}" data-reload-tab="requests">Pedidos</button><button class="${reloadTab==='history'?'active':''}" data-reload-tab="history">Histórico</button><button class="${reloadTab==='finance'?'active':''}" data-reload-tab="finance">Relatório Financeiro</button><button class="${reloadTab==='makeup'?'active':''}" data-reload-tab="makeup">Make Up</button></div>`}
 function managerReloadHtml(){
   const counts=Object.fromEntries(['pending','approved','paid','rejected'].map(s=>[s,reloadData.items.filter(x=>x.status===s).length]))
-  return `<section class="panel reload-manager-head"><header><div><span class="reload-kicker manager">VISÃO DO GESTOR</span><h2>💲 Reload</h2><p class="muted">Gerencie os pedidos de reload do time.</p></div><button class="btn secondary" id="openPlayerReload">👤 Visão do Jogador</button></header>${managerTopTabs()}</section>${reloadTab==='finance'?reloadFinanceHtml():reloadTab==='makeup'?reloadMakeupHtml():reloadRequestsHtml(reloadTab==='history',counts)}`
+  return `${reloadRoleSwitcher()}<section class="panel reload-manager-head"><header><div><span class="reload-kicker manager">VISÃO DO GESTOR</span><h2>💲 Reload</h2><p class="muted">Gerencie os pedidos de reload do time.</p></div></header>${managerTopTabs()}</section>${reloadTab==='finance'?reloadFinanceHtml():reloadTab==='makeup'?reloadMakeupHtml():reloadRequestsHtml(reloadTab==='history',counts)}`
 }
 function reloadRequestsHtml(history=false,counts={}){
   let rows=reloadData.items.filter(x=>history?x.status!=='pending':true)
@@ -170,7 +191,7 @@ function reloadMakeupHtml(){
   return `<section class="panel reload-makeup"><div class="reload-finance-head"><div><span class="reload-kicker">MAKE UP</span><h2>Acompanhe o make up do time e dos jogadores</h2><p class="muted">O saldo é um razão independente. Ajustes positivos aumentam o Make Up; negativos reduzem.</p></div></div><div class="reload-makeup-kpis"><div><small>Make Up total do time</small><strong>${brl(total)}</strong></div><div><small>Jogadores em Make Up</small><strong>${inMu} de ${arr.length}</strong></div></div><div class="reload-table-wrap"><table><thead><tr><th>Jogador</th><th>Make Up atual</th><th>Status</th><th>Último movimento</th><th>Ações</th></tr></thead><tbody>${arr.map(x=>{const last=reloadData.makeup.find(e=>e.player_id===x.member.user_id);return `<tr><td><b>${esc(memberName(x.member.user_id))}</b><br><small>${esc(x.member.role)}</small></td><td class="${x.balance>0?'bad':'good'}"><b>${brl(x.balance)}</b></td><td>${x.balance>0?'<span class="reload-status rejected">Em Make Up</span>':'<span class="reload-status approved">Em dia</span>'}</td><td>${last?`${reloadDay(last.created_at)} · ${brl(last.amount)}<br><small>${esc(last.reason)}</small>`:'—'}</td><td><button class="btn small secondary" data-makeup-adjust="${x.member.user_id}">Ajustar</button></td></tr>`}).join('')}</tbody></table></div><div class="makeup-history"><h3>Histórico recente</h3>${reloadData.makeup.slice(0,12).map(e=>`<div><span>${reloadDay(e.created_at)}</span><b>${esc(memberName(e.player_id))}</b><strong class="${+e.amount>0?'bad':'good'}">${+e.amount>0?'+':''}${brl(e.amount)}</strong><em>${esc(e.reason)}</em></div>`).join('')||'<p class="muted">Nenhum movimento de Make Up registrado.</p>'}</div></section>`
 }
 function renderReloadPage(){const root=document.getElementById('reloadRoot');if(!root)return;root.innerHTML=reloadMode==='manager'&&isReloadManager()?managerReloadHtml():playerReloadHtml();bindReloadUi()}
-async function initReloadPage(){const root=document.getElementById('reloadRoot');try{await fetchReloadData();renderReloadPage()}catch(e){console.error(e);if(root)root.innerHTML=`<section class="panel"><h2>💲 Reload</h2><div class="notice bad">Não foi possível carregar o módulo Reload. Execute o SQL da V10.0 no Supabase e atualize a página.<br><small>${esc(e.message||e)}</small></div></section>`}}
+async function initReloadPage(){const root=document.getElementById('reloadRoot');try{await fetchReloadData();renderReloadPage()}catch(e){console.error(e);if(root)root.innerHTML=`<section class="panel"><h2>💲 Reload</h2><div class="notice bad">Não foi possível carregar o módulo Reload. A infraestrutura Team/Reload precisa estar ativa no Supabase e atualize a página.<br><small>${esc(e.message||e)}</small></div></section>`}}
 function parseReloadAmount(v){return Number(String(v||'').replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
 function refreshReloadTotal(){let total=0,count=0;document.querySelectorAll('[data-reload-amount]').forEach(inp=>{const v=parseReloadAmount(inp.value);const card=inp.closest('.reload-site-card');card?.classList.toggle('selected',v>0);if(v>0){total+=v;count++}});const t=document.getElementById('reloadRequestTotal'),c=document.getElementById('reloadSiteCount');if(t)t.textContent=brl(total);if(c)c.textContent=`${count} site${count===1?'':'s'} selecionado${count===1?'':'s'}`}
 async function submitReloadRequest(){
@@ -188,7 +209,7 @@ async function adjustMakeup(playerId){
 }
 function exportReloadCsv(){const rows=filteredReloadItems();const data=[['Data','Jogador','Site','Valor','Status','Observação'],...rows.map(i=>[reloadDate(i.request.created_at),memberName(i.request.player_id),i.site,Number(i.amount).toFixed(2),i.status,i.request.note||''])];const csv=data.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`reload_${today()}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 function bindReloadUi(){
-  const om=document.getElementById('openManagerReload');if(om)om.onclick=()=>{reloadMode='manager';reloadTab='requests';renderReloadPage()};const op=document.getElementById('openPlayerReload');if(op)op.onclick=()=>{reloadMode='player';renderReloadPage()};document.querySelectorAll('[data-reload-tab]').forEach(b=>b.onclick=()=>{reloadTab=b.dataset.reloadTab;renderReloadPage()});document.querySelectorAll('[data-reload-amount]').forEach(i=>i.oninput=refreshReloadTotal);const sr=document.getElementById('submitReload');if(sr)sr.onclick=submitReloadRequest;document.querySelectorAll('[data-reload-status]').forEach(b=>b.onclick=()=>updateReloadStatus(b.dataset.reloadItem,b.dataset.reloadStatus));document.querySelectorAll('[data-makeup-adjust]').forEach(b=>b.onclick=()=>adjustMakeup(b.dataset.makeupAdjust));const af=document.getElementById('applyReloadFilters');if(af)af.onclick=()=>{reloadFilters={...reloadFilters,start:document.getElementById('reloadStart')?.value||'',end:document.getElementById('reloadEnd')?.value||'',site:document.getElementById('reloadSiteFilter')?.value||'all',player:document.getElementById('reloadPlayerFilter')?.value||'all',status:document.getElementById('reloadStatusFilter')?.value||'all'};renderReloadPage()};const ex=document.getElementById('exportReloadCsv');if(ex)ex.onclick=exportReloadCsv;refreshReloadTotal()
+  const om=document.getElementById('openManagerReloadTop');if(om)om.onclick=()=>{reloadMode='manager';reloadTab='requests';renderReloadPage()};const op=document.getElementById('openPlayerReloadTop');if(op)op.onclick=()=>{reloadMode='player';renderReloadPage()};document.querySelectorAll('[data-reload-tab]').forEach(b=>b.onclick=()=>{reloadTab=b.dataset.reloadTab;renderReloadPage()});document.querySelectorAll('[data-reload-amount]').forEach(i=>i.oninput=refreshReloadTotal);const sr=document.getElementById('submitReload');if(sr)sr.onclick=submitReloadRequest;document.querySelectorAll('[data-reload-status]').forEach(b=>b.onclick=()=>updateReloadStatus(b.dataset.reloadItem,b.dataset.reloadStatus));document.querySelectorAll('[data-makeup-adjust]').forEach(b=>b.onclick=()=>adjustMakeup(b.dataset.makeupAdjust));const af=document.getElementById('applyReloadFilters');if(af)af.onclick=()=>{reloadFilters={...reloadFilters,start:document.getElementById('reloadStart')?.value||'',end:document.getElementById('reloadEnd')?.value||'',site:document.getElementById('reloadSiteFilter')?.value||'all',player:document.getElementById('reloadPlayerFilter')?.value||'all',status:document.getElementById('reloadStatusFilter')?.value||'all'};renderReloadPage()};const ex=document.getElementById('exportReloadCsv');if(ex)ex.onclick=exportReloadCsv;refreshReloadTotal()
 }
 
 function allPerformanceRows(){
