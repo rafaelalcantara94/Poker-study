@@ -18,6 +18,7 @@ let hhStatsDataRevision = 0
 const hhStatsViewMemo = new Map()
 let hhReplayContext = null
 let recoveryMode = false
+let studyTimerHandle = null
 let filters = { days: 30, site: 'all', format: 'all', start:'', end:'', minBuyin:'', maxBuyin:'', excludeSat:false }
 
 const esc = (s='') => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))
@@ -29,7 +30,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V9.4 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V9.5 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -59,7 +60,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V9.4 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V9.5 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -69,9 +70,10 @@ function shell(){
   route(currentPage)
 }
 function route(p){
+  if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p))
-  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Aulas, cursos, progresso e tags'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reports:['Relatórios','Leitura consolidada dos dados']}[p]
+  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reports:['Relatórios','Leitura consolidada dos dados']}[p]
   title.textContent=meta[0];subtitle.textContent=meta[1]
   page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,importer,leaks,plan,evolution,goals,reports})[p]()
   bindPage(p)
@@ -138,7 +140,53 @@ function analytics(){
   <div class="grid2"><div class="panel"><h2>Distribuição por buy-in</h2>${Object.entries(buckets).map(([k,v])=>`<div class="item metric-row"><b>${k}</b><span>${v} MTTs</span><span>${pct(v,m.g)} do volume</span><span></span></div>`).join('')}</div><div class="panel"><h2>Calendário recente</h2><div class="heatmap">${heat.map(x=>`<div class="heat" style="opacity:${.25+.75*x.games/maxGames}" title="${x.date}: ${x.games} MTTs · ${money(x.profit)}"><b>${x.date.slice(8)}</b><small>${x.games}</small></div>`).join('')}</div><p class="muted">Últimos ${heat.length} dias jogados. Passe o mouse para ver o resultado.</p></div></div>
   <div class="grid2"><div class="panel"><h2>Por site</h2>${block(bySite)}</div><div class="panel"><h2>Por formato</h2>${block(byFormat)}</div></div>`
 }
-function studies(){return `<div class="toolbar"><button class="btn" id="newStudy">+ Nova aula</button></div><div class="panel">${db.studies.length?`<table><tr><th>Curso / Aula</th><th>Tema</th><th>Professor</th><th>Duração</th><th>Data</th><th>Status</th><th></th></tr>${db.studies.map(x=>`<tr><td><b>${esc(x.course||'')}</b>${x.course?'<br>':''}${esc(x.title)}</td><td>${esc(x.topic||'Geral')}<br>${tagList(x.tags).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td>${esc(x.teacher||'')}</td><td>${x.duration||0} min</td><td>${x.date}</td><td><span class="pill ${x.status==='done'?'good':'warn'}">${x.status==='done'?'Assistida':'Pendente'}</span></td><td><button class="btn small secondary" data-toggle-study="${x.id}">Alternar</button></td></tr>`).join('')}</table>`:'<p class="muted">Nenhuma aula.</p>'}</div>`}
+const STUDY_ACTIVE_KEY='poker-study-active-session-v95'
+function activeStudySession(){try{return JSON.parse(localStorage.getItem(STUDY_ACTIVE_KEY)||'null')}catch{return null}}
+function saveActiveStudySession(x){if(x)localStorage.setItem(STUDY_ACTIVE_KEY,JSON.stringify(x));else localStorage.removeItem(STUDY_ACTIVE_KEY)}
+function studyPlanTasks(){
+  const leaks=leakData().slice(0,6),pending=db.hands.filter(x=>x.status!=='done'),manualTheory=reviewDestinationGroups('plan'),tasks=[]
+  manualTheory.forEach((g,i)=>tasks.push({kind:'TEORIA CONFIRMADA',title:g.topic,why:`${g.items.length} mão${g.items.length===1?'':'s'} enviada${g.items.length===1?'':'s'} pela Caixa de Revisões`,mins:i<2?45:30,score:140-i}))
+  leaks.forEach((l,i)=>tasks.push({kind:i<2?'FOCO PRINCIPAL':'REVISÃO',title:l.topic,why:`${l.pending} mãos pendentes · ${l.hands} marcações · ${l.studies} aulas concluídas`,mins:i<2?60:35,score:l.score}))
+  if(pending.length)tasks.push({kind:'FILA DE MÃOS',title:`Revisar ${Math.min(10,pending.length)} mãos pendentes`,why:'Transforme dúvidas marcadas em decisões documentadas.',mins:45,score:99})
+  if(!tasks.length)tasks.push({kind:'COMEÇAR',title:'Marque mãos e temas durante as sessões',why:'O plano fica automático assim que houver material de revisão.',mins:20,score:1})
+  return tasks.sort((a,b)=>(b.score||0)-(a.score||0))
+}
+function studySessionReviews(session){
+  const key=evoTopicKey(session?.title||'');if(!key)return []
+  let items=reviewDestinationItems('plan').filter(x=>{const k=evoTopicKey(reviewTopic(x));return k===key||k.includes(key)||key.includes(k)})
+  if(!items.length)items=reviewBoxItems().filter(x=>{const k=evoTopicKey(reviewTopic(x));return k===key||k.includes(key)||key.includes(k)})
+  return items.slice(0,12)
+}
+function studySessionHandRow(x){
+  const raw=x.heroCards||[],visual=raw.length?raw.map(cardHtml).join(''):'<span class="review-dest-fallback">--</span>',cards=raw.join(' ')||'Mão salva',meta=[x.position,x.stackBb!=null?`${x.stackBb}bb`:null].filter(Boolean).join(' · ')
+  return `<div class="study-session-hand"><div class="study-session-cards">${visual}</div><div><b>${esc(cards)}</b><small>${esc(meta||reviewTopic(x))}</small><p>${esc(x.note||'Sem nota')}</p></div><button class="btn small secondary" data-review-open="${esc(x.handId)}" ${reviewCanOpen(x.handId)?'':'disabled'}>${reviewCanOpen(x.handId)?'🎬 Abrir mão':'Fonte indisponível'}</button></div>`
+}
+function studySessionHtml(session){
+  const reviews=studySessionReviews(session),elapsed=Math.max(0,Date.now()-(session.startedAt||Date.now())),mins=Math.floor(elapsed/60000),secs=Math.floor(elapsed/1000)%60
+  return `<section class="panel study-live-session"><header><div><span class="study-live-kicker">▶ SESSÃO EM ANDAMENTO · V9.5</span><h2>${esc(session.title)}</h2><p class="muted">${esc(session.kind)} · bloco sugerido ${session.mins} min · iniciado ${new Date(session.startedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p></div><div class="study-live-clock" id="studyLiveClock">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div></header><div class="study-live-grid"><div><h3>Mãos relacionadas ${reviews.length?`<span class="pill">${reviews.length}</span>`:''}</h3>${reviews.length?`<div class="study-session-hands">${reviews.map(studySessionHandRow).join('')}</div>`:'<div class="notice">Ainda não há mãos associadas diretamente a este tema. Você pode usar a sessão para teoria e registrar a conclusão normalmente.</div>'}</div><div class="study-session-notes"><h3>Anotações / conclusão</h3><textarea id="activeStudyNotes" placeholder="O que ficou claro? Que ajuste você quer levar para as próximas sessões?">${esc(session.notes||'')}</textarea><label>Duração a registrar (min) <input id="activeStudyMinutes" type="number" min="1" placeholder="automático pelo cronômetro"></label><div class="study-session-actions"><button class="btn" id="completeStudySession">✓ Concluir estudo</button><button class="btn secondary" id="cancelStudySession">Cancelar sessão</button></div><small class="muted">Ao concluir, a duração e a data entram no histórico de Estudos e alimentam automaticamente Dashboard e Evolução.</small></div></div></section>`
+}
+function studies(){
+  const active=activeStudySession(),tasks=studyPlanTasks().slice(0,3)
+  const history=`<div class="panel study-history"><div class="study-history-head"><div><h2>Histórico de estudos</h2><p class="muted">Aulas manuais e sessões concluídas pelo workflow.</p></div><button class="btn" id="newStudy">+ Nova aula</button></div>${db.studies.length?`<table><tr><th>Curso / Aula</th><th>Tema</th><th>Professor</th><th>Duração</th><th>Data</th><th>Status</th><th></th></tr>${db.studies.map(x=>`<tr><td><b>${esc(x.course||'')}</b>${x.course?'<br>':''}${esc(x.title)}</td><td>${esc(x.topic||'Geral')}<br>${tagList(x.tags).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</td><td>${esc(x.teacher||'')}</td><td>${x.duration||0} min</td><td>${x.date}</td><td><span class="pill ${x.status==='done'?'good':'warn'}">${x.status==='done'?'Concluído':'Pendente'}</span></td><td><button class="btn small secondary" data-toggle-study="${x.id}">Alternar</button></td></tr>`).join('')}</table>`:'<p class="muted">Nenhum estudo concluído ainda.</p>'}</div>`
+  if(active)return `${studySessionHtml(active)}${history}`
+  return `<div class="panel study-plan-entry"><header><div><h2>🧭 Executar o Plano de Estudos</h2><p class="muted">Escolha um bloco sugerido. O Poker Study abre uma sessão, reúne as mãos relacionadas e registra o tempo quando você concluir.</p></div><span class="pill">V9.5</span></header><div class="study-plan-cards">${tasks.map((t,i)=>`<article><small>${esc(t.kind)}</small><h3>${esc(t.title)}</h3><p>${esc(t.why)}</p><footer><b>${t.mins} min</b><button class="btn small" data-study-start="${i}">▶ Iniciar estudo</button></footer></article>`).join('')}</div><button class="btn secondary" id="goStudyPlan">Ver Plano de Estudos completo →</button></div>${history}`
+}
+function startStudyPlanTask(index){const t=studyPlanTasks()[+index];if(!t)return;saveActiveStudySession({id:uid(),title:t.title,kind:t.kind,mins:t.mins,why:t.why,startedAt:Date.now(),notes:''});route('studies')}
+function bindStudyLiveTimer(){
+  const session=activeStudySession(),clock=document.getElementById('studyLiveClock');if(!session||!clock)return
+  const tick=()=>{const sec=Math.max(0,Math.floor((Date.now()-session.startedAt)/1000));clock.textContent=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`};tick();studyTimerHandle=setInterval(tick,1000)
+}
+async function completeActiveStudySession(){
+  const session=activeStudySession();if(!session)return
+  const notes=document.getElementById('activeStudyNotes')?.value.trim()||'',manual=+(document.getElementById('activeStudyMinutes')?.value||0),elapsed=Math.max(1,Math.round((Date.now()-session.startedAt)/60000)),duration=manual>0?manual:elapsed
+  if(!confirm(`Concluir o estudo de ${session.title} e registrar ${duration} min?`))return
+  const related=studySessionReviews(session).map(x=>x.handId)
+  const row={user_id:user.id,course:'Poker Study · Plano',title:`Sessão: ${session.title}`,teacher:'Poker Study',topic:session.title,date:today(),duration,status:'done',tags:['workflow','plano',session.title].join(','),notes:[notes,related.length?`Mãos relacionadas: ${related.join(', ')}`:''].filter(Boolean).join('\n\n')}
+  const {error}=await supabase.from('studies').insert(row);if(error)return alert(error.message)
+  saveActiveStudySession(null);await load();studyToast('✓ Estudo concluído e registrado');route('studies')
+}
+function cancelActiveStudySession(){if(!confirm('Cancelar esta sessão? As anotações ainda não concluídas não serão registradas no histórico.'))return;saveActiveStudySession(null);route('studies')}
+
 function hands(){
   const formats=[...new Set(db.hands.map(x=>x.format).filter(Boolean))],topics=[...new Set(db.hands.map(x=>x.topic).filter(Boolean))],positions=[...new Set(db.hands.map(x=>x.hero_position).filter(Boolean))]
   return `<div class="toolbar hand-filters"><button class="btn" id="newHand">+ Nova mão</button><select id="handStatus"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="done">Estudadas</option><option value="favorite">Favoritas</option></select><select id="handPriority"><option value="all">Todas prioridades</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baixa</option></select><select id="handFormat"><option value="all">Todos formatos</option>${formats.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handTopic"><option value="all">Todos temas</option>${topics.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handPosition"><option value="all">Todas posições</option>${positions.map(x=>`<option>${esc(x)}</option>`).join('')}</select><input id="handSearch" placeholder="Buscar spot, tag, street..."></div><div id="handCount" class="muted">${db.hands.length} mãos</div><div id="handList">${handCards(db.hands)}</div>`
@@ -1818,7 +1866,7 @@ function reviews(){
   const items=reviewBoxItems(),counts={correct:0,doubt:0,leak:0,theory:0};items.forEach(x=>counts[x.status]=(counts[x.status]||0)+1)
   const resolved=items.filter(reviewIsResolved),pending=items.filter(x=>!reviewIsResolved(x))
   const active=window.reviewBoxFilter||'attention',filtered=active==='all'?items:active==='attention'?pending:active==='resolved'?resolved:items.filter(x=>x.status===active)
-  return `<div class="review-box-summary"><div><h2>📥 Caixa de Revisões</h2><p>Pendências mostra somente o que ainda exige uma decisão sua. Ao concluir uma análise, marque a mão como Resolvida.</p></div><div class="review-box-kpis"><span><b>${pending.length}</b> pendências</span><span><b>${resolved.length}</b> resolvidas</span><span><b>${counts.doubt}</b> dúvidas</span><span><b>${counts.leak}</b> possíveis leaks</span><span><b>${counts.theory}</b> teoria</span></div></div><div class="review-box-tabs">${[['attention','Pendências'],['doubt','Dúvidas'],['leak','Possíveis leaks'],['theory','Rever teoria'],['correct','Corretas'],['all','Todas'],['resolved','Resolvidas']].map(([k,l])=>`<button class="${active===k?'active':''}" data-review-filter="${k}">${l}</button>`).join('')}</div><div class="review-box-note"><b>Fluxo V9.4:</b> a classificação descreve o tipo da revisão; o botão Resolvida encerra a pendência. Enviar para Leaks/Plano também resolve automaticamente. Tudo continua preservado em Todas e Resolvidas.</div><section class="review-box-list">${filtered.length?filtered.map(reviewCardHtml).join(''):'<div class="panel"><p class="muted">Nenhuma revisão neste filtro.</p></div>'}</section>`
+  return `<div class="review-box-summary"><div><h2>📥 Caixa de Revisões</h2><p>Pendências mostra somente o que ainda exige uma decisão sua. Ao concluir uma análise, marque a mão como Resolvida.</p></div><div class="review-box-kpis"><span><b>${pending.length}</b> pendências</span><span><b>${resolved.length}</b> resolvidas</span><span><b>${counts.doubt}</b> dúvidas</span><span><b>${counts.leak}</b> possíveis leaks</span><span><b>${counts.theory}</b> teoria</span></div></div><div class="review-box-tabs">${[['attention','Pendências'],['doubt','Dúvidas'],['leak','Possíveis leaks'],['theory','Rever teoria'],['correct','Corretas'],['all','Todas'],['resolved','Resolvidas']].map(([k,l])=>`<button class="${active===k?'active':''}" data-review-filter="${k}">${l}</button>`).join('')}</div><div class="review-box-note"><b>Fluxo V9.5:</b> a classificação descreve o tipo da revisão; o botão Resolvida encerra a pendência. Enviar para Leaks/Plano também resolve automaticamente. Tudo continua preservado em Todas e Resolvidas.</div><section class="review-box-list">${filtered.length?filtered.map(reviewCardHtml).join(''):'<div class="panel"><p class="muted">Nenhuma revisão neste filtro.</p></div>'}</section>`
 }
 function openReviewHand(id){
   let h=(replayState.hands||[]).find(x=>x.handId===id);const r=studyReviewFor(id)
@@ -1874,7 +1922,7 @@ function destinationReviewRow(x,dest){
 }
 function reviewDestinationPanel(dest,title,emptyText){
   const groups=reviewDestinationGroups(dest),total=groups.reduce((n,g)=>n+g.items.length,0),topicCount=groups.length
-  return `<div class="panel review-destination-panel v921"><header><div><h2>${title}</h2><p class="muted">${total} revisão${total===1?'':'ões'} confirmada${total===1?'':'s'} manualmente pela Caixa de Revisões · ${topicCount} tema${topicCount===1?'':'s'}.</p></div><span class="pill">V9.4</span></header>${groups.length?groups.map(g=>`<section class="review-dest-group"><div class="review-dest-group-head"><div><h3>${esc(g.topic)}</h3><small>${g.items.length} mão${g.items.length===1?'':'s'} associada${g.items.length===1?'':'s'} · última revisão ${g.last?new Date(g.last).toLocaleDateString('pt-BR'):'—'}</small></div><span class="review-dest-count">${g.items.length}</span></div><div class="review-dest-list">${g.items.map(x=>destinationReviewRow(x,dest)).join('')}</div></section>`).join(''):`<p class="muted">${emptyText}</p>`}</div>`
+  return `<div class="panel review-destination-panel v921"><header><div><h2>${title}</h2><p class="muted">${total} revisão${total===1?'':'ões'} confirmada${total===1?'':'s'} manualmente pela Caixa de Revisões · ${topicCount} tema${topicCount===1?'':'s'}.</p></div><span class="pill">V9.5</span></header>${groups.length?groups.map(g=>`<section class="review-dest-group"><div class="review-dest-group-head"><div><h3>${esc(g.topic)}</h3><small>${g.items.length} mão${g.items.length===1?'':'s'} associada${g.items.length===1?'':'s'} · última revisão ${g.last?new Date(g.last).toLocaleDateString('pt-BR'):'—'}</small></div><span class="review-dest-count">${g.items.length}</span></div><div class="review-dest-list">${g.items.map(x=>destinationReviewRow(x,dest)).join('')}</div></section>`).join(''):`<p class="muted">${emptyText}</p>`}</div>`
 }
 function bindReviewDestinationLinks(){document.querySelectorAll('[data-review-open]').forEach(b=>b.onclick=()=>openReviewHand(b.dataset.reviewOpen))}
 function replayWorkspaceHtml(){
@@ -2133,17 +2181,10 @@ function leaks(){
 }
 
 function plan(){
-  const leaks=leakData().slice(0,6),pending=db.hands.filter(x=>x.status!=='done'),doneStudies=db.studies.filter(x=>x.status==='done')
-  const manualTheory=reviewDestinationGroups('plan'),manualTheoryCount=manualTheory.reduce((n,g)=>n+g.items.length,0)
-  const tasks=[]
-  manualTheory.forEach((g,i)=>tasks.push({kind:'TEORIA CONFIRMADA',title:g.topic,why:`${g.items.length} mão${g.items.length===1?'':'s'} enviada${g.items.length===1?'':'s'} pela Caixa de Revisões`,mins:i<2?45:30,score:140-i}))
-  leaks.forEach((l,i)=>tasks.push({kind:i<2?'FOCO PRINCIPAL':'REVISÃO',title:l.topic,why:`${l.pending} mãos pendentes · ${l.hands} marcações · ${l.studies} aulas concluídas`,mins:i<2?60:35,score:l.score}))
-  if(pending.length)tasks.push({kind:'FILA DE MÃOS',title:`Revisar ${Math.min(10,pending.length)} mãos pendentes`,why:'Transforme dúvidas marcadas em decisões documentadas.',mins:45,score:99})
-  if(!tasks.length)tasks.push({kind:'COMEÇAR',title:'Marque mãos e temas durante as sessões',why:'O plano fica automático assim que houver material de revisão.',mins:20,score:1})
-  tasks.sort((a,b)=>(b.score||0)-(a.score||0))
-  const weekMinutes=tasks.slice(0,5).reduce((a,x)=>a+x.mins,0)
-  return reviewDestinationPanel('plan','🗓️ Teoria confirmada pela revisão','Nenhuma mão foi enviada para o Plano de Estudos ainda.')+`<div class="cards"><div class="card"><small>Teoria confirmada</small><strong>${manualTheoryCount}</strong><span>${manualTheory.length} tema${manualTheory.length===1?'':'s'}</span></div><div class="card"><small>Plano sugerido</small><strong>${tasks.slice(0,5).length} blocos</strong></div><div class="card"><small>Carga sugerida</small><strong>${Math.floor(weekMinutes/60)}h ${weekMinutes%60}m</strong></div><div class="card"><small>Mãos aguardando</small><strong>${pending.length}</strong></div></div><div class="panel"><h2>Próximos blocos de estudo</h2><p class="muted">Itens enviados manualmente pela Caixa de Revisões entram no topo como TEORIA CONFIRMADA; o restante continua gerado automaticamente.</p>${tasks.slice(0,5).map((t,i)=>`<div class="study-task"><span class="task-num">${i+1}</span><div><small>${t.kind}</small><h3>${esc(t.title)}</h3><div class="muted">${esc(t.why)}</div></div><strong>${t.mins} min</strong></div>`).join('')}</div><div class="grid2"><div class="panel"><h2>Regra da semana</h2><div class="notice">Primeiro resolva os temas confirmados manualmente na Caixa de Revisões. Depois use os 2 temas no topo da Central de Leaks para completar o bloco técnico.</div></div><div class="panel"><h2>Rotina sugerida</h2><p><b>Antes da sessão:</b> 15 min de revisão.</p><p><b>Pós-sessão:</b> marcar mãos e dúvidas.</p><p><b>Bloco técnico:</b> começar pelos itens confirmados e depois pelos leaks #1 e #2.</p></div></div>`
+  const pending=db.hands.filter(x=>x.status!=='done'),manualTheory=reviewDestinationGroups('plan'),manualTheoryCount=manualTheory.reduce((n,g)=>n+g.items.length,0),tasks=studyPlanTasks(),weekMinutes=tasks.slice(0,5).reduce((a,x)=>a+x.mins,0)
+  return reviewDestinationPanel('plan','🗓️ Teoria confirmada pela revisão','Nenhuma mão foi enviada para o Plano de Estudos ainda.')+`<div class="cards"><div class="card"><small>Teoria confirmada</small><strong>${manualTheoryCount}</strong><span>${manualTheory.length} tema${manualTheory.length===1?'':'s'}</span></div><div class="card"><small>Plano sugerido</small><strong>${tasks.slice(0,5).length} blocos</strong></div><div class="card"><small>Carga sugerida</small><strong>${Math.floor(weekMinutes/60)}h ${weekMinutes%60}m</strong></div><div class="card"><small>Mãos aguardando</small><strong>${pending.length}</strong></div></div><div class="panel"><h2>Próximos blocos de estudo</h2><p class="muted">Agora os blocos podem ser executados diretamente: Iniciar estudo abre a sessão na aba Estudos, reúne as mãos relacionadas e registra o tempo ao concluir.</p>${tasks.slice(0,5).map((t,i)=>`<div class="study-task v95"><span class="task-num">${i+1}</span><div><small>${esc(t.kind)}</small><h3>${esc(t.title)}</h3><div class="muted">${esc(t.why)}</div></div><strong>${t.mins} min</strong><button class="btn small" data-plan-study-start="${i}">▶ Iniciar estudo</button></div>`).join('')}</div><div class="grid2"><div class="panel"><h2>Regra da semana</h2><div class="notice">Primeiro resolva os temas confirmados manualmente na Caixa de Revisões. Depois use os 2 temas no topo da Central de Leaks para completar o bloco técnico.</div></div><div class="panel"><h2>Rotina sugerida</h2><p><b>Antes da sessão:</b> 15 min de revisão.</p><p><b>Pós-sessão:</b> marcar mãos e dúvidas.</p><p><b>Bloco técnico:</b> começar pelos itens confirmados e depois pelos leaks #1 e #2.</p></div></div>`
 }
+
 function evoTopicKey(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function evoFactTime(x){
   const raw=String(x?.time||x?.date||'').replace(' ','T').replace(/\//g,'-')
@@ -2192,9 +2233,9 @@ function leakEvolutionCard(g,facts){
 }
 function leakEvolutionHtml(){
   const topics=leakEvolutionTopics(),facts=(hhStatsCache||[]).filter(x=>x.game==='holdem')
-  if(!topics.length)return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Confirme um leak ou envie uma mão para o Plano de Estudos para começar o acompanhamento.</p></div><span class="pill">V9.4</span></div></div>`
-  if(!facts.length)return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Carregando o snapshot do Stats HH para comparar antes e depois…</p></div><span class="pill">V9.4</span></div></div>`
-  return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Compara as mãos anteriores à confirmação com as novas mãos importadas depois dela. Melhorar significa aproximar-se da faixa de referência — não simplesmente aumentar a stat.</p></div><span class="pill">V9.4</span></div><div class="leak-evo-list">${topics.map(g=>leakEvolutionCard(g,facts)).join('')}</div><div class="notice">O acompanhamento começa na data da primeira confirmação manual do tema. “Amostra insuficiente” evita concluir melhora ou piora cedo demais.</div></div>`
+  if(!topics.length)return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Confirme um leak ou envie uma mão para o Plano de Estudos para começar o acompanhamento.</p></div><span class="pill">V9.5</span></div></div>`
+  if(!facts.length)return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Carregando o snapshot do Stats HH para comparar antes e depois…</p></div><span class="pill">V9.5</span></div></div>`
+  return `<div class="panel leak-evolution-panel"><div class="leak-evo-head"><div><h2>📈 Evolução dos leaks</h2><p class="muted">Compara as mãos anteriores à confirmação com as novas mãos importadas depois dela. Melhorar significa aproximar-se da faixa de referência — não simplesmente aumentar a stat.</p></div><span class="pill">V9.5</span></div><div class="leak-evo-list">${topics.map(g=>leakEvolutionCard(g,facts)).join('')}</div><div class="notice">O acompanhamento começa na data da primeira confirmação manual do tema. “Amostra insuficiente” evita concluir melhora ou piora cedo demais.</div></div>`
 }
 async function bindLeakEvolution(){
   const root=document.getElementById('leakEvolutionRoot');if(!root)return
@@ -2238,9 +2279,9 @@ function leakGoalCard(g,facts){
 }
 function leakGoalsHtml(){
   const topics=leakEvolutionTopics(),facts=(hhStatsCache||[]).filter(x=>x.game==='holdem')
-  if(!topics.length)return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Quando um leak confirmado entra em acompanhamento, o Poker Study cria uma meta ligada à faixa de referência.</p></div><span class="pill">V9.4</span></div><div class="notice">Envie uma revisão para Central de Leaks ou Plano de Estudos para criar a primeira meta automática.</div></div>`
-  if(!facts.length)return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Carregando o snapshot do Stats HH para calcular as metas…</p></div><span class="pill">V9.4</span></div></div>`
-  return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Metas geradas a partir dos leaks que você confirmou. O objetivo é entrar — ou permanecer — na faixa de referência, nunca simplesmente aumentar uma stat.</p></div><span class="pill">V9.4</span></div><div class="leak-goals-list">${topics.map(g=>leakGoalCard(g,facts)).join('')}</div></div>`
+  if(!topics.length)return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Quando um leak confirmado entra em acompanhamento, o Poker Study cria uma meta ligada à faixa de referência.</p></div><span class="pill">V9.5</span></div><div class="notice">Envie uma revisão para Central de Leaks ou Plano de Estudos para criar a primeira meta automática.</div></div>`
+  if(!facts.length)return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Carregando o snapshot do Stats HH para calcular as metas…</p></div><span class="pill">V9.5</span></div></div>`
+  return `<div class="panel leak-goals-panel"><div class="leak-goals-head"><div><h2>🎯 Metas automáticas dos leaks</h2><p class="muted">Metas geradas a partir dos leaks que você confirmou. O objetivo é entrar — ou permanecer — na faixa de referência, nunca simplesmente aumentar uma stat.</p></div><span class="pill">V9.5</span></div><div class="leak-goals-list">${topics.map(g=>leakGoalCard(g,facts)).join('')}</div></div>`
 }
 async function bindLeakGoals(){
   const root=document.getElementById('leakGoalsRoot');if(!root)return
@@ -2281,11 +2322,11 @@ async function renderSavedReplays(loadText){
 }
 function bindPage(p){
   if(p==='reviews'){bindReviews();return}
-  if(p==='leaks'||p==='plan'){bindReviewDestinationLinks()}
+  if(p==='leaks'||p==='plan'){bindReviewDestinationLinks();if(p==='plan')document.querySelectorAll('[data-plan-study-start]').forEach(b=>b.onclick=()=>startStudyPlanTask(b.dataset.planStudyStart))}
   if(p==='evolution'){bindLeakEvolution()}
 
   if(p==='dashboard'||p==='analytics')bindFilters()
-  if(p==='studies'){newStudy.onclick=studyModal;document.querySelectorAll('[data-toggle-study]').forEach(b=>b.onclick=()=>toggleStudy(b.dataset.toggleStudy))}
+  if(p==='studies'){const ns=document.getElementById('newStudy');if(ns)ns.onclick=studyModal;document.querySelectorAll('[data-toggle-study]').forEach(b=>b.onclick=()=>toggleStudy(b.dataset.toggleStudy));document.querySelectorAll('[data-study-start]').forEach(b=>b.onclick=()=>startStudyPlanTask(b.dataset.studyStart));const gp=document.getElementById('goStudyPlan');if(gp)gp.onclick=()=>route('plan');const cs=document.getElementById('completeStudySession');if(cs)cs.onclick=completeActiveStudySession;const cancel=document.getElementById('cancelStudySession');if(cancel)cancel.onclick=cancelActiveStudySession;const note=document.getElementById('activeStudyNotes');if(note)note.oninput=()=>{const x=activeStudySession();if(x){x.notes=note.value;saveActiveStudySession(x)}};bindReviewDestinationLinks();bindStudyLiveTimer()}
   if(p==='hands'){newHand.onclick=handModal;bindHandCards();const filterHands=()=>{let a=db.hands;if(handStatus.value==='pending')a=a.filter(x=>x.status!=='done');if(handStatus.value==='done')a=a.filter(x=>x.status==='done');if(handStatus.value==='favorite')a=a.filter(x=>x.favorite);if(handPriority.value!=='all')a=a.filter(x=>x.priority===handPriority.value);if(handFormat.value!=='all')a=a.filter(x=>x.format===handFormat.value);if(handTopic.value!=='all')a=a.filter(x=>x.topic===handTopic.value);if(handPosition.value!=='all')a=a.filter(x=>x.hero_position===handPosition.value);const q=handSearch.value.trim().toLowerCase();if(q)a=a.filter(x=>[x.spot,x.topic,x.tags,x.preflop,x.flop,x.turn,x.river,x.question,x.hero_position,x.villain_position,x.effective_stack].some(v=>String(v||'').toLowerCase().includes(q)));handCount.textContent=`${a.length} de ${db.hands.length} mãos`;handList.innerHTML=handCards(a);bindHandCards()};[handStatus,handPriority,handFormat,handTopic,handPosition].forEach(x=>x.onchange=filterHands);handSearch.oninput=filterHands}
   if(p==='replayer'){
     const bindStatsReturn=()=>{const b=document.getElementById('backToHhStats');if(b)b.onclick=()=>{hhReplayContext=null;route('hhstats')}}
