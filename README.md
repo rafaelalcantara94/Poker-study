@@ -10,8 +10,17 @@
 Não requer SQL.
 
 
-## V8.9.2 — Performance Pass
+## V9.0 — Performance Pass
 - Cache de sessão para os imports do Stats HH, evitando reler ~53k mãos do IndexedDB ao voltar para a aba.
 - Memoização da visão estatística por conjunto de filtros.
 - Invalidação automática dos caches ao importar/limpar dados.
 - Nenhuma alteração no motor estatístico, benchmarks ou banco SQL.
+
+
+## V9.0 — Study Workflow
+- Revisão operacional dentro do Replayer para sessões vindas do Stats HH.
+- Classificação por mão: Correta, Dúvida, Possível leak, Rever teoria.
+- Nota rápida persistente por mão e progresso da sessão.
+- Próxima mão não revisada e indicadores na lista lateral.
+- Persistência local sem migração SQL.
+- Mantém o snapshot/performance da V8.9.2.
