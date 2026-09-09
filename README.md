@@ -1,4 +1,4 @@
-# Poker Study V9.2 — Review Destinations
+# Poker Study V9.2.1 — Review Destinations
 
 ## Novidades
 - Integra a Caixa de Revisões à Central de Leaks e ao Plano de Estudos.
@@ -11,4 +11,4 @@
 - Mantém snapshot/cache de performance do Stats HH.
 
 ## Banco de dados
-Nenhum SQL novo é necessário. Os destinos V9.2 usam o armazenamento local já existente das revisões.
+Nenhum SQL novo é necessário. Os destinos V9.2.1 usam o armazenamento local já existente das revisões.

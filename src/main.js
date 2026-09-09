@@ -29,7 +29,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V9.2 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V9.2.1 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -59,7 +59,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V9.2 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V9.2.1 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -942,7 +942,7 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V9.2: Review Destinations + Performance</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V9.2.1: Review Destinations + Performance</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
     ${v88StudyQueueHtml(facts)}
@@ -1818,7 +1818,7 @@ function reviews(){
   const items=reviewBoxItems(),counts={correct:0,doubt:0,leak:0,theory:0};items.forEach(x=>counts[x.status]=(counts[x.status]||0)+1)
   const resolved=items.filter(reviewIsResolved),pending=items.filter(x=>!reviewIsResolved(x))
   const active=window.reviewBoxFilter||'attention',filtered=active==='all'?items:active==='attention'?pending:active==='resolved'?resolved:items.filter(x=>x.status===active)
-  return `<div class="review-box-summary"><div><h2>📥 Caixa de Revisões</h2><p>Pendências mostra somente o que ainda exige uma decisão sua. Ao concluir uma análise, marque a mão como Resolvida.</p></div><div class="review-box-kpis"><span><b>${pending.length}</b> pendências</span><span><b>${resolved.length}</b> resolvidas</span><span><b>${counts.doubt}</b> dúvidas</span><span><b>${counts.leak}</b> possíveis leaks</span><span><b>${counts.theory}</b> teoria</span></div></div><div class="review-box-tabs">${[['attention','Pendências'],['doubt','Dúvidas'],['leak','Possíveis leaks'],['theory','Rever teoria'],['correct','Corretas'],['all','Todas'],['resolved','Resolvidas']].map(([k,l])=>`<button class="${active===k?'active':''}" data-review-filter="${k}">${l}</button>`).join('')}</div><div class="review-box-note"><b>Fluxo V9.2:</b> a classificação descreve o tipo da revisão; o botão Resolvida encerra a pendência. Enviar para Leaks/Plano também resolve automaticamente. Tudo continua preservado em Todas e Resolvidas.</div><section class="review-box-list">${filtered.length?filtered.map(reviewCardHtml).join(''):'<div class="panel"><p class="muted">Nenhuma revisão neste filtro.</p></div>'}</section>`
+  return `<div class="review-box-summary"><div><h2>📥 Caixa de Revisões</h2><p>Pendências mostra somente o que ainda exige uma decisão sua. Ao concluir uma análise, marque a mão como Resolvida.</p></div><div class="review-box-kpis"><span><b>${pending.length}</b> pendências</span><span><b>${resolved.length}</b> resolvidas</span><span><b>${counts.doubt}</b> dúvidas</span><span><b>${counts.leak}</b> possíveis leaks</span><span><b>${counts.theory}</b> teoria</span></div></div><div class="review-box-tabs">${[['attention','Pendências'],['doubt','Dúvidas'],['leak','Possíveis leaks'],['theory','Rever teoria'],['correct','Corretas'],['all','Todas'],['resolved','Resolvidas']].map(([k,l])=>`<button class="${active===k?'active':''}" data-review-filter="${k}">${l}</button>`).join('')}</div><div class="review-box-note"><b>Fluxo V9.2.1:</b> a classificação descreve o tipo da revisão; o botão Resolvida encerra a pendência. Enviar para Leaks/Plano também resolve automaticamente. Tudo continua preservado em Todas e Resolvidas.</div><section class="review-box-list">${filtered.length?filtered.map(reviewCardHtml).join(''):'<div class="panel"><p class="muted">Nenhuma revisão neste filtro.</p></div>'}</section>`
 }
 function openReviewHand(id){
   let h=(replayState.hands||[]).find(x=>x.handId===id);const r=studyReviewFor(id)
@@ -1866,13 +1866,15 @@ function reviewDestinationGroups(dest){
   for(const x of items){const topic=reviewTopic(x);if(!m.has(topic))m.set(topic,{topic,items:[],last:''});const g=m.get(topic);g.items.push(x);const d=x.sentAt||x.updatedAt||'';if(d>g.last)g.last=d}
   return [...m.values()].sort((a,b)=>String(b.last).localeCompare(String(a.last)))
 }
-function destinationReviewRow(x){
-  const cards=(x.heroCards||[]).join(' ')||x.handId,pos=x.position||'',stack=x.stackBb!=null?`${x.stackBb}bb`:'',when=x.dateTime?String(x.dateTime).slice(0,16).replace('T',' '):'',can=reviewCanOpen(x.handId)
-  return `<div class="review-dest-row"><div><b>${esc(cards)}</b><span>${esc([pos,stack,when].filter(Boolean).join(' · '))}</span><small>${esc(x.note||'Sem nota')}</small></div><button class="btn small secondary" data-review-open="${esc(x.handId)}" ${can?'':'disabled'}>${can?'🎬 Abrir no Replayer':'Fonte indisponível'}</button></div>`
+function destinationReviewRow(x,dest){
+  const rawCards=x.heroCards||[],cardsText=rawCards.join(' ')||x.handId,pos=x.position||'',stack=x.stackBb!=null?`${x.stackBb}bb`:'',when=x.dateTime?String(x.dateTime).slice(0,16).replace('T',' '):'',can=reviewCanOpen(x.handId)
+  const visual=rawCards.length?rawCards.map(cardHtml).join(''):`<span class="review-dest-fallback">${esc(cardsText)}</span>`
+  const status=dest==='leaks'?'Confirmada':'Teoria confirmada'
+  return `<div class="review-dest-row"><div class="review-dest-cards">${visual}</div><div class="review-dest-info"><div class="review-dest-title"><b>${esc(cardsText)}</b><span>${esc([pos,stack].filter(Boolean).join(' · '))}</span><em class="review-dest-badge ${dest}">${status}</em></div><small>${when?esc(when):'Data não disponível'}</small><p>${esc(x.note||'Sem nota')}</p></div><div class="review-dest-actions"><button class="btn small secondary" data-review-open="${esc(x.handId)}" ${can?'':'disabled'}>${can?'🎬 Abrir no Replayer':'Fonte indisponível'}</button></div></div>`
 }
 function reviewDestinationPanel(dest,title,emptyText){
-  const groups=reviewDestinationGroups(dest),total=groups.reduce((n,g)=>n+g.items.length,0)
-  return `<div class="panel review-destination-panel v92"><header><div><h2>${title}</h2><p class="muted">${total} revisão(ões) confirmada(s) manualmente pela Caixa de Revisões. Agrupadas pelo tema/stat de origem.</p></div><span class="pill">V9.2</span></header>${groups.length?groups.map(g=>`<section class="review-dest-group"><div class="review-dest-group-head"><div><h3>${esc(g.topic)}</h3><small>${g.items.length} mão${g.items.length===1?'':'s'} associada${g.items.length===1?'':'s'} · última revisão ${g.last?new Date(g.last).toLocaleDateString('pt-BR'):'—'}</small></div><b>${g.items.length}</b></div>${g.items.map(destinationReviewRow).join('')}</section>`).join(''):`<p class="muted">${emptyText}</p>`}</div>`
+  const groups=reviewDestinationGroups(dest),total=groups.reduce((n,g)=>n+g.items.length,0),topicCount=groups.length
+  return `<div class="panel review-destination-panel v921"><header><div><h2>${title}</h2><p class="muted">${total} revisão${total===1?'':'ões'} confirmada${total===1?'':'s'} manualmente pela Caixa de Revisões · ${topicCount} tema${topicCount===1?'':'s'}.</p></div><span class="pill">V9.2.1</span></header>${groups.length?groups.map(g=>`<section class="review-dest-group"><div class="review-dest-group-head"><div><h3>${esc(g.topic)}</h3><small>${g.items.length} mão${g.items.length===1?'':'s'} associada${g.items.length===1?'':'s'} · última revisão ${g.last?new Date(g.last).toLocaleDateString('pt-BR'):'—'}</small></div><span class="review-dest-count">${g.items.length}</span></div><div class="review-dest-list">${g.items.map(x=>destinationReviewRow(x,dest)).join('')}</div></section>`).join(''):`<p class="muted">${emptyText}</p>`}</div>`
 }
 function bindReviewDestinationLinks(){document.querySelectorAll('[data-review-open]').forEach(b=>b.onclick=()=>openReviewHand(b.dataset.reviewOpen))}
 function replayWorkspaceHtml(){
