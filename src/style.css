@@ -622,3 +622,22 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .review-dest-badge{padding:3px 7px;border-radius:999px;font-style:normal;font-size:8px;font-weight:900;white-space:nowrap}.review-dest-badge.leaks{background:#5d2430;color:#ffd1d7;border:1px solid #8b3543}.review-dest-badge.plan{background:#4a2d86;color:#e9dcff;border:1px solid #7049b9}
 .review-dest-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}.review-dest-actions .btn{white-space:nowrap}
 @media(max-width:850px){.review-destination-panel.v921>header{flex-direction:column}.review-dest-row{grid-template-columns:66px 1fr}.review-dest-actions{grid-column:2;justify-content:flex-start}.review-dest-title{align-items:flex-start}.review-dest-badge{display:none}}
+
+/* V9.3 — Leak Evolution */
+.leak-evolution-panel{margin-bottom:18px}
+.leak-evo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:16px}
+.leak-evo-head h2{margin:0 0 5px}.leak-evo-head p{margin:0;max-width:900px}
+.leak-evo-list{display:grid;gap:12px;margin-bottom:14px}
+.leak-evo-card{border:1px solid #2b4160;border-left:4px solid #64748b;border-radius:14px;background:#111e31;padding:15px 16px}
+.leak-evo-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.leak-evo-card h3{margin:0 0 4px;font-size:19px}.leak-evo-card header small{color:#80aee8}
+.leak-evo-status{border:1px solid #38506f;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;white-space:nowrap;background:#182942}
+.leak-evo-status.improving,.leak-evo-status.great{color:#63df88;border-color:#246d43;background:#103223}
+.leak-evo-status.worse{color:#ff7b7b;border-color:#7e3038;background:#351a21}
+.leak-evo-status.stable{color:#9fc7ff}.leak-evo-status.sample{color:#ffd75a;border-color:#67541d;background:#302814}
+.leak-evo-metrics{display:grid;grid-template-columns:minmax(145px,1fr) 32px minmax(145px,1fr) minmax(165px,1fr);gap:10px;align-items:center}
+.leak-evo-metrics>div:not(.arrow){background:#0c1829;border:1px solid #29415f;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:3px}
+.leak-evo-metrics small{color:#74a9e9;font-size:10px}.leak-evo-metrics strong{font-size:22px}.leak-evo-metrics span{font-size:11px;color:#8eadd2}
+.leak-evo-metrics .arrow{text-align:center;font-size:25px;color:#7c3aed;font-weight:900}
+.leak-evo-card>p{margin:12px 0 0;color:#a9c5e9;font-size:13px}
+@media(max-width:900px){.leak-evo-metrics{grid-template-columns:1fr 1fr}.leak-evo-metrics .arrow{display:none}.leak-evo-card header,.leak-evo-head{flex-direction:column}}
