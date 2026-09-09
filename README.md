@@ -17,10 +17,18 @@ Não requer SQL.
 - Nenhuma alteração no motor estatístico, benchmarks ou banco SQL.
 
 
-## V9.0 — Study Workflow
+## V9.0.1 — Study Workflow UX
 - Revisão operacional dentro do Replayer para sessões vindas do Stats HH.
 - Classificação por mão: Correta, Dúvida, Possível leak, Rever teoria.
 - Nota rápida persistente por mão e progresso da sessão.
 - Próxima mão não revisada e indicadores na lista lateral.
 - Persistência local sem migração SQL.
 - Mantém o snapshot/performance da V8.9.2.
+
+
+### V9.0.1
+- revisão salva automaticamente com feedback visual
+- progresso acompanha o escopo atual (Todas/Só priorizadas + classe)
+- destino local de cada classificação fica explícito
+- filas locais: Concluída, Dúvidas, Possíveis leaks e Teoria
+- integração automática com Central de Leaks/Plano de Estudos ainda não é feita nesta versão
