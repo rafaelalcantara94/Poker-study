@@ -811,6 +811,30 @@ function v78LeakSummaryHtml(f){
   const rows=top.map((x,i)=>`<button class="v78-leak-row ${severity(x)}" data-leak-metric="${x.metric}" data-leak-pos="${x.pos}" data-leak-target="${reviewTarget(x)}"><span class="rank">${i+1}</span><span class="main"><b>${x.statLabel}</b><small><strong class="v781-diagnosis ${x.state}">${x.diagnosis}</strong> · ${x.group} · ${x.den.toLocaleString('pt-BR')} oportunidades</small></span><span class="value"><b>${x.value.toFixed(1)}%</b><small>ref. ${v75RangeText(x.bench)}</small></span><span class="delta">${x.distance.toFixed(1)} p.p. ${dir(x)}</span><em>${sevLabel(x)}</em></button>`).join('')
   return `<section class="v78-leaks"><header><div><h3>🧠 Resumo automático de leaks</h3><p>Prioriza desvios pelo tamanho da diferença, amostra e importância do spot. É uma fila de revisão — não um veredito estratégico.</p></div><div class="v78-leak-counts"><span><b>${leaks.length}</b> desvios</span><span class="great"><b>${great}</b> dentro</span><span class="sample"><b>${sample}</b> pouca amostra</span></div></header>${top.length?`<div class="v78-leak-list">${rows}</div>`:`<div class="v78-no-leaks">Nenhum desvio com amostra suficiente neste filtro. 🎯</div>`}<footer>Clique em um leak: frequência baixa revisa oportunidades perdidas; frequência alta revisa as ações executadas em excesso. Depois, envie o conjunto certo ao Replayer.</footer></section>`
 }
+function v88StudyQueueHtml(f){
+  const entries=v78LeakEntries(f).filter(x=>['tight','aggro'].includes(x.state)&&x.den>=20)
+  if(!entries.length)return ''
+  const groupWeight={'RFI':1.18,'3Bet nAI':1.22,'Fold 3Bet nAI':1.18,'4Bet':1.15,'Blind War':1.16,'3Bet total':1.08,'SRP IP vs BB':1.08,'BB vs IP':1.08,'OOP':1.05,'OOP MW Sandwich':1.04,'Geral':1.0,'Resultado':.72}
+  const maxDen=Math.max(...entries.map(x=>x.den||0),1)
+  const scored=entries.map(x=>{
+    const sample=Math.min(1,Math.log10((x.den||0)+1)/3)
+    const frequency=Math.min(1,Math.log10((x.den||0)+1)/Math.log10(maxDen+1))
+    const gw=groupWeight[x.group]??1
+    const studyScore=(x.score||0)*(.55+.25*sample+.20*frequency)*gw
+    const target=v831ReviewTarget(x)
+    const confidence=x.den>=500?'alta':x.den>=120?'boa':'moderada'
+    const why=`${x.distance.toFixed(1)} p.p. ${target==='misses'?'abaixo':'acima'} · ${x.den.toLocaleString('pt-BR')} oportunidades · confiança ${confidence}`
+    return {...x,studyScore,target,confidence,why}
+  }).sort((a,b)=>b.studyScore-a.studyScore)
+  const top=scored.slice(0,5)
+  const cards=top.map((x,i)=>{
+    const urgency=x.studyScore>=1.5?'Prioridade alta':x.studyScore>=.75?'Prioridade média':'Monitorar'
+    return `<button class="v88-study-item" data-leak-metric="${x.metric}" data-leak-pos="${x.pos}" data-leak-target="${x.target}"><span class="v88-study-rank">${i+1}</span><span class="v88-study-main"><b>${x.statLabel}</b><small>${x.group} · ${x.why}</small></span><span class="v88-study-rate"><b>${x.value.toFixed(1)}%</b><small>ref. ${v75RangeText(x.bench)}</small></span><em class="${x.studyScore>=1.5?'high':x.studyScore>=.75?'mid':'watch'}">${urgency}</em><span class="v88-study-arrow">›</span></button>`
+  }).join('')
+  const high=top.filter(x=>x.studyScore>=1.5).length
+  return `<section class="v88-study-queue"><header><div><h3>🧭 Fila inteligente de estudo <span>V2</span></h3><p>Ordena os leaks pelo desvio, confiabilidade da amostra, frequência da oportunidade e relevância do spot. Serve para decidir onde investigar primeiro — não determina a estratégia correta.</p></div><div class="v88-study-kpis"><span><b>${entries.length}</b> leaks elegíveis</span><span><b>${high}</b> alta prioridade</span></div></header><div class="v88-study-list">${cards}</div><footer>Clique em um tema para abrir o diagnóstico completo e, de lá, recortar classe, stack e agressor antes de enviar as mãos ao Replayer.</footer></section>`
+}
+
 function v831ReviewTarget(x){
   if(x?.bench?.min!=null&&x.value<x.bench.min)return 'misses'
   if(x?.bench?.max!=null&&x.value>x.bench.max)return 'hits'
@@ -892,9 +916,10 @@ function hhStatsViewHtml(facts,totalFacts=hhStatsCache){
   const bVPIP=v75Classify(s.vpip,s.hands,v75Benchmark('overall','vpip'),'overall'),bPFR=v75Classify(s.pfr,s.hands,v75Benchmark('overall','pfr'),'overall'),b3=v75Classify(s.threeBet,c.threeBetOpp,v75Benchmark('overall','threeBet')),bWWSF=v75Classify(s.wwsf,c.sawFlop,v75Benchmark('overall','wwsf'))
   const red=v76Redline100(facts),bBB=v76Class(s.bb100,facts.length,v76BenchObj(V76_BENCH.result.bb100,'BB/100'),500),bRed=v76Class(red,facts.length,v76BenchObj(V76_BENCH.result.redline,'Red Line'),500)
   return `<div class="v7-dashboard">
-    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.4: Diagnóstico do Leak + Universo completo</em></div>
+    <div class="v7-resultbar"><b>${facts.length.toLocaleString('pt-BR')} mãos encontradas</b><span>${breakdown}</span><em>Painel V8.8: Diagnóstico V2 + Universo completo</em></div>
     <div class="v7-kpis v77-kpis">${top('MÃOS',s.hands.toLocaleString('pt-BR'),'filtro atual')}${top('VPIP',s.vpip.toFixed(1)+'%',hhRateSub(c.vpip,s.hands,'mãos'),'vpip','',bVPIP)}${top('PFR',s.pfr.toFixed(1)+'%',hhRateSub(c.pfr,s.hands,'mãos'),'pfr','',bPFR)}${top('3BET',hhPctDisplay(s.threeBet,c.threeBetOpp),hhRateSub(c.threeBet,c.threeBetOpp),'3bet','',b3)}${top('WWSF',s.wwsf.toFixed(1)+'%',hhRateSub(c.wwsf,c.sawFlop,'flops vistos'),'wwsf','',bWWSF)}${top('BB/100',(s.bb100>=0?'+':'')+s.bb100.toFixed(1),'resultado real','bb100',s.bb100>=0?'orange':'negative',bBB)}${top('RED LINE /100',(red>=0?'+':'')+red.toFixed(1),'non-showdown bb/100','','',bRed)}</div>
     <div class="v7-help">ⓘ Análise unificada: amarelo/vermelho/verde = benchmark validado; cinza = benchmark existe, mas a amostra é insuficiente. Stats ainda sem benchmark ficam ocultas até serem mapeadas.</div>
+    ${v88StudyQueueHtml(facts)}
     ${v78LeakSummaryHtml(facts)}
     ${v831StrategicAuditHtml(facts)}
     <div class="v71-layout"><main class="v71-main">
@@ -1486,7 +1511,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const replayUniverseRows=strategicEligible?passiveRows:reviewRows
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'universo auditável + prioridades':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
   const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} mãos na fila bruta · ${passiveRows.length.toLocaleString('pt-BR')} no universo auditável · ${reviewCount.toLocaleString('pt-BR')} priorizadas · ${v82TierSummary(reviewRows)}`:''
-  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.7.2 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.8 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
