@@ -21,7 +21,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.7.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V8.7.2 • TRACKER</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -51,7 +51,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.7.1 • TRACKER</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V8.7.2 • TRACKER</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -835,7 +835,7 @@ function v831StrategicAuditHtml(f){
     }).join('')
     return `<div class="v831-audit-group"><header>${group}</header><div>${rows}</div></div>`
   }).join('')
-  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.7.1 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
+  return `<section class="v831-strategy-audit"><header><div><h3>🧪 Auditoria estratégica</h3><p>Abra qualquer família pré-flop já suportada pelo motor, mesmo quando ela não aparece no Top 8 de leaks.</p></div><span>V8.7.2 · acesso direto</span></header><div class="v831-audit-grid">${groups}</div><footer>O alvo é escolhido pela direção do desvio: frequência baixa revisa decisões sem a ação; frequência alta revisa ações executadas. Stats dentro da faixa continuam disponíveis para auditoria manual.</footer></section>`
 }
 
 function v76AdvancedHtml(f){
@@ -1372,7 +1372,22 @@ function v87ConcentrationHtml(allRows=[],reviewRows=[],prioritized=[],opts={}){
     const attrs={ag:'',stack:'',class:''};attrs[x.d.keys[0]]=x.a;attrs[x.d.keys[1]]=x.b
     const lab1=label(x.d.keys[0],x.a),lab2=label(x.d.keys[1],x.b)
     const dir=reviewTarget==='misses'?'abaixo':'acima'
-    return `<button type="button" class="v87-focus-card" data-v87-slice="1" data-v87-aggressor="${attrs.ag}" data-v87-stack="${attrs.stack}" data-v87-class="${attrs.class}"><span class="v87-rank">${i+1}</span><span class="v87-focus-main"><b>${lab1} · ${lab2}</b><small>${x.rate.toFixed(1)}% · ref ${ref} · ${x.delta.toFixed(1)} p.p. ${dir}</small></span><span class="v87-focus-sample"><b>${x.n.toLocaleString('pt-BR')}</b><small>oportunidades</small></span><span class="v87-focus-prio"><b>${x.prio}</b><small>priorizadas</small></span><span class="v87-arrow">›</span></button>`
+
+    // V8.7.2 — composição de classes dentro do próprio recorte.
+    // Quando o recorte já contém uma classe, evitamos repetir a mesma informação.
+    let mixHtml=''
+    if(!x.d.keys.includes('class')){
+      const subset=allRows.filter(r=>val(r,x.d.keys[0])===x.a&&val(r,x.d.keys[1])===x.b)
+      const cc={}
+      for(const r of subset){const k=v835HandClass(r.heroCards);cc[k]=(cc[k]||0)+1}
+      const strategicOrder=['broadway','axs','pair','ahigh','sc','sg','trash']
+      const items=strategicOrder.filter(k=>cc[k]>0).sort((a,b)=>{
+        const wa={broadway:7,axs:6,pair:5,ahigh:4,sc:3,sg:2,trash:1}
+        return (wa[b]-wa[a])||((cc[b]||0)-(cc[a]||0))
+      }).slice(0,3)
+      if(items.length)mixHtml=`<small class="v872-class-mix">${items.map(k=>`${classLabel(k)} ${cc[k].toLocaleString('pt-BR')}`).join(' · ')}</small>`
+    }
+    return `<button type="button" class="v87-focus-card" data-v87-slice="1" data-v87-aggressor="${attrs.ag}" data-v87-stack="${attrs.stack}" data-v87-class="${attrs.class}"><span class="v87-rank">${i+1}</span><span class="v87-focus-main"><b>${lab1} · ${lab2}</b><small>${x.rate.toFixed(1)}% · ref ${ref} · ${x.delta.toFixed(1)} p.p. ${dir}</small>${mixHtml}</span><span class="v87-focus-sample"><b>${x.n.toLocaleString('pt-BR')}</b><small>oportunidades</small></span><span class="v87-focus-prio"><b>${x.prio}</b><small>priorizadas</small></span><span class="v87-arrow">›</span></button>`
   }).join('')
   return `<section class="v87-concentration"><header><div><h4>🎯 Onde revisar primeiro</h4><p>Recortes que combinam desvio, amostra e relevância estratégica. Regiões com candidatos priorizados sobem; Trash/Outras continua auditável, mas não domina o ranking só pelo volume. Não é uma prescrição GTO.</p></div><span>${reviewTarget==='misses'?'frequência baixa':'frequência alta'}</span></header><div class="v87-focus-list">${cards}</div></section>`
 }
@@ -1471,7 +1486,7 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const replayUniverseRows=strategicEligible?passiveRows:reviewRows
   const replayLabel=metric==='bb100'?`${labelPos} · amostra de bb/100`:`${replayName} · ${strategicEligible?'universo auditável + prioridades':reviewTarget==='misses'?'oportunidades sem a ação':'ações executadas'}`
   const outcomeSummary=strategicEligible?`${opportunityRows.length.toLocaleString('pt-BR')} mãos na fila bruta · ${passiveRows.length.toLocaleString('pt-BR')} no universo auditável · ${reviewCount.toLocaleString('pt-BR')} priorizadas · ${v82TierSummary(reviewRows)}`:''
-  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.7.1 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
+  const replayBar=replayUniverseRows.length?`<div class="audit-replay-bar ${reviewTarget==='misses'?'misses':''}"><div><b>${strategicEligible?`${replayUniverseRows.length.toLocaleString('pt-BR')} oportunidades válidas · ${reviewCount.toLocaleString('pt-BR')} priorizadas`:`${reviewCount.toLocaleString('pt-BR')} ${reviewWord}`}</b><span>${metric==='bb100'?'Abrir esta amostra no Replayer.':strategicEligible?`${outcomeSummary}. Strategic Priority Engine V8.7.2 preserva TODAS as decisões válidas e usa Forte/Mix/Fronteira apenas para ordenar/filtrar a revisão. NÃO substitui solver/GTO.`:reviewTarget==='misses'?'Este leak está abaixo da frequência de referência: revise decisões válidas em que a ação não ocorreu. Mãos em que a ação anterior já era all-in são excluídas quando incompatíveis com a stat.':'Este leak está acima da frequência de referência: revise onde a ação foi executada.'}</span></div><button class="btn" id="auditOpenReplay">🎬 Abrir no Replayer</button></div>`:`<div class="audit-replay-bar empty"><span>Nenhuma mão encontrada para este alvo de revisão.</span></div>`
   const displayRows=(reviewTarget==='misses'&&metric!=='bb100')?reviewRows:rows
   const shown=displayRows.slice(0,100)
   const relevantActions=(x)=>{
