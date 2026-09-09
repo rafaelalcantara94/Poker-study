@@ -27,7 +27,7 @@ let filters = { days: 30, site: 'all', format: 'all', start:'', end:'', minBuyin
 let teamCtx = null
 let reloadMode = 'player'
 let reloadTab = 'requests'
-let reloadData = {members:[],requests:[],items:[],makeup:[]}
+let reloadData = {members:[],requests:[],items:[],makeup:[],canManage:false}
 let reloadFilters = {start:'',end:'',site:'all',player:'all',status:'all'}
 
 const esc = (s='') => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))
@@ -39,7 +39,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.0.1 • TEAM READY</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.0.2 • TEAM READY</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -69,7 +69,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.0.1 • TEAM READY</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.0.2 • TEAM READY</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -106,7 +106,7 @@ const reloadDate=x=>new Date(x).toLocaleString('pt-BR',{day:'2-digit',month:'2-d
 const reloadDay=x=>String(x||'').slice(0,10).split('-').reverse().join('/')
 function memberName(id){const m=reloadData.members.find(x=>x.user_id===id);return m?.display_name||m?.email||String(id||'').slice(0,8)}
 function currentMember(){return reloadData.members.find(x=>x.user_id===user.id)}
-function isReloadManager(){return ['owner','manager'].includes(currentMember()?.role)}
+function isReloadManager(){return !!reloadData.canManage || ['owner','manager'].includes(currentMember()?.role)}
 async function ensureTeamContext(){
   if(teamCtx)return teamCtx
   const {data,error}=await supabase.rpc('ensure_personal_team')
@@ -116,13 +116,21 @@ async function ensureTeamContext(){
 }
 async function fetchReloadData(){
   const {teamId}=await ensureTeamContext()
-  const [m,r,mu]=await Promise.all([
+  // Manager access is resolved by the SECURITY DEFINER RPC, so the role switcher
+  // does not depend on team_members being directly visible through RLS.
+  const [mgr,m,r,mu]=await Promise.all([
+    supabase.rpc('is_team_manager',{p_team:teamId}),
     supabase.from('team_members').select('*').eq('team_id',teamId).order('joined_at'),
     supabase.from('reload_requests').select('*, reload_items(*)').eq('team_id',teamId).order('created_at',{ascending:false}),
     supabase.from('makeup_entries').select('*').eq('team_id',teamId).order('created_at',{ascending:false})
   ])
-  if(m.error)throw m.error;if(r.error)throw r.error;if(mu.error)throw mu.error
-  reloadData.members=m.data||[];reloadData.requests=r.data||[];reloadData.items=reloadData.requests.flatMap(req=>(req.reload_items||[]).map(it=>({...it,request:req})));reloadData.makeup=mu.data||[]
+  if(mgr.error)throw mgr.error;if(r.error)throw r.error;if(mu.error)throw mu.error
+  reloadData.canManage=!!mgr.data
+  reloadData.members=m.error?[]:(m.data||[])
+  if(!reloadData.members.some(x=>x.user_id===user.id)){
+    reloadData.members.unshift({user_id:user.id,role:reloadData.canManage?'owner':'player',display_name:user.user_metadata?.full_name||String(user.email||'').split('@')[0]||'Jogador',email:user.email||''})
+  }
+  reloadData.requests=r.data||[];reloadData.items=reloadData.requests.flatMap(req=>(req.reload_items||[]).map(it=>({...it,request:req})));reloadData.makeup=mu.data||[]
   return reloadData
 }
 function reload(){
