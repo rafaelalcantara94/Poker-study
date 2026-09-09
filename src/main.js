@@ -24,6 +24,11 @@ let studyLearningOpen = false
 let studyLearningTopic = 'all'
 let studyLearningSearch = ''
 let filters = { days: 30, site: 'all', format: 'all', start:'', end:'', minBuyin:'', maxBuyin:'', excludeSat:false }
+let teamCtx = null
+let reloadMode = 'player'
+let reloadTab = 'requests'
+let reloadData = {members:[],requests:[],items:[],makeup:[]}
+let reloadFilters = {start:'',end:'',site:'all',player:'all',status:'all'}
 
 const esc = (s='') => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))
 const num = v => Number(String(v ?? '').replace(/[^0-9,.-]/g,'').replace(/,(?=\d{1,2}$)/,'.').replace(/,/g,'')) || 0
@@ -34,7 +39,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V9.8.1 • TRACKER</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.0 • TEAM READY</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -64,8 +69,8 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V9.8.1 • TRACKER</small></div><nav class="nav">
-  ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.0 • TEAM READY</small></div><nav class="nav">
+  ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>route(b.dataset.p))
@@ -77,10 +82,113 @@ function route(p){
   if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p))
-  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
+  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload','Solicitações, gestão financeira e Make Up do time'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
   title.textContent=meta[0];subtitle.textContent=meta[1]
-  page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,importer,leaks,plan,evolution,goals,reports})[p]()
+  page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,leaks,plan,evolution,goals,reports})[p]()
   bindPage(p)
+}
+
+
+const RELOAD_SITES=[
+  {id:'GG Poker',short:'GG',mark:'GG',cls:'gg'},
+  {id:'CoinPoker',short:'Coin',mark:'◎',cls:'coin'},
+  {id:'ACR / YaPoker',short:'ACR / Ya',mark:'★',cls:'acr'},
+  {id:'PokerStars.com',short:'PS.com',mark:'★',cls:'ps'},
+  {id:'PokerStars.es',short:'PS.es',mark:'★',cls:'ps'},
+  {id:'WPT Global',short:'WPT',mark:'WPT',cls:'wpt'},
+  {id:'ChampionPoker',short:'Champion',mark:'♛',cls:'champion'},
+  {id:'888Poker',short:'888',mark:'888',cls:'p888'},
+  {id:'Tiger',short:'Tiger',mark:'🐯',cls:'tiger'}
+]
+const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+const reloadDate=x=>new Date(x).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+const reloadDay=x=>String(x||'').slice(0,10).split('-').reverse().join('/')
+function memberName(id){const m=reloadData.members.find(x=>x.user_id===id);return m?.display_name||m?.email||String(id||'').slice(0,8)}
+function currentMember(){return reloadData.members.find(x=>x.user_id===user.id)}
+function isReloadManager(){return ['owner','manager'].includes(currentMember()?.role)}
+async function ensureTeamContext(){
+  if(teamCtx)return teamCtx
+  const {data,error}=await supabase.rpc('ensure_personal_team')
+  if(error)throw error
+  teamCtx={teamId:data}
+  return teamCtx
+}
+async function fetchReloadData(){
+  const {teamId}=await ensureTeamContext()
+  const [m,r,mu]=await Promise.all([
+    supabase.from('team_members').select('*').eq('team_id',teamId).order('joined_at'),
+    supabase.from('reload_requests').select('*, reload_items(*)').eq('team_id',teamId).order('created_at',{ascending:false}),
+    supabase.from('makeup_entries').select('*').eq('team_id',teamId).order('created_at',{ascending:false})
+  ])
+  if(m.error)throw m.error;if(r.error)throw r.error;if(mu.error)throw mu.error
+  reloadData.members=m.data||[];reloadData.requests=r.data||[];reloadData.items=reloadData.requests.flatMap(req=>(req.reload_items||[]).map(it=>({...it,request:req})));reloadData.makeup=mu.data||[]
+  return reloadData
+}
+function reload(){
+  return `<div id="reloadRoot"><section class="panel reload-loading"><h2>💲 Reload</h2><p class="muted">Carregando gestão financeira do time…</p></section></div>`
+}
+function reloadStatusBadge(s){const labels={pending:'Pendente',approved:'Aprovado',paid:'Enviado',rejected:'Recusado'};return `<span class="reload-status ${s}">${labels[s]||s}</span>`}
+function siteMeta(site){return RELOAD_SITES.find(x=>x.id===site)||{id:site,short:site,mark:'$',cls:''}}
+function siteLogoHtml(site,small=false){const s=siteMeta(site);return `<span class="reload-site-logo ${s.cls} ${small?'small':''}">${esc(s.mark)}</span>`}
+function ownMakeupBalance(){return reloadData.makeup.filter(x=>x.player_id===user.id).reduce((a,x)=>a+(+x.amount||0),0)}
+function playerReloadHtml(){
+  const ownReq=reloadData.requests.filter(x=>x.player_id===user.id).slice(0,6)
+  const makeup=ownMakeupBalance()
+  return `<section class="panel reload-player-head"><header><div><span class="reload-kicker">VISÃO DO JOGADOR</span><h2>💲 Reload</h2><p class="muted">Solicite seus aportes de forma rápida e organizada.</p></div>${isReloadManager()?'<button class="btn secondary" id="openManagerReload">👥 Visão do Gestor</button>':''}</header></section>
+  <section class="panel reload-request-panel"><div class="reload-panel-title"><div><h3>Selecione os sites e informe os valores</h3><p>Preencha apenas os sites que deseja solicitar. Você pode pedir mais de um site na mesma requisição.</p></div><div class="reload-total-box"><small>Total da solicitação</small><strong id="reloadRequestTotal">R$ 0,00</strong><span id="reloadSiteCount">0 sites selecionados</span></div></div>
+  <div class="reload-site-grid">${RELOAD_SITES.map(s=>`<article class="reload-site-card" data-reload-card="${esc(s.id)}">${siteLogoHtml(s.id)}<b>${esc(s.id)}</b><div class="money-input"><span>R$</span><input inputmode="decimal" data-reload-amount="${esc(s.id)}" placeholder="0,00"></div></article>`).join('')}</div>
+  <label class="reload-note">Observações <small>(opcional)</small><textarea id="reloadNote" maxlength="300" placeholder="Ex.: urgente para grind de domingo, prioridade GG…"></textarea></label>
+  <div class="reload-submit-row"><p>ⓘ Após enviar, seu pedido será analisado pelo gestor. O histórico fica registrado no sistema.</p><button class="btn reload-submit" id="submitReload">➤ Solicitar Reload</button></div></section>
+  <div class="reload-player-bottom"><section class="panel"><header><div><h3>Seus pedidos recentes</h3><p class="muted">Acompanhe aprovação e envio.</p></div></header>${ownReq.length?ownReq.map(r=>`<div class="reload-own-request"><div><b>${reloadDate(r.created_at)}</b><span>${esc(r.note||'Sem observação')}</span></div><div>${(r.reload_items||[]).map(i=>`<span class="reload-own-chip">${esc(siteMeta(i.site).short)} · ${brl(i.amount)} ${reloadStatusBadge(i.status)}</span>`).join('')}</div></div>`).join(''):'<p class="muted">Nenhum pedido ainda.</p>'}</section><section class="panel reload-makeup-self"><small>SEU MAKE UP ATUAL</small><strong class="${makeup>0?'bad':'good'}">${brl(makeup)}</strong><span>${makeup>0?'Em Make Up':'Em dia'}</span><p>O Make Up é controlado pelo gestor em um razão separado dos reloads.</p></section></div>`
+}
+function managerTopTabs(){return `<div class="reload-manager-tabs"><button class="${reloadTab==='requests'?'active':''}" data-reload-tab="requests">Pedidos</button><button class="${reloadTab==='history'?'active':''}" data-reload-tab="history">Histórico</button><button class="${reloadTab==='finance'?'active':''}" data-reload-tab="finance">Relatório Financeiro</button><button class="${reloadTab==='makeup'?'active':''}" data-reload-tab="makeup">Make Up</button></div>`}
+function managerReloadHtml(){
+  const counts=Object.fromEntries(['pending','approved','paid','rejected'].map(s=>[s,reloadData.items.filter(x=>x.status===s).length]))
+  return `<section class="panel reload-manager-head"><header><div><span class="reload-kicker manager">VISÃO DO GESTOR</span><h2>💲 Reload</h2><p class="muted">Gerencie os pedidos de reload do time.</p></div><button class="btn secondary" id="openPlayerReload">👤 Visão do Jogador</button></header>${managerTopTabs()}</section>${reloadTab==='finance'?reloadFinanceHtml():reloadTab==='makeup'?reloadMakeupHtml():reloadRequestsHtml(reloadTab==='history',counts)}`
+}
+function reloadRequestsHtml(history=false,counts={}){
+  let rows=reloadData.items.filter(x=>history?x.status!=='pending':true)
+  if(!history)rows=rows.slice().sort((a,b)=>String(b.request.created_at).localeCompare(String(a.request.created_at)))
+  return `<section class="panel reload-requests"><div class="reload-filter-chips"><button class="active">Todos (${rows.length})</button>${!history?`<span>🟡 Pendentes ${counts.pending||0}</span><span>🟢 Aprovados ${counts.approved||0}</span><span>🔵 Enviados ${counts.paid||0}</span><span>🔴 Recusados ${counts.rejected||0}</span>`:''}</div><div class="reload-table-wrap"><table><thead><tr><th>Data/Hora</th><th>Jogador</th><th>Site</th><th>Valor</th><th>Status</th><th>Ações</th><th>Observações</th></tr></thead><tbody>${rows.length?rows.map(i=>`<tr><td>${reloadDate(i.request.created_at)}</td><td>${esc(memberName(i.request.player_id))}</td><td><span class="site-inline">${siteLogoHtml(i.site,true)}${esc(i.site)}</span></td><td><b>${brl(i.amount)}</b></td><td>${reloadStatusBadge(i.status)}</td><td><div class="reload-actions">${i.status==='pending'?`<button title="Aprovar" data-reload-status="approved" data-reload-item="${i.id}" class="approve">✓</button><button title="Recusar" data-reload-status="rejected" data-reload-item="${i.id}" class="reject">✕</button>`:''}${i.status==='approved'?`<button class="send" data-reload-status="paid" data-reload-item="${i.id}">💲 Enviar</button>`:''}</div></td><td>${esc(i.manager_note||i.request.note||'—')}</td></tr>`).join(''):'<tr><td colspan="7" class="muted">Nenhum pedido encontrado.</td></tr>'}</tbody></table></div></section>`
+}
+function filteredReloadItems(){
+  return reloadData.items.filter(i=>{
+    const d=String(i.request.created_at).slice(0,10)
+    return (!reloadFilters.start||d>=reloadFilters.start)&&(!reloadFilters.end||d<=reloadFilters.end)&&(reloadFilters.site==='all'||i.site===reloadFilters.site)&&(reloadFilters.player==='all'||i.request.player_id===reloadFilters.player)&&(reloadFilters.status==='all'||i.status===reloadFilters.status)
+  })
+}
+function reloadFinanceHtml(){
+  const rows=filteredReloadItems(),sum=(f)=>rows.filter(f).reduce((a,x)=>a+(+x.amount||0),0),requested=sum(()=>true),approved=sum(x=>['approved','paid'].includes(x.status)),sent=sum(x=>x.status==='paid'),pending=sum(x=>x.status==='pending'),rejected=sum(x=>x.status==='rejected')
+  const days=[...new Set(rows.map(x=>String(x.request.created_at).slice(0,10)))].sort().reverse()
+  const siteTotals=RELOAD_SITES.map(s=>({site:s.id,total:rows.filter(x=>x.site===s.id).reduce((a,x)=>a+(+x.amount||0),0)})).filter(x=>x.total>0)
+  let angle=0;const cols=['#7c35ee','#b347ef','#2c7be5','#31c46c','#e94a5b','#f6c445','#55a7ff','#ff7a3d','#9aa6b8'];const stops=siteTotals.map((x,j)=>{const p=requested?x.total/requested*100:0,st=`${cols[j%cols.length]} ${angle}% ${angle+p}%`;angle+=p;return st}).join(',')
+  return `<section class="panel reload-finance"><div class="reload-finance-head"><div><span class="reload-kicker">RELATÓRIO FINANCEIRO</span><h2>Resumo e detalhamento dos reloads</h2></div><button class="btn secondary" id="exportReloadCsv">⇩ Exportar CSV</button></div><div class="reload-finance-filters"><input id="reloadStart" type="date" value="${reloadFilters.start}"><input id="reloadEnd" type="date" value="${reloadFilters.end}"><select id="reloadSiteFilter"><option value="all">Todos os sites</option>${RELOAD_SITES.map(s=>`<option ${reloadFilters.site===s.id?'selected':''} value="${esc(s.id)}">${esc(s.id)}</option>`).join('')}</select><select id="reloadPlayerFilter"><option value="all">Todos os jogadores</option>${reloadData.members.map(m=>`<option ${reloadFilters.player===m.user_id?'selected':''} value="${m.user_id}">${esc(memberName(m.user_id))}</option>`).join('')}</select><select id="reloadStatusFilter"><option value="all">Todos os status</option>${['pending','approved','paid','rejected'].map(x=>`<option ${reloadFilters.status===x?'selected':''} value="${x}">${x}</option>`).join('')}</select><button class="btn" id="applyReloadFilters">Aplicar filtros</button></div><div class="reload-finance-kpis"><div><small>Total solicitado</small><strong>${brl(requested)}</strong></div><div class="approved"><small>Total aprovado</small><strong>${brl(approved)}</strong></div><div class="sent"><small>Total enviado</small><strong>${brl(sent)}</strong></div><div class="pending"><small>Pendente</small><strong>${brl(pending)}</strong></div><div class="rejected"><small>Recusado</small><strong>${brl(rejected)}</strong></div></div><div class="reload-finance-grid"><div class="reload-daily"><h3>Detalhamento por data</h3><div class="reload-table-wrap"><table><thead><tr><th>Data</th>${RELOAD_SITES.map(s=>`<th>${esc(s.short)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${days.map(d=>{const rr=rows.filter(x=>String(x.request.created_at).slice(0,10)===d);return `<tr><td>${d.split('-').reverse().join('/')}</td>${RELOAD_SITES.map(s=>`<td>${brl(rr.filter(x=>x.site===s.id).reduce((a,x)=>a+(+x.amount||0),0))}</td>`).join('')}<td><b>${brl(rr.reduce((a,x)=>a+(+x.amount||0),0))}</b></td></tr>`}).join('')||'<tr><td colspan="11">Sem dados no período.</td></tr>'}</tbody></table></div></div><div class="reload-site-distribution"><h3>Distribuição por Site</h3><div class="reload-donut" style="background:conic-gradient(${stops||'#24364e 0 100%'})"><span><b>${brl(requested)}</b><small>Total</small></span></div>${siteTotals.map((x,j)=>`<p><i style="background:${cols[j%cols.length]}"></i>${esc(x.site)} <b>${requested?(x.total/requested*100).toFixed(0):0}%</b></p>`).join('')}</div></div></section>`
+}
+function makeupBalances(){return reloadData.members.map(m=>({member:m,balance:reloadData.makeup.filter(x=>x.player_id===m.user_id).reduce((a,x)=>a+(+x.amount||0),0)})).sort((a,b)=>b.balance-a.balance)}
+function reloadMakeupHtml(){
+  const arr=makeupBalances(),total=arr.reduce((a,x)=>a+Math.max(0,x.balance),0),inMu=arr.filter(x=>x.balance>0).length
+  return `<section class="panel reload-makeup"><div class="reload-finance-head"><div><span class="reload-kicker">MAKE UP</span><h2>Acompanhe o make up do time e dos jogadores</h2><p class="muted">O saldo é um razão independente. Ajustes positivos aumentam o Make Up; negativos reduzem.</p></div></div><div class="reload-makeup-kpis"><div><small>Make Up total do time</small><strong>${brl(total)}</strong></div><div><small>Jogadores em Make Up</small><strong>${inMu} de ${arr.length}</strong></div></div><div class="reload-table-wrap"><table><thead><tr><th>Jogador</th><th>Make Up atual</th><th>Status</th><th>Último movimento</th><th>Ações</th></tr></thead><tbody>${arr.map(x=>{const last=reloadData.makeup.find(e=>e.player_id===x.member.user_id);return `<tr><td><b>${esc(memberName(x.member.user_id))}</b><br><small>${esc(x.member.role)}</small></td><td class="${x.balance>0?'bad':'good'}"><b>${brl(x.balance)}</b></td><td>${x.balance>0?'<span class="reload-status rejected">Em Make Up</span>':'<span class="reload-status approved">Em dia</span>'}</td><td>${last?`${reloadDay(last.created_at)} · ${brl(last.amount)}<br><small>${esc(last.reason)}</small>`:'—'}</td><td><button class="btn small secondary" data-makeup-adjust="${x.member.user_id}">Ajustar</button></td></tr>`}).join('')}</tbody></table></div><div class="makeup-history"><h3>Histórico recente</h3>${reloadData.makeup.slice(0,12).map(e=>`<div><span>${reloadDay(e.created_at)}</span><b>${esc(memberName(e.player_id))}</b><strong class="${+e.amount>0?'bad':'good'}">${+e.amount>0?'+':''}${brl(e.amount)}</strong><em>${esc(e.reason)}</em></div>`).join('')||'<p class="muted">Nenhum movimento de Make Up registrado.</p>'}</div></section>`
+}
+function renderReloadPage(){const root=document.getElementById('reloadRoot');if(!root)return;root.innerHTML=reloadMode==='manager'&&isReloadManager()?managerReloadHtml():playerReloadHtml();bindReloadUi()}
+async function initReloadPage(){const root=document.getElementById('reloadRoot');try{await fetchReloadData();renderReloadPage()}catch(e){console.error(e);if(root)root.innerHTML=`<section class="panel"><h2>💲 Reload</h2><div class="notice bad">Não foi possível carregar o módulo Reload. Execute o SQL da V10.0 no Supabase e atualize a página.<br><small>${esc(e.message||e)}</small></div></section>`}}
+function parseReloadAmount(v){return Number(String(v||'').replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''))||0}
+function refreshReloadTotal(){let total=0,count=0;document.querySelectorAll('[data-reload-amount]').forEach(inp=>{const v=parseReloadAmount(inp.value);const card=inp.closest('.reload-site-card');card?.classList.toggle('selected',v>0);if(v>0){total+=v;count++}});const t=document.getElementById('reloadRequestTotal'),c=document.getElementById('reloadSiteCount');if(t)t.textContent=brl(total);if(c)c.textContent=`${count} site${count===1?'':'s'} selecionado${count===1?'':'s'}`}
+async function submitReloadRequest(){
+  const vals=[...document.querySelectorAll('[data-reload-amount]')].map(i=>({site:i.dataset.reloadAmount,amount:parseReloadAmount(i.value)})).filter(x=>x.amount>0)
+  if(!vals.length)return alert('Informe pelo menos um valor de reload.')
+  const btn=document.getElementById('submitReload');if(btn)btn.disabled=true
+  try{const {teamId}=await ensureTeamContext();const {data:req,error}=await supabase.from('reload_requests').insert({team_id:teamId,player_id:user.id,note:document.getElementById('reloadNote')?.value.trim()||null}).select().single();if(error)throw error;const {error:e2}=await supabase.from('reload_items').insert(vals.map(x=>({request_id:req.id,site:x.site,amount:x.amount})));if(e2)throw e2;await fetchReloadData();renderReloadPage();alert('✓ Reload solicitado com sucesso.') }catch(e){alert('Erro ao solicitar reload: '+e.message)}finally{if(btn)btn.disabled=false}
+}
+async function updateReloadStatus(id,status){
+  const note=status==='rejected'?prompt('Motivo da recusa (opcional):',''):'';const patch={status,manager_note:note||null}
+  const {error}=await supabase.from('reload_items').update(patch).eq('id',id);if(error)return alert(error.message);await fetchReloadData();renderReloadPage()
+}
+async function adjustMakeup(playerId){
+  const raw=prompt('Ajuste do Make Up em R$\nUse valor POSITIVO para aumentar e NEGATIVO para reduzir.','0,00');if(raw===null)return;const amount=parseReloadAmount(raw);if(!amount)return alert('Informe um valor diferente de zero.');const reason=prompt('Motivo do ajuste:','Ajuste manual');if(reason===null)return;const {teamId}=await ensureTeamContext();const {error}=await supabase.from('makeup_entries').insert({team_id:teamId,player_id:playerId,amount,reason:reason||'Ajuste manual',created_by:user.id});if(error)return alert(error.message);await fetchReloadData();renderReloadPage()
+}
+function exportReloadCsv(){const rows=filteredReloadItems();const data=[['Data','Jogador','Site','Valor','Status','Observação'],...rows.map(i=>[reloadDate(i.request.created_at),memberName(i.request.player_id),i.site,Number(i.amount).toFixed(2),i.status,i.request.note||''])];const csv=data.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`reload_${today()}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function bindReloadUi(){
+  const om=document.getElementById('openManagerReload');if(om)om.onclick=()=>{reloadMode='manager';reloadTab='requests';renderReloadPage()};const op=document.getElementById('openPlayerReload');if(op)op.onclick=()=>{reloadMode='player';renderReloadPage()};document.querySelectorAll('[data-reload-tab]').forEach(b=>b.onclick=()=>{reloadTab=b.dataset.reloadTab;renderReloadPage()});document.querySelectorAll('[data-reload-amount]').forEach(i=>i.oninput=refreshReloadTotal);const sr=document.getElementById('submitReload');if(sr)sr.onclick=submitReloadRequest;document.querySelectorAll('[data-reload-status]').forEach(b=>b.onclick=()=>updateReloadStatus(b.dataset.reloadItem,b.dataset.reloadStatus));document.querySelectorAll('[data-makeup-adjust]').forEach(b=>b.onclick=()=>adjustMakeup(b.dataset.makeupAdjust));const af=document.getElementById('applyReloadFilters');if(af)af.onclick=()=>{reloadFilters={...reloadFilters,start:document.getElementById('reloadStart')?.value||'',end:document.getElementById('reloadEnd')?.value||'',site:document.getElementById('reloadSiteFilter')?.value||'all',player:document.getElementById('reloadPlayerFilter')?.value||'all',status:document.getElementById('reloadStatusFilter')?.value||'all'};renderReloadPage()};const ex=document.getElementById('exportReloadCsv');if(ex)ex.onclick=exportReloadCsv;refreshReloadTotal()
 }
 
 function allPerformanceRows(){
@@ -2417,6 +2525,7 @@ async function renderSavedReplays(loadText){
   }catch(e){box.innerHTML='<span class="muted">Não foi possível acessar o armazenamento local deste navegador.</span>'}
 }
 function bindPage(p){
+  if(p==='reload'){initReloadPage()}
   if(p==='reviews'){bindReviews();return}
   if(p==='leaks'||p==='plan'){bindReviewDestinationLinks();if(p==='plan')document.querySelectorAll('[data-plan-study-start]').forEach(b=>b.onclick=()=>startStudyPlanTask(b.dataset.planStudyStart))}
   if(p==='evolution'){bindLeakEvolution()}

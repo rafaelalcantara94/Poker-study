@@ -1,3 +1,12 @@
+# Poker Study V10.0 — Team Reload
+
+Adiciona o módulo Reload preparado para times, com solicitação multi-site, visão do gestor, histórico, relatório financeiro, exportação CSV e Make Up por razão independente.
+
+## IMPORTANTE
+Execute `upgrade_v9_9_1_to_v10_0_team_reload.sql` no Supabase SQL Editor antes de abrir a aba Reload.
+
+O primeiro usuário que abrir o módulo cria automaticamente um time pessoal e entra como owner. A arquitetura já usa team_id, user_id e roles para a futura expansão multiusuário.
+
 # Poker Study V9.7 — Leak Goals
 
 ## Novidades
@@ -40,3 +49,7 @@ Plano de Estudos agora inicia sessões executáveis na aba Estudos, com cronôme
 - conclusão grava também os aprendizados por mão no registro de Estudos;
 - atualização de branding do shell para V9.9.1.
 - Sem SQL novo.
+
+
+## V10.0 final DB sync
+Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como **Enviado** e notas de decisão usam `manager_note`.
