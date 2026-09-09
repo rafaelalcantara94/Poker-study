@@ -8,3 +8,10 @@
 - Diagnóstico Inteligente V2 e universo auditável preservados.
 
 Não requer SQL.
+
+
+## V8.9.1 — Performance Pass
+- Cache de sessão para os imports do Stats HH, evitando reler ~53k mãos do IndexedDB ao voltar para a aba.
+- Memoização da visão estatística por conjunto de filtros.
+- Invalidação automática dos caches ao importar/limpar dados.
+- Nenhuma alteração no motor estatístico, benchmarks ou banco SQL.
