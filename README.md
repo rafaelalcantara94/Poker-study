@@ -1,4 +1,4 @@
-# Poker Study V10.0.2 — Team Reload
+# Poker Study V10.0.3 — Team Reload
 
 Adiciona o módulo Reload preparado para times, com solicitação multi-site, visão do gestor, histórico, relatório financeiro, exportação CSV e Make Up por razão independente.
 
@@ -60,3 +60,10 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - Adicionado site Outros.
 - Logos/assinaturas visuais dos sites refinados para maior fidelidade no card.
 - Nenhuma migração SQL adicional necessária.
+
+
+## V10.0.3
+- Observação individual por site no pedido de Reload.
+- Observação geral do pedido continua disponível separadamente.
+- Gestor e CSV exibem observação do site + observação geral sem repetir a mesma nota em todas as linhas.
+- Requer executar `upgrade_v10_0_2_to_v10_0_3_reload_item_notes.sql`.
