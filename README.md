@@ -1,4 +1,4 @@
-# Poker Study V9.5 — Leak Goals
+# Poker Study V9.5.1 — Leak Goals
 
 ## Novidades
 - Integra a Caixa de Revisões à Central de Leaks e ao Plano de Estudos.
@@ -11,15 +11,15 @@
 - Mantém snapshot/cache de performance do Stats HH.
 
 ## Banco de dados
-Nenhum SQL novo é necessário. A V9.5 cria metas automáticas dos leaks a partir das revisões já salvas e do snapshot local do Stats HH.
+Nenhum SQL novo é necessário. A V9.5.1 cria metas automáticas dos leaks a partir das revisões já salvas e do snapshot local do Stats HH.
 
 
-## V9.5 — Leak Goals
+## V9.5.1 — Leak Goals
 - Metas automáticas para leaks confirmados.
 - Objetivo orientado pela faixa de referência (aproximação, não aumento cego).
 - Linha de base, valor atual, oportunidades e progresso.
 - Metas manuais permanecem separadas.
 
 
-## V9.5 — Study Execution
+## V9.5.1 — Study Execution
 Plano de Estudos agora inicia sessões executáveis na aba Estudos, com cronômetro, mãos relacionadas, anotações e conclusão registrada no histórico. Sem SQL novo.
