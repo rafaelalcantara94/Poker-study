@@ -67,3 +67,12 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - Observação geral do pedido continua disponível separadamente.
 - Gestor e CSV exibem observação do site + observação geral sem repetir a mesma nota em todas as linhas.
 - Requer executar `upgrade_v10_0_2_to_v10_0_3_reload_item_notes.sql`.
+
+## V10.1 — Finance Engine
+- Reload / Caixas
+- Fechamentos de caixa por site como snapshots históricos
+- Meu Relatório Financeiro para o jogador
+- Painel de caixas consolidado para gestores
+- Perfis financeiros 50/50, Banco, regime normal/congelado e limite mensal
+- Ledger auditável para Reload, Saques, Adiantamentos, Banco e Make Up
+- Reload marcado como Enviado sincroniza automaticamente com o ledger/Make Up, sem duplicidade
