@@ -1,3 +1,9 @@
+## V10.1.10 — Exceção de Banco também no Regime normal
+- Restaura a exceção pontual do gestor no saque em Regime normal.
+- A exceção continua disponível no excedente após quitação do MU congelado.
+- O padrão permanece aplicar Banco; a dispensa vale apenas para a operação marcada.
+- Sem alteração de banco de dados / SQL.
+
 ## V10.1.9 — Prévia de saque por regime efetivo
 - Quando o saldo de Make Up congelado é R$ 0, a prévia usa diretamente Regime normal e não exibe amortização/excedente de MU congelado.
 - Nenhuma alteração de banco de dados/SQL nesta versão.
