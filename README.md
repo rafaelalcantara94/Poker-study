@@ -76,3 +76,11 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - Perfis financeiros 50/50, Banco, regime normal/congelado e limite mensal
 - Ledger auditável para Reload, Saques, Adiantamentos, Banco e Make Up
 - Reload marcado como Enviado sincroniza automaticamente com o ledger/Make Up, sem duplicidade
+
+## V10.1.1 — Saques, Adiantamentos, Banco e Make Up Congelado
+- Finance Engine ganha operações auditáveis de saque/distribuição, adiantamento, devolução e Banco.
+- Regime normal aplica split e retenção de Banco sobre a parte do jogador.
+- Regime congelado respeita limite mensal pessoal, não envia novos valores ao Banco e usa excedente para amortizar o Make Up congelado.
+- Perfil financeiro do jogador pode ser configurado pelo gestor.
+- Jogador vê as movimentações financeiras no próprio relatório.
+- O card do fechamento foi renomeado para “Total deste fechamento”.
