@@ -1,3 +1,11 @@
+## V10.1.14 — Clean Finance Baseline
+
+- Mantém o motor financeiro e o histórico auditável da V10.1.13.
+- Inclui `reset_finance_clean_start_v10_1_14.sql` para apagar os dados financeiros de teste.
+- O reset preserva usuários, equipes, membros e regras do perfil financeiro.
+- Zera razão, Make Up ativo, Make Up congelado, Banco, caixas e pedidos/reloads de teste.
+- Execute o SQL apenas uma vez, no Supabase SQL Editor, quando quiser iniciar a operação real.
+
 ## V10.1.13 — Histórico financeiro auditável
 
 - O Livro financeiro recente agora mostra o valor bruto da operação, separado dos efeitos contábeis.
