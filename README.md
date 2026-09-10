@@ -107,12 +107,18 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - A prévia continua exibindo Jogador, Time, Make Up ativo, Make Up congelado e Banco mesmo com o limite mensal esgotado.
 
 
-## V10.1.7 — Quitação do congelado + excedente normal
+## V10.1.8 — Quitação do congelado + excedente normal
 - Quando o Make Up congelado zera dentro da mesma distribuição, o excedente entra automaticamente no regime normal.
 - O split continua 50/50 e o Banco é sempre calculado apenas sobre a parte do jogador.
 - O gestor pode aplicar, por operação, a exceção de não reter Banco no excedente.
 - Ao quitar integralmente o Make Up congelado, o perfil muda automaticamente para Regime normal.
 
 
-## V10.1.7 — Banco padrão no excedente do MU congelado
+## V10.1.8 — Banco padrão no excedente do MU congelado
 O excedente após quitar o Make Up congelado aplica Banco por padrão sobre a parte do jogador. A dispensa do Banco é uma exceção explícita por operação. Ao migrar automaticamente para o regime normal, o Banco fica ativo para os saques seguintes.
+
+
+## V10.1.8 — Finance Report + Modal Polish
+- Modal de saque reorganizado em duas colunas com exceção do gestor claramente separada.
+- Relatório Financeiro do gestor passa a consolidar reloads, distribuições, jogador/time, Banco, adiantamentos, devoluções e efeitos de Make Up.
+- Sem mudança de regra financeira e sem SQL novo.
