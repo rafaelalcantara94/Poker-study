@@ -732,3 +732,10 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .finance-ledger-note{color:#7289a8;font-size:11px;line-height:1.3}
 .finance-ledger-line-v2.is-reversal .finance-ledger-operation{color:#ffd47b}
 .finance-ledger-line-v2.is-reversed .finance-ledger-operation{opacity:.7}
+
+
+/* V10.1.16 — Cash-gated withdrawals */
+.finance-cash-gate{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:12px 0 14px}
+.finance-cash-gate>div{border:1px solid var(--line,#29415f);border-radius:12px;background:#0d1b2b;padding:11px 12px;display:flex;flex-direction:column;gap:5px;min-height:66px}
+.finance-cash-gate small{color:#8fb1da;font-size:11px}.finance-cash-gate b,.finance-cash-gate strong{font-size:15px;color:#fff}.finance-cash-gate .available{border-color:#6d3cff;background:linear-gradient(180deg,#13233a,#101d31)}.finance-cash-gate .available strong{font-size:19px;color:#b996ff}.finance-cash-gate-warning{margin:0 0 14px}.finance-withdraw-form label small{color:#8fb1da;font-weight:400}
+@media(max-width:980px){.finance-cash-gate{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-cash-gate .available{grid-column:1/-1}}

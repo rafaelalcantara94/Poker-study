@@ -1,7 +1,12 @@
-## V10.1.15 — Bank Persistence Fix
+## V10.1.16 — Caixa acima do Make Up
 
-- Corrige divergência entre a prévia e a gravação de saques quando o perfil estava marcado como Make Up congelado, mas o saldo congelado já era zero.
-- Com MU congelado em R$ 0, o perfil é normalizado para Regime normal e o Banco volta a ser aplicado por padrão sobre a parte do jogador.
-- Mantém a exceção do gestor para dispensar o Banco somente naquela operação.
-- Inclui SQL `upgrade_v10_1_14_to_v10_1_15_bank_persistence_fix.sql`.
-- Atualiza também o script de reset para truncar tabelas relacionadas em uma única instrução e evitar erro de foreign key.
+- Saques/distribuições agora são limitados pelo caixa financeiro real disponível.
+- Fórmula: `disponível = caixa considerado - Make Up ativo`, nunca abaixo de zero.
+- Caixa considerado parte do último fechamento e ajusta reloads enviados e saques não estornados posteriores ao fechamento.
+- Sem fechamento de caixas, o saque fica bloqueado.
+- O gestor pode distribuir um valor menor que o máximo, mas nunca maior.
+- O Supabase repete a mesma validação no servidor para impedir gravações fora da regra.
+- As regras já validadas de 50/50, Banco, exceção, MU congelado, limite mensal e estorno permanecem.
+
+### SQL obrigatório
+Execute `upgrade_v10_1_15_to_v10_1_16_cash_gate.sql` uma vez no Supabase antes de testar.
