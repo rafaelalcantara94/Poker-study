@@ -722,3 +722,13 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .finance-audit-history .finance-history-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:8px}.finance-history-title h3{margin:0}.finance-history-title small{display:block;color:#7890af;margin-top:3px}.finance-ledger-line{grid-template-columns:92px 150px 180px minmax(260px,1fr) auto!important;align-items:center}.finance-ledger-line.is-reversed{opacity:.6}.finance-ledger-line.is-reversal{border-left:3px solid #e9a33a;padding-left:10px;background:rgba(233,163,58,.05)}.finance-reversed-badge{display:inline-flex;align-items:center;border:1px solid #7a4050;background:#361b26;color:#ff9caf;border-radius:999px;padding:2px 6px;font-size:8px;font-style:normal;font-weight:1000;letter-spacing:.06em;margin-left:5px;vertical-align:middle}.finance-reverse-btn{background:#4a2a33!important;border-color:#7b4351!important;color:#ffc1cf!important;white-space:nowrap}.finance-reverse-btn:hover{filter:brightness(1.12)}
 .modal-box.finance-reversal-modal{max-width:760px}.finance-reversal-wrap{display:grid;gap:14px}.finance-reversal-warning{border:1px solid #7b5a27;background:#2a2112;border-radius:12px;padding:14px 16px;display:grid;gap:5px}.finance-reversal-warning b{color:#ffd379;font-size:17px}.finance-reversal-warning span{color:#d8c9aa;line-height:1.45}.finance-reversal-original{border:1px solid #304965;background:#0d1a2b;border-radius:12px;padding:16px}.finance-reversal-original small{color:#89a6c9;text-transform:uppercase;letter-spacing:.08em;font-weight:900}.finance-reversal-original h3{margin:7px 0 4px;font-size:20px}.finance-reversal-original p{margin:0 0 12px;color:#9eb1cc}.finance-reversal-original div{border-top:1px solid #2a4059;padding-top:11px;color:#d7e6fa;font-weight:700}.finance-reversal-wrap textarea{min-height:90px}.finance-reversal-actions{display:flex;justify-content:flex-end;gap:10px}.finance-reversal-actions .danger{background:#c63b50;border-color:#df5368}.finance-reversal-actions .danger:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:900px){.finance-ledger-line{grid-template-columns:1fr!important;gap:4px}.finance-reverse-btn{justify-self:start}}
+
+
+/* V10.1.13 — histórico financeiro legível / auditável */
+.finance-ledger-line-v2{align-items:center}
+.finance-ledger-line-v2 em{display:flex;flex-direction:column;gap:2px;font-style:normal;min-width:0}
+.finance-ledger-operation{font-weight:800;color:#dce9ff}
+.finance-ledger-effects{color:#8fb9f4;font-size:12px;line-height:1.35}
+.finance-ledger-note{color:#7289a8;font-size:11px;line-height:1.3}
+.finance-ledger-line-v2.is-reversal .finance-ledger-operation{color:#ffd47b}
+.finance-ledger-line-v2.is-reversed .finance-ledger-operation{opacity:.7}
