@@ -86,7 +86,7 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - O card do fechamento foi renomeado para “Total deste fechamento”.
 
 
-## V10.1.2 — Trava mensal do regime congelado
+## V10.1.3 — Trava mensal do regime congelado
 - Corrige saque/distribuição em regime congelado quando o limite mensal pessoal já foi totalmente consumido.
 - A interface bloqueia o botão e mostra o saldo mensal disponível.
 - A função RPC no Supabase também valida o limite, evitando bypass pelo frontend ou clique duplicado.
