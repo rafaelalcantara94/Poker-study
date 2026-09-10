@@ -1,3 +1,9 @@
+## V10.1.19 — Caixa atual pós-fechamento
+
+- A aba **Caixas** do gestor agora usa o caixa efetivo: último fechamento + reloads posteriores - saques posteriores.
+- A **Exposição caixa** passa a comparar Make Up ativo com o caixa efetivo (`Make Up - Caixa atual`). Valor negativo indica excedente acima do Make Up.
+- **Reloads enviados** continua sendo o total histórico enviado ao jogador.
+
 ## V10.1.18 — Reload compõe caixa e Make Up
 
 Correção da regra de caixa após fechamento:
