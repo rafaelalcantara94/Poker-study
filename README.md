@@ -1,3 +1,7 @@
+## V10.1.9 — Prévia de saque por regime efetivo
+- Quando o saldo de Make Up congelado é R$ 0, a prévia usa diretamente Regime normal e não exibe amortização/excedente de MU congelado.
+- Nenhuma alteração de banco de dados/SQL nesta versão.
+
 # Poker Study V10.0.3 — Team Reload
 
 Adiciona o módulo Reload preparado para times, com solicitação multi-site, visão do gestor, histórico, relatório financeiro, exportação CSV e Make Up por razão independente.
