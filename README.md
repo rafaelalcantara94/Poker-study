@@ -105,3 +105,10 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - No regime congelado, o limite mensal restringe somente a parcela que o jogador pode receber.
 - Depois de esgotado o limite, novos lucros continuam sendo registrados e são direcionados para amortização do Make Up congelado, sem Banco.
 - A prévia continua exibindo Jogador, Time, Make Up ativo, Make Up congelado e Banco mesmo com o limite mensal esgotado.
+
+
+## V10.1.6 — Quitação do congelado + excedente normal
+- Quando o Make Up congelado zera dentro da mesma distribuição, o excedente entra automaticamente no regime normal.
+- O split continua 50/50 e o Banco é sempre calculado apenas sobre a parte do jogador.
+- O gestor pode aplicar, por operação, a exceção de não reter Banco no excedente.
+- Ao quitar integralmente o Make Up congelado, o perfil muda automaticamente para Regime normal.
