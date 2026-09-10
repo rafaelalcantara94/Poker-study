@@ -91,3 +91,11 @@ Frontend alinhado ao schema executado no Supabase: status `paid` é exibido como
 - A interface bloqueia o botão e mostra o saldo mensal disponível.
 - A função RPC no Supabase também valida o limite, evitando bypass pelo frontend ou clique duplicado.
 - Operações que apenas amortizam Make Up congelado devem usar uma movimentação própria, não Saque/Distribuição.
+
+
+## V10.1.4 — Prévia financeira completa do saque
+- A prévia de Saque / distribuição agora mostra o Make Up ativo antes/depois.
+- No regime normal deixa explícito que o saque não altera o Make Up ativo.
+- Mostra também o Banco acumulado antes/depois do depósito automático.
+- No regime congelado mostra Make Up ativo, Make Up congelado e Banco antes/depois.
+- Nenhuma regra financeira ou RPC foi alterada; atualização somente de interface/preview.
