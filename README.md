@@ -1,3 +1,14 @@
+## V10.1.11 — Estorno auditável
+
+- Adiciona estorno financeiro sem apagar o lançamento original.
+- O estorno cria um movimento inverso no razão, exige motivo e mantém auditoria.
+- Apenas o movimento manual reversível mais recente do jogador pode ser estornado.
+- Reload enviado não é estornado por esta função.
+- Corrige a exceção de Banco também no regime normal no frontend e no banco.
+- Saques estornados deixam de consumir o limite mensal do regime congelado.
+
+### SQL obrigatório
+Execute `upgrade_v10_1_10_to_v10_1_11_finance_reversal.sql` uma vez no Supabase SQL Editor.
 ## V10.1.10 — Exceção de Banco também no Regime normal
 - Restaura a exceção pontual do gestor no saque em Regime normal.
 - A exceção continua disponível no excedente após quitação do MU congelado.
