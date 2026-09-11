@@ -2532,7 +2532,6 @@ async function loadTeamIntel(){
   }catch(e){console.error('Team intelligence load failed',e);return {manager:true,rows:[],error:e}}
 }
 let teamCenterFilters={player:'all',period:'all'}
-let teamCenterFilters={player:'all',period:'all'}
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando inteligência da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
 function teamViewSnap(snap,period='all'){
@@ -2595,7 +2594,7 @@ function teamcenterHtml(rows,allRows=rows){
   const playerName=teamCenterFilters.player==='all'?'Time inteiro':(allRows.find(x=>x.member.user_id===teamCenterFilters.player)?.member.display_name||'Jogador')
   return `<div class="team-page-v3">
   <div class="team-page-head"><div><h1>👥 Central do Time</h1><p>Inteligência técnica, prioridades e comparação dos jogadores</p></div><div class="team-update"><span>↻</span><small>Última atualização</small><b>${esc(latestText)}</b></div></div>
-  <section class="team-hero team-hero-v3"><div class="team-hero-copy"><span class="team-kicker">V10.3.0 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p></div><div class="team-hero-quote">“Dados não jogam,<br>mas colocam você no caminho certo.”</div></section>
+  <section class="team-hero team-hero-v3"><div class="team-hero-copy"><span class="team-kicker">V10.3.1 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p></div><div class="team-hero-quote">“Dados não jogam,<br>mas colocam você no caminho certo.”</div></section>
   ${teamFilterBar(allRows)}
   <div class="team-kpis team-kpis-v3"><div><span class="team-kpi-icon">👥</span><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong><em>${rows.length?Math.round(ready.length/rows.length*100):0}% do recorte</em></div><div><span class="team-kpi-icon green">▤</span><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong><em>${ready.map(x=>`${esc(x.member.display_name||x.member.email)} ${(+x.snap.hands||0).toLocaleString('pt-BR')}`).join(' · ')||'Sem mãos'}</em></div><div><span class="team-kpi-icon green">↗</span><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong><em>${ready.map(x=>`${+x.snap.stats?.bb100>=0?'+':''}${teamNum(x.snap.stats?.bb100)} ${esc(x.member.display_name||x.member.email)}`).join(' · ')}</em></div><div><span class="team-kpi-icon red">!</span><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong><em>${ready.map(x=>`${(x.snap.leaks||[]).filter(l=>l.score>=1.5).length} ${esc(x.member.display_name||x.member.email)}`).join(' · ')}</em></div></div>
   <div class="team-dashboard-row">
