@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.3.3 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.4.0 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,7 +70,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.3.3 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.4.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2225,10 +2225,10 @@ function replayWorkspaceHtml(){
   const hs=replayState.hands,h=replayState.selected||hs[0];replayState.selected=h
   const visible=hhReplayContext?v835HandsForClass():hs
   replayState.viewHands=visible
-  return `${studyReplayContext?`<div class="notice replay-study-context study-guided-return"><div><b>📚 Sessão de estudo: ${esc(studyReplayContext.title)}</b><span>${esc(studyReplayContext.kind||'Sessão guiada')} · cronômetro e progresso continuam ativos</span></div><button class="btn small secondary" id="backToStudySession">← Voltar à sessão de Estudos</button></div>`:(hhReplayContext?`<div class="notice replay-study-context"><div><b>🎯 Sessão enviada pelo Stats HH</b><span>${esc(hhReplayContext.label)} · ${hhReplayContext.count.toLocaleString('pt-BR')} mãos${hhReplayContext.summary?` · ${esc(hhReplayContext.summary)}`:''}</span></div><button class="btn small secondary" id="backToHhStats">← Voltar ao Stats HH</button></div>${v835HandClassBar()}`:'')}${(!studyReplayContext&&hhReplayContext)?studyWorkflowHtml(h):''}<div class="replay-layout"><div class="panel replay-list-panel"><div class="replay-summary"><b id="replayFilteredSummary">${visible.length} mãos detectadas</b><span class="muted">${esc(replayState.sourceName||'Hand History')}</span></div><input id="replaySearch" placeholder="Buscar cartas, mão, horário..."><div id="replayHandList" class="replay-hand-list">${replayHandListHtml(visible,h)}</div></div><div id="replayStage">${replayStageHtml(h)}</div></div>`
+  return `${studyReplayContext?`<div class="notice replay-study-context study-guided-return"><div><b>📚 Sessão de estudo: ${esc(studyReplayContext.title)}</b><span>${esc(studyReplayContext.kind||'Sessão guiada')} · cronômetro e progresso continuam ativos</span></div><button class="btn small secondary" id="backToStudySession">← Voltar à sessão de Estudos</button></div>`:(hhReplayContext?`<div class="notice replay-study-context"><div><b>${hhReplayContext.teamCollective?'👥 Replayer coletivo':'🎯 Sessão enviada pelo Stats HH'}</b><span>${esc(hhReplayContext.label)} · ${hhReplayContext.count.toLocaleString('pt-BR')} mãos${hhReplayContext.summary?` · ${esc(hhReplayContext.summary)}`:''}</span></div><button class="btn small secondary" id="backToHhStats">← Voltar ao Stats HH</button></div>${v835HandClassBar()}`:'')}${(!studyReplayContext&&hhReplayContext)?studyWorkflowHtml(h):''}<div class="replay-layout"><div class="panel replay-list-panel"><div class="replay-summary"><b id="replayFilteredSummary">${visible.length} mãos detectadas</b><span class="muted">${esc(replayState.sourceName||'Hand History')}</span></div><input id="replaySearch" placeholder="Buscar cartas, mão, horário..."><div id="replayHandList" class="replay-hand-list">${replayHandListHtml(visible,h)}</div></div><div id="replayStage">${replayStageHtml(h)}</div></div>`
 }
 function replayHandListHtml(list,selected){
-  return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>',meta=hhReplayContext?.metaByHand?.[h.handId]||null,tier=meta?.tier?`<em class="strategic-tier ${esc(meta.tier)}">${esc(meta.tierLabel||meta.tier)}</em>`:'',hc=hhReplayContext?`<em class="v835-row-class">${esc(v835HandClassLabel(v835HandClass(h.heroCards)))}</em>`:'',review=studyReviewFor(h.handId),reviewBadge=review?.status?`<em class="study-row-status ${esc(review.status)}">${studyStatusIcon(review.status)}</em>`:'';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')} ${tier} ${reviewBadge}</b><span>${esc(pos)} · ${stack||'?'}bb ${hc}</span><small>${esc(h.dateTime.slice(11))} · ${esc(h.handId)}</small></span></button>`}).join('')
+  return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>',meta=hhReplayContext?.metaByHand?.[h.handId]||null,tier=meta?.tier?`<em class="strategic-tier ${esc(meta.tier)}">${esc(meta.tierLabel||meta.tier)}</em>`:'',hc=hhReplayContext?`<em class="v835-row-class">${esc(v835HandClassLabel(v835HandClass(h.heroCards)))}</em>`:'',review=studyReviewFor(h.handId),reviewBadge=review?.status?`<em class="study-row-status ${esc(review.status)}">${studyStatusIcon(review.status)}</em>`:'';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')} ${tier} ${reviewBadge}</b><span>${esc(pos)} · ${stack||'?'}bb ${hc}</span><small>${h.teamSourcePlayer?`👤 ${esc(h.teamSourcePlayer)} · `:''}${esc((h.dateTime||'').slice(11))} · ${esc(h.originalHandId||h.handId)}</small></span></button>`}).join('')
 }
 function replayPlayerCoords(h,p){
   // V5.9.1: final replay geometry — seats frozen, bets clamped to a safe inner felt orbit.
@@ -2497,6 +2497,108 @@ function teamSnapshotPayload(facts){
   const dates=(facts||[]).map(x=>String(x.date||'')).filter(Boolean).sort()
   return {...base,leaks:base.leaks,views,periodsAvailable:periods,dateRange:{min:dates[0]||null,max:dates.at(-1)||null}}
 }
+
+function teamLeakKey(l){
+  return [String(l?.label||'').trim(),String(l?.metric||''),String(l?.pos||'all'),String(l?.reviewTarget||'hits')].join('|')
+}
+function teamReviewRowsForLeak(facts,leak){
+  let rows=(facts||[]).filter(x=>x.game==='holdem')
+  const pos=String(leak?.pos||'all');if(pos!=='all')rows=rows.filter(x=>x.position===pos)
+  const metric=String(leak?.metric||''),target=String(leak?.reviewTarget||'hits')
+  let opp=()=>true,hit=()=>false
+  const bool=(oppKey,hitKey)=>{opp=x=>!!x[oppKey];hit=x=>!!x[hitKey]}
+  if(metric==='vpip'){opp=()=>true;hit=x=>!!x.vpip}
+  else if(metric==='pfr'){opp=()=>true;hit=x=>!!x.pfr}
+  else if(metric==='wwsf'){opp=x=>!!x.sawFlop;hit=x=>!!(x.sawFlop&&x.won)}
+  else if(metric==='rfi')bool('rfiOpp','rfi')
+  else if(metric==='limp')bool('limpOpp','limp')
+  else if(metric==='3bet')bool('threeBetOpp','threeBet')
+  else if(metric==='squeeze')bool('squeezeOpp','squeeze')
+  else if(metric==='call3')bool('faced3bet','call3bet')
+  else if(metric==='fold3')bool('faced3bet','foldTo3bet')
+  else if(metric==='4bet')bool('fourBetOpp','fourBet')
+  else if(metric==='steal')bool('stealOpp','steal')
+  else if(metric==='foldbbsteal')bool('bbVsStealOpp','foldBbVsSteal')
+  else if(metric==='cbet')bool('cbetOpp','cbet')
+  else if(metric==='cbett')bool('cbetTurnOpp','cbetTurn')
+  else if(metric==='cbetr')bool('cbetRiverOpp','cbetRiver')
+  else if(metric==='foldcbetf')bool('facedCbetFlop','foldVsCbetFlop')
+  else if(metric==='xrf'){opp=x=>(+x.xrFlopOpp||0)>0;hit=x=>(+x.xrFlop||0)>0}
+  else if(metric==='xrt'){opp=x=>(+x.xrTurnOpp||0)>0;hit=x=>(+x.xrTurn||0)>0}
+  else if(metric==='xrr'){opp=x=>(+x.xrRiverOpp||0)>0;hit=x=>(+x.xrRiver||0)>0}
+  else if(metric==='xr'){opp=x=>(+x.xrOppCount||0)>0;hit=x=>(+x.xrCount||0)>0}
+  else if(metric.startsWith('adv|')){
+    const p=metric.split('|'),hitKey=p[1],oppKey=p[2]
+    opp=x=>(+x[oppKey]||0)>0;hit=x=>(+x[hitKey]||0)>0
+  }else return []
+  rows=rows.filter(opp)
+  rows=target==='misses'?rows.filter(x=>!hit(x)):rows.filter(hit)
+  return rows.sort((a,b)=>String(b.time||b.date||'').localeCompare(String(a.time||a.date||'')))
+}
+function teamCompactReplayHand(h,sourcePlayer=''){
+  if(!h)return null
+  const x=JSON.parse(JSON.stringify(h));delete x.raw
+  x.teamSourcePlayer=sourcePlayer
+  return x
+}
+async function publishTeamReviewPacks(teamId,facts,leaks){
+  const selected=(leaks||[]).filter(l=>l?.metric).slice(0,12)
+  if(!selected.length)return {packs:0,hands:0}
+  const packs=[]
+  const allIds=new Set()
+  for(const leak of selected){
+    const rows=teamReviewRowsForLeak(facts,leak).slice(0,50)
+    const ids=[...new Set(rows.map(x=>x.handId).filter(Boolean))]
+    ids.forEach(id=>allIds.add(id))
+    packs.push({leak,ids})
+  }
+  const allHands=await hhHandsByIds([...allIds]),byId=new Map(allHands.map(h=>[h.handId,h]))
+  let ok=0,totalHands=0
+  for(const p of packs){
+    const hands=p.ids.map(id=>teamCompactReplayHand(byId.get(id))).filter(Boolean)
+    if(!hands.length)continue
+    const {error}=await supabase.rpc('publish_team_review_pack',{
+      p_team:teamId,p_leak_key:teamLeakKey(p.leak),p_label:p.leak.label||'Leak',
+      p_metric:p.leak.metric||'',p_position:p.leak.pos||'all',p_review_target:p.leak.reviewTarget||'hits',
+      p_hands:hands
+    })
+    if(error){console.warn('Review pack sync failed',p.leak.label,error);continue}
+    ok++;totalHands+=hands.length
+  }
+  return {packs:ok,hands:totalHands}
+}
+function teamAdaptiveHandsPerPlayer(n){
+  if(n<=2)return 50
+  if(n<=6)return 30
+  if(n<=10)return 20
+  return 15
+}
+async function teamLoadReviewPacks(label){
+  const {teamId}=await ensureTeamContext()
+  const {data,error}=await supabase.rpc('get_team_review_packs',{p_team:teamId,p_label:label})
+  if(error)throw error
+  return data||[]
+}
+async function openTeamCollectiveReplayer(label){
+  const packs=await teamLoadReviewPacks(label)
+  if(!packs.length)return alert('Nenhum pacote de revisão sincronizado para este leak ainda. Peça aos jogadores para abrirem o Stats HH nesta versão.')
+  const n=packs.length,requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/Math.max(1,n))))
+  const hands=[]
+  for(const p of packs){
+    const src=p.display_name||p.email||'Jogador'
+    const hs=[...(p.hands||[])].sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||''))).slice(0,perPlayer)
+    hs.forEach(h=>{
+      const c=JSON.parse(JSON.stringify(h)),orig=String(c.handId||'')
+      c.originalHandId=orig;c.handId=String(p.user_id||'player').slice(0,8)+'-'+orig;c.teamSourcePlayer=src
+      hands.push(c)
+    })
+  }
+  hands.sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||'')))
+  if(!hands.length)return alert('Os pacotes existem, mas não contêm mãos utilizáveis.')
+  replayState={hands,selected:hands[0],step:firstReplayActionIndex(hands[0]),sourceName:`Replayer coletivo · ${label}`,rawText:'',speed:1,playing:false,showOpponentCards:false,equilabOpen:false,rangeByHand:{},rangeColor:'blue'}
+  hhReplayContext={label:`Replayer coletivo · ${label}`,count:hands.length,metaByHand:{},summary:`${n} jogadores · até ${perPlayer} mãos por jogador · ${hands.length} mãos`,handClassFilter:'all',priorityFilter:'all',prioritizedIds:[],teamCollective:true}
+  modal.classList.remove('show');route('replayer')
+}
 function setTeamSnapshotStatus(kind,msg){
   const el=document.getElementById('hhTeamSyncStatus');if(!el)return
   el.className='hh-team-sync '+(kind||'muted');el.textContent=msg
@@ -2509,9 +2611,11 @@ async function publishTeamSnapshot(facts){
     const {teamId}=await ensureTeamContext(),payload=teamSnapshotPayload(facts)
     const {data,error}=await supabase.rpc('publish_team_hh_snapshot',{p_team:teamId,p_hands:payload.hands,p_stats:payload,p_leaks:payload.leaks})
     if(error)throw error
+    let review={packs:0,hands:0}
+    try{review=await publishTeamReviewPacks(teamId,facts,payload.leaks)}catch(packErr){console.warn('Review packs sync failed',packErr)}
     const when=data?new Date(data).toLocaleString('pt-BR'):'agora'
-    setTeamSnapshotStatus('good','✓ Snapshot do time sincronizado · '+payload.hands.toLocaleString('pt-BR')+' mãos · '+when)
-    return {ok:true,payload,updatedAt:data}
+    setTeamSnapshotStatus('good','✓ Snapshot + revisão sincronizados · '+payload.hands.toLocaleString('pt-BR')+' mãos · '+review.packs+' pacotes · '+when)
+    return {ok:true,payload,updatedAt:data,review}
   }catch(e){
     console.error('Team snapshot sync failed',e)
     setTeamSnapshotStatus('bad','⚠ Snapshot do time NÃO sincronizado: '+(e?.message||String(e)))
@@ -2568,31 +2672,49 @@ function teamAreaClass(leaks,area){
 }
 function teamPlayerXray(row){
   const z=row.snap?.stats||{},leaks=[...(row.snap?.leaks||[])].sort((a,b)=>b.score-a.score),top=leaks.slice(0,6),name=row.member.display_name||row.member.email,initials=name.slice(0,2).toUpperCase()
-  return `<div class="team-modal-backdrop" id="teamXrayBackdrop"><section class="team-xray-modal"><header><div class="team-xray-avatar">${esc(initials)}</div><div><small>RAIO-X INDIVIDUAL</small><h2>${esc(name)}</h2><p>${esc(row.member.role||'player')} · ${(+row.snap.hands||0).toLocaleString('pt-BR')} mãos no recorte</p></div><button id="teamXrayClose">×</button></header><div class="team-xray-kpis"><div><small>bb/100</small><strong class="${+z.bb100>=0?'good-text':'bad-text'}">${+z.bb100>=0?'+':''}${teamNum(z.bb100)}</strong></div><div><small>VPIP / PFR</small><strong>${teamNum(z.vpip)} / ${teamNum(z.pfr)}</strong></div><div><small>3Bet</small><strong>${teamNum(z.threeBet)}%</strong></div><div><small>WWSF</small><strong>${teamNum(z.wwsf)}%</strong></div></div><div class="team-xray-grid"><div class="team-xray-box"><h3>🎯 Prioridades técnicas</h3>${top.length?top.map((l,i)=>`<button class="team-xray-leak team-open-leak" data-team-leak="${esc(l.label)}"><b>${i+1}</b><span><strong>${esc(l.label)}</strong><small>${teamNum(l.value)}% · ref. ${esc(l.range)} · ${(+l.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${l.score>=1.5?'critical':'important'}">${l.score>=1.5?'ALTA':'MÉDIA'}</em></button>`).join(''):'<p class="muted">Nenhum desvio prioritário neste recorte.</p>'}</div><div class="team-xray-box"><h3>🧠 Leitura do gestor</h3><div class="team-coach-note"><b>${leaks.filter(l=>l.score>=1.5).length} alerta(s) de alta prioridade</b><span>${leaks[0]?`Primeiro tema recomendado: ${esc(leaks[0].label)}.`:'Sem foco crítico agora.'}</span></div><div class="team-coach-note"><b>Amostra</b><span>${(+row.snap.hands||0).toLocaleString('pt-BR')} mãos disponíveis neste recorte.</span></div><button class="btn small secondary team-filter-this-player" data-player="${esc(row.member.user_id)}">Filtrar Central por este jogador</button>${row.member.user_id===user?.id?'<button class="btn small" id="teamGoOwnStats">Abrir meu Stats HH</button>':''}</div></div></section></div>`
+  const first=leaks[0],second=leaks[1]
+  const strength=+z.wwsf>=46?`WWSF ${teamNum(z.wwsf)}% está em uma zona saudável para o benchmark atual.`:+z.bb100>0?`Winrate do recorte está positivo em +${teamNum(z.bb100)} bb/100.`:`Ainda não há um ponto forte estatístico claro com confiança suficiente.`
+  const why=first?`O tema ${first.label} combina desvio relevante, ${(+first.den||0).toLocaleString('pt-BR')} oportunidades e prioridade ${first.score>=1.5?'alta':'média'}.`:'Nenhum desvio prioritário neste recorte.'
+  const coach=first?`Trabalhar ${first.label} primeiro${second?`, e só depois avançar para ${second.label}`:''}. Evite dispersar a sessão em muitos desvios pequenos.`:'Manter acompanhamento e esperar mais amostra antes de criar uma intervenção.'
+  return `<div class="team-modal-backdrop" id="teamXrayBackdrop"><section class="team-xray-modal team-coach-xray"><header><div class="team-xray-avatar">${esc(initials)}</div><div><small>RAIO-X DO COACH</small><h2>${esc(name)}</h2><p>${esc(row.member.role||'player')} · ${(+row.snap.hands||0).toLocaleString('pt-BR')} mãos no recorte</p></div><button id="teamXrayClose">×</button></header>
+  <div class="team-xray-kpis"><div><small>bb/100</small><strong class="${+z.bb100>=0?'good-text':'bad-text'}">${+z.bb100>=0?'+':''}${teamNum(z.bb100)}</strong></div><div><small>VPIP / PFR</small><strong>${teamNum(z.vpip)} / ${teamNum(z.pfr)}</strong></div><div><small>3Bet</small><strong>${teamNum(z.threeBet)}%</strong></div><div><small>WWSF</small><strong>${teamNum(z.wwsf)}%</strong></div></div>
+  <div class="team-coach-summary"><article class="primary"><small>PRINCIPAL PONTO DE ATENÇÃO</small><strong>${first?esc(first.label):'Nenhum crítico agora'}</strong><span>${first?`${teamNum(first.value)}% · ref. ${esc(first.range)} · ${(+first.den||0).toLocaleString('pt-BR')} oportunidades`:'Aguardar mais amostra.'}</span></article><article><small>POR QUE AGORA?</small><p>${esc(why)}</p></article><article class="good"><small>PONTO POSITIVO</small><p>${esc(strength)}</p></article><article class="coach"><small>RECOMENDAÇÃO DO COACH</small><p>${esc(coach)}</p></article></div>
+  <div class="team-xray-grid"><div class="team-xray-box"><h3>🎯 Prioridades técnicas</h3>${top.length?top.map((l,i)=>`<button class="team-xray-leak team-open-leak" data-team-leak="${esc(l.label)}"><b>${i+1}</b><span><strong>${esc(l.label)}</strong><small>${teamNum(l.value)}% · ref. ${esc(l.range)} · ${(+l.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${l.score>=1.5?'critical':'important'}">${l.score>=1.5?'ALTA':'MÉDIA'}</em></button>`).join(''):'<p class="muted">Nenhum desvio prioritário neste recorte.</p>'}</div><div class="team-xray-box"><h3>🧠 Próxima ação</h3><div class="team-coach-note"><b>${leaks.filter(l=>l.score>=1.5).length} alerta(s) de alta prioridade</b><span>${first?`Comece por ${esc(first.label)}.`:'Sem foco crítico agora.'}</span></div><div class="team-coach-note"><b>Amostra</b><span>${(+row.snap.hands||0).toLocaleString('pt-BR')} mãos disponíveis neste recorte.</span></div><button class="btn small secondary team-filter-this-player" data-player="${esc(row.member.user_id)}">Filtrar Central por este jogador</button>${row.member.user_id===user?.id?'<button class="btn small" id="teamGoOwnStats">Abrir meu Stats HH</button>':''}</div></div></section></div>`
 }
 function teamLeakDiagnosis(label,rows,area=null,userId=null){
   const affected=[]
   rows.filter(x=>x.snap).forEach(x=>(x.snap.leaks||[]).forEach(l=>{if((label&&l.label===label)||(area&&teamLeakArea(l.label,l.group)===area&&(!userId||x.member.user_id===userId)))affected.push({...l,player:x.member.display_name||x.member.email,userId:x.member.user_id})}))
   affected.sort((a,b)=>b.score-a.score)
   const title=label||area||'Diagnóstico',totalOpp=affected.reduce((n,x)=>n+(+x.den||0),0),players=[...new Set(affected.map(x=>x.player))]
-  const own=affected.find(x=>x.userId===user?.id)
-  return `<div class="team-modal-backdrop" id="teamLeakBackdrop"><section class="team-xray-modal team-leak-modal"><header><div class="team-xray-avatar red">🎯</div><div><small>DIAGNÓSTICO DO TIME</small><h2>${esc(title)}</h2><p>${players.length} jogador${players.length===1?'':'es'} afetado${players.length===1?'':'s'} · ${totalOpp.toLocaleString('pt-BR')} oportunidades somadas</p></div><button id="teamLeakClose">×</button></header><div class="team-leak-summary"><div><small>JOGADORES</small><strong>${players.length}</strong></div><div><small>OPORTUNIDADES</small><strong>${totalOpp.toLocaleString('pt-BR')}</strong></div><div><small>ALTA PRIORIDADE</small><strong>${affected.filter(x=>x.score>=1.5).length}</strong></div></div><div class="team-leak-player-list">${affected.map((x,i)=>`<article><span class="rank">${i+1}</span><div><b>${esc(x.player)}</b><small>${esc(x.label)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></div><em class="${x.score>=1.5?'critical':'important'}">${x.score>=1.5?'ALTA':'MÉDIA'}</em><button class="btn small secondary team-leak-player-xray" data-team-player="${esc(x.userId)}">Raio-X</button></article>`).join('')||'<p class="muted">Nenhum sinal neste recorte.</p>'}</div><div class="team-leak-actions"><button class="btn secondary" id="teamLeakGoPlan">🗓 Ir para Plano de Estudos</button>${own&&own.metric?`<button class="btn" id="teamLeakOwnReplay" data-metric="${esc(own.metric)}" data-pos="${esc(own.pos||'all')}" data-target="${esc(own.reviewTarget||'hits')}">🎬 Abrir minhas mãos no Replayer</button>`:''}<button class="btn secondary" id="teamLeakCollectiveReplay" ${players.length>1?'':'disabled'}>🎬 Replayer coletivo</button></div>${players.length>1?`<div class="notice team-sync-note"><b>Replayer coletivo ainda não envia as bases inteiras.</b> Para juntar mãos de vários jogadores com segurança, o próximo passo técnico é sincronizar apenas um pacote de mãos de revisão de cada leak. O diagnóstico acima já está pronto para receber esse pacote.</div>`:''}</section></div>`
+  const own=affected.find(x=>x.userId===user?.id),areaMode=!!area
+  return `<div class="team-modal-backdrop" id="teamLeakBackdrop"><section class="team-xray-modal team-leak-modal"><header><div class="team-xray-avatar red">🎯</div><div><small>${areaMode?'DIAGNÓSTICO DA ÁREA':'DIAGNÓSTICO DO TIME'}</small><h2>${esc(title)}</h2><p>${players.length} jogador${players.length===1?'':'es'} afetado${players.length===1?'':'s'} · ${totalOpp.toLocaleString('pt-BR')} oportunidades somadas</p></div><button id="teamLeakClose">×</button></header><div class="team-leak-summary"><div><small>JOGADORES</small><strong>${players.length}</strong></div><div><small>OPORTUNIDADES</small><strong>${totalOpp.toLocaleString('pt-BR')}</strong></div><div><small>ALTA PRIORIDADE</small><strong>${affected.filter(x=>x.score>=1.5).length}</strong></div></div><div class="team-leak-player-list">${affected.map((x,i)=>`<article><span class="rank">${i+1}</span><div><b>${esc(x.player)}</b><small>${esc(x.label)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></div><em class="${x.score>=1.5?'critical':'important'}">${x.score>=1.5?'ALTA':'MÉDIA'}</em><button class="btn small secondary team-leak-player-xray" data-team-player="${esc(x.userId)}">Raio-X</button></article>`).join('')||'<p class="muted">Nenhum sinal neste recorte.</p>'}</div><div class="team-leak-actions"><button class="btn secondary" id="teamLeakGoPlan">🗓 Ir para Plano de Estudos</button>${own&&own.metric?`<button class="btn" id="teamLeakOwnReplay" data-metric="${esc(own.metric)}" data-pos="${esc(own.pos||'all')}" data-target="${esc(own.reviewTarget||'hits')}">🎬 Abrir minhas mãos no Replayer</button>`:''}<button class="btn secondary" id="teamLeakCollectiveReplay" ${label&&players.length>1?'':'disabled'}>🎬 Replayer coletivo</button></div>${label&&players.length>1?`<div class="notice team-sync-note"><b>Review Pack inteligente:</b> o Replayer usa somente mãos recentes ligadas a este leak. Com ${players.length} jogadores, o limite recomendado é ${teamAdaptiveHandsPerPlayer(players.length)} por jogador, com teto de 200 mãos no pacote.</div>`:areaMode?`<div class="notice team-sync-note"><b>Como ler esta área:</b> os sinais acima são as métricas fora da referência dentro de ${esc(area)}. Abra um leak específico para acessar mãos e Replayer.</div>`:''}</section></div>`
 }
 function teamTechnicalMatrix(ready){
   const areas=['Pré-flop','3Bet / 4Bet','Blinds','CBet / Pós-flop','Outros']
-  return `<section class="panel team-matrix"><header class="team-section-head"><div><span class="team-section-icon purple">▦</span><h2>Mapa técnico do time</h2><p class="muted">Jogador × área técnica. Clique em uma célula para investigar os leaks daquela área.</p></div></header><div class="team-matrix-table"><div class="team-matrix-row head"><span>Jogador</span>${areas.map(a=>`<b>${esc(a)}</b>`).join('')}</div>${ready.map(x=>{const name=x.member.display_name||x.member.email;return `<div class="team-matrix-row"><button class="team-matrix-player" data-team-player="${esc(x.member.user_id)}">${esc(name)}</button>${areas.map(a=>{const s=teamAreaClass(x.snap.leaks,a);return `<button class="team-matrix-cell ${s.state}" data-team-area="${esc(a)}" data-team-area-player="${esc(x.member.user_id)}"><i></i><span>${esc(s.label)}</span><small>${s.count?`${s.count} sinal${s.count===1?'':'is'}`:'—'}</small></button>`}).join('')}</div>`}).join('')}</div></section>`
+  return `<section class="panel team-matrix"><header class="team-section-head"><div><span class="team-section-icon purple">▦</span><h2>Mapa técnico do time</h2><p class="muted">Cada célula resume uma família técnica. A cor é definida pelo sinal mais grave; “n sinais” é a quantidade de métricas fora da referência. Clique para abrir o diagnóstico daquela área.</p></div></header><div class="team-map-legend"><span class="ok">● Sem alerta</span><span class="watch">● Atenção</span><span class="mid">● Média</span><span class="high">● Alta</span></div><div class="team-matrix-table"><div class="team-matrix-row head"><span>Jogador</span>${areas.map(a=>`<b>${esc(a)}</b>`).join('')}</div>${ready.map(x=>{const name=x.member.display_name||x.member.email;return `<div class="team-matrix-row"><button class="team-matrix-player" data-team-player="${esc(x.member.user_id)}">${esc(name)}</button>${areas.map(a=>{const s=teamAreaClass(x.snap.leaks,a);return `<button class="team-matrix-cell ${s.state}" data-team-area="${esc(a)}" data-team-area-player="${esc(x.member.user_id)}"><i></i><span>${esc(s.label)}</span><small>${s.count?`${s.count} sinal${s.count===1?'':'is'}`:'—'}</small></button>`}).join('')}</div>`}).join('')}</div></section>`
+}
+
+function teamLessonPlanHtml(ready,collective,allLeaks){
+  const shared=collective[0]||null
+  const top=shared?.items?.sort((a,b)=>b.score-a.score)?.[0]||allLeaks[0]||null
+  if(!top)return `<section class="panel team-lesson"><header class="team-section-head"><div><span class="team-section-icon gold">🎓</span><h2>Aula recomendada do time</h2><p class="muted">Ainda não há um tema com amostra suficiente para recomendar uma aula.</p></div></header></section>`
+  const affected=shared?[...shared.players]:[top.player].filter(Boolean),n=affected.length
+  const replayText=n>1?`${teamAdaptiveHandsPerPlayer(n)} mãos/jogador`:'20 mãos do jogador'
+  return `<section class="panel team-lesson" id="teamLessonSection"><header class="team-section-head"><div><span class="team-section-icon gold">🎓</span><h2>Aula recomendada do gestor</h2><p class="muted">Tema escolhido por recorrência, gravidade, amostra e impacto coletivo.</p></div><span class="pill">${n>1?'COLETIVA':'INDIVIDUAL'}</span></header>
+  <div class="team-lesson-grid"><div class="team-lesson-main"><small>TEMA SUGERIDO AGORA</small><h3>${esc(shared?.label||top.label)}</h3><p><b>Por quê?</b> ${n>1?`O mesmo problema aparece em ${n} jogadores (${affected.map(esc).join(', ')}).`:`É o sinal mais prioritário do recorte atual.`} A amostra total soma ${(shared?.items||[top]).reduce((s,x)=>s+(+x.den||0),0).toLocaleString('pt-BR')} oportunidades.</p><div class="team-lesson-actions"><button class="btn team-lesson-open" data-team-lesson-leak="${esc(shared?.label||top.label)}">Investigar tema</button>${n>1?`<button class="btn secondary team-lesson-replay" data-team-lesson-replay="${esc(shared?.label||top.label)}">🎬 Replayer coletivo</button>`:''}<button class="btn secondary" data-team-nav="plan">🗓 Plano de Estudos</button></div></div>
+  <div class="team-lesson-agenda"><h4>Plano sugerido · 50 min</h4><div><b>10 min</b><span>Conceitos e referência do spot</span></div><div><b>15 min</b><span>Comparar padrões dos jogadores afetados</span></div><div><b>20 min</b><span>Replayer: ${esc(replayText)}</span></div><div><b>5 min</b><span>Definir tarefa e critério de reavaliação</span></div><footer>Reavaliar em 14 dias ou após nova amostra relevante.</footer></div></div></section>`
 }
 function teamcenterHtml(rows,allRows=rows){
   const ready=rows.filter(x=>x.snap),total=ready.reduce((n,x)=>n+(+x.snap.hands||0),0),allLeaksRaw=ready.flatMap(x=>(x.snap.leaks||[]).map(l=>({...l,player:x.member.display_name||x.member.email,userId:x.member.user_id}))).sort((a,b)=>b.score-a.score)
   const allLeaks=teamLeakSeverity==='high'?allLeaksRaw.filter(x=>x.score>=1.5):teamLeakSeverity==='mid'?allLeaksRaw.filter(x=>x.score>=.75&&x.score<1.5):teamLeakSeverity==='other'?allLeaksRaw.filter(x=>x.score<.75):allLeaksRaw
   const critical=allLeaksRaw.filter(x=>x.score>=1.5).length,medium=allLeaksRaw.filter(x=>x.score>=.75&&x.score<1.5).length,avg=ready.length?ready.reduce((n,x)=>n+(+x.snap.stats?.bb100||0),0)/ready.length:0,ranking=[...ready].sort((a,b)=>(+b.snap.stats?.bb100||0)-(+a.snap.stats?.bb100||0)),collective=teamCollectiveLeaks(ready)
   const latest=allRows.filter(x=>x.snap).map(x=>x.snap.updated_at).filter(Boolean).sort().at(-1),latestText=latest?new Date(latest).toLocaleString('pt-BR'):'—',threeBetCount=allLeaksRaw.filter(l=>/3bet/i.test(l.label||'')).length
-  return `<div class="team-page-v3"><div class="team-page-head"><div><h1>👥 Central do Time</h1><p>Inteligência técnica, prioridades e comparação dos jogadores</p></div><div class="team-update"><span>↻</span><small>Última atualização</small><b>${esc(latestText)}</b></div></div><section class="team-hero team-hero-v3"><div class="team-hero-copy"><span class="team-kicker">V10.3.3 · ACTION CENTER</span><h2>Raio-X técnico da equipe</h2><p>Do diagnóstico à ação: clique, investigue e leve o spot para estudo.</p></div><div class="team-hero-quote">“O painel só tem valor<br>se levar a uma decisão.”</div></section>${teamFilterBar(allRows)}
+  return `<div class="team-page-v3"><div class="team-page-head"><div><h1>👥 Central do Time</h1><p>Inteligência técnica, prioridades e comparação dos jogadores</p></div><div class="team-update"><span>↻</span><small>Última atualização</small><b>${esc(latestText)}</b></div></div><section class="team-hero team-hero-v3"><div class="team-hero-copy"><span class="team-kicker">V10.4.0 · ACTION CENTER</span><h2>Raio-X técnico da equipe</h2><p>Do diagnóstico à ação: clique, investigue e leve o spot para estudo.</p></div><div class="team-hero-quote">“O painel só tem valor<br>se levar a uma decisão.”</div></section>${teamFilterBar(allRows)}
   <div class="team-kpis team-kpis-v3"><button class="team-kpi-click" data-team-nav="players"><span class="team-kpi-icon">👥</span><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong></button><button class="team-kpi-click" data-team-nav="players"><span class="team-kpi-icon green">▤</span><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong></button><button class="team-kpi-click" data-team-nav="players"><span class="team-kpi-icon green">↗</span><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong></button><button class="team-kpi-click" data-team-severity="high"><span class="team-kpi-icon red">!</span><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong></button></div>
   <div class="team-dashboard-row"><section class="panel team-performance-card" id="teamPlayersSection"><header class="team-section-head"><div><span class="team-section-icon gold">🏆</span><h2>Desempenho dos jogadores</h2><p class="muted">Uma linha por jogador. Clique para abrir o raio-X individual.</p></div></header>${ranking.length?`<div class="team-table team-table-clickable"><div class="team-tr team-th"><span># Jogador</span><span>Mãos</span><span>bb/100</span><span>VPIP</span><span>PFR</span><span>3Bet</span><span>WWSF</span><span>Alertas</span></div>${ranking.map((x,i)=>{const z=x.snap.stats||{},hi=(x.snap.leaks||[]).filter(l=>l.score>=1.5).length;return `<button class="team-tr team-player-row" data-team-player="${esc(x.member.user_id)}"><span class="team-player"><i>${esc((x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase())}</i><b>${i+1}. ${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')}</small></span><span>${(+x.snap.hands||0).toLocaleString('pt-BR')}</span><span class="${z.bb100>=0?'good-text':'bad-text'}"><b>${z.bb100>=0?'+':''}${teamNum(z.bb100)}</b></span><span>${teamNum(z.vpip)}%</span><span>${teamNum(z.pfr)}%</span><span>${teamNum(z.threeBet)}%</span><span>${teamNum(z.wwsf)}%</span><span><b class="team-alert-count">${hi}</b></span></button>`}).join('')}</div>`:'<div class="notice">Nenhum dado encontrado neste recorte.</div>'}</section>
   <section class="panel team-alert-card team-alert-v3"><header class="team-section-head"><div><span class="team-section-icon red">⚠</span><h2>Distribuição dos alertas</h2><p class="muted">Clique na legenda para filtrar os leaks.</p></div></header><div class="team-alert-ring"><div><strong>${allLeaksRaw.length}</strong><span>alertas</span></div></div><div class="team-alert-legend"><button data-team-severity="high" class="${teamLeakSeverity==='high'?'active':''}"><i class="high"></i><span>Alta prioridade</span><b>${critical}</b></button><button data-team-severity="mid" class="${teamLeakSeverity==='mid'?'active':''}"><i class="medium"></i><span>Média prioridade</span><b>${medium}</b></button><button data-team-severity="other" class="${teamLeakSeverity==='other'?'active':''}"><i class="low"></i><span>Demais sinais</span><b>${Math.max(0,allLeaksRaw.length-critical-medium)}</b></button><button data-team-severity="all" class="team-show-all">Mostrar todos</button></div></section></div>
   <div class="team-dashboard-row team-row-2"><section class="panel team-leaks-v3" id="teamLeaksSection"><header class="team-section-head"><div><span class="team-section-icon red">🎯</span><h2>Principais leaks do time</h2><p class="muted">Clique no leak para abrir o diagnóstico dos jogadores afetados.</p></div><span class="pill">${allLeaks.length} sinais</span></header><div class="team-leaks">${allLeaks.slice(0,8).map((x,i)=>`<button class="team-leak-click team-open-leak" data-team-leak="${esc(x.label)}"><span class="rank">${i+1}</span><span><b>${esc(x.label)}</b><small>${esc(x.player)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${x.score>=1.5?'critical':'important'}">${x.score>=1.5?'ALTA':'MÉDIA'}</em><i>›</i></button>`).join('')||'<p class="muted">Sem leaks neste filtro.</p>'}</div></section><section class="panel team-insights team-insights-v3"><header class="team-section-head"><div><span class="team-section-icon gold">💡</span><h2>Insights acionáveis</h2><p class="muted">Clique para ir ao ponto relacionado.</p></div></header><button class="team-insight good" data-team-nav="players"><b>↗ Winrate do grupo</b><span>A média atual está em ${avg>=0?'+':''}${teamNum(avg)} bb/100.</span></button><button class="team-insight warn" data-team-severity="high"><b>🎯 Prioridades</b><span>${critical} alertas de alta prioridade pedem investigação.</span></button><button class="team-insight purple" data-team-area="3Bet / 4Bet"><b>🧠 Foco técnico</b><span>${threeBetCount} sinais estão relacionados a 3Bet/4Bet.</span></button><button class="team-insight blue" data-team-collective="${collective[0]?esc(collective[0].label):''}"><b>👥 Estudo coletivo</b><span>${collective.length?`${esc(collective[0].label)} aparece em ${collective[0].players.size} jogadores.`:'Nenhum leak idêntico compartilhado neste recorte.'}</span></button></section></div>
-  ${teamTechnicalMatrix(ready)}
+  ${teamLessonPlanHtml(ready,collective,allLeaks)}${teamTechnicalMatrix(ready)}
   <div class="team-dashboard-row team-row-3"><section class="panel team-manager-plan"><header class="team-section-head"><div><span class="team-section-icon blue">📋</span><h2>Plano de ação do gestor</h2><p class="muted">Os itens abaixo já são atalhos para o diagnóstico do leak.</p></div></header><div class="team-action-cards">${[...ready].sort((a,b)=>teamPriorityScore(b)-teamPriorityScore(a)).map(x=>{const leaks=(x.snap.leaks||[]).slice(0,3),name=x.member.display_name||x.member.email,initials=name.slice(0,2).toUpperCase();return `<article><header><i>${esc(initials)}</i><span><b>${esc(name)}</b><small>${esc(x.member.role||'player')}</small></span><em>${leaks.filter(l=>l.score>=1.5).length} alta(s)</em></header><div class="team-action-list">${leaks.map((l,i)=>`<button class="team-action-item team-open-leak" data-team-leak="${esc(l.label)}"><b>${i+1}</b><span><strong>${esc(l.label)}</strong><small>${teamNum(l.value)}% · ref. ${esc(l.range)}</small></span><em class="${l.score>=1.5?'critical':'important'}">${l.score>=1.5?'ALTA':'MÉDIA'}</em></button>`).join('')||'<span class="muted">Sem foco crítico.</span>'}</div><button class="team-xray-link" data-team-player="${esc(x.member.user_id)}">Ver raio-X completo →</button></article>`}).join('')||'<p class="muted">Sem plano neste recorte.</p>'}</div></section><section class="panel team-collective"><header class="team-section-head"><div><span class="team-section-icon purple">👥</span><h2>Leaks coletivos</h2><p class="muted">Problemas repetidos em mais de um jogador.</p></div><span class="pill">${collective.length}</span></header>${collective.length?`<div class="team-collective-grid compact">${collective.slice(0,5).map((g,i)=>`<button class="team-collective-click team-open-leak" data-team-leak="${esc(g.label)}"><span class="rank">${i+1}</span><div><b>${esc(g.label)}</b><small>${[...g.players].map(esc).join(' · ')}</small></div><em>${g.players.size} jogadores</em></button>`).join('')}</div>`:'<div class="notice">Nenhum leak idêntico aparece em dois jogadores neste recorte.</div>'}</section></div></div>`
 }
 function bindTeamCenterFilters(allRows){
@@ -2601,12 +2723,15 @@ function bindTeamCenterFilters(allRows){
 }
 function bindTeamActions(rows,allRows){
   const openXray=id=>{const row=rows.find(x=>x.member.user_id===id)||allRows.find(x=>x.member.user_id===id);if(!row||!row.snap)return;document.body.insertAdjacentHTML('beforeend',teamPlayerXray(row));const close=()=>document.getElementById('teamXrayBackdrop')?.remove();document.getElementById('teamXrayClose')?.addEventListener('click',close);document.getElementById('teamXrayBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamXrayBackdrop')close()});document.querySelector('.team-filter-this-player')?.addEventListener('click',e=>{teamCenterFilters.player=e.currentTarget.dataset.player;close();route('teamcenter')});document.getElementById('teamGoOwnStats')?.addEventListener('click',()=>{close();route('hhstats')});document.querySelectorAll('#teamXrayBackdrop .team-open-leak').forEach(b=>b.onclick=()=>{const lab=b.dataset.teamLeak;close();openLeak(lab)})}
-  const openLeak=(label,area=null,playerId=null)=>{document.body.insertAdjacentHTML('beforeend',teamLeakDiagnosis(label,rows,area,playerId));const close=()=>document.getElementById('teamLeakBackdrop')?.remove();document.getElementById('teamLeakClose')?.addEventListener('click',close);document.getElementById('teamLeakBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamLeakBackdrop')close()});document.querySelectorAll('.team-leak-player-xray').forEach(b=>b.onclick=()=>{const id=b.dataset.teamPlayer;close();openXray(id)});document.getElementById('teamLeakGoPlan')?.addEventListener('click',()=>{close();route('plan')});const own=document.getElementById('teamLeakOwnReplay');if(own)own.onclick=()=>{const m=own.dataset.metric,p=own.dataset.pos||'all',t=own.dataset.target||'hits';close();route('hhstats');setTimeout(()=>hhAuditModal(m,p,t,true),250)};const collective=document.getElementById('teamLeakCollectiveReplay');if(collective&&!collective.disabled)collective.onclick=()=>alert('Para abrir mãos de jogadores diferentes no mesmo Replayer, precisamos sincronizar somente os pacotes de revisão desse leak. A Central já identifica os jogadores e o spot; esta será a próxima camada de infraestrutura, sem enviar a database inteira.')}
+  const openLeak=(label,area=null,playerId=null)=>{document.body.insertAdjacentHTML('beforeend',teamLeakDiagnosis(label,rows,area,playerId));const close=()=>document.getElementById('teamLeakBackdrop')?.remove();document.getElementById('teamLeakClose')?.addEventListener('click',close);document.getElementById('teamLeakBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamLeakBackdrop')close()});document.querySelectorAll('.team-leak-player-xray').forEach(b=>b.onclick=()=>{const id=b.dataset.teamPlayer;close();openXray(id)});document.getElementById('teamLeakGoPlan')?.addEventListener('click',()=>{close();route('plan')});const own=document.getElementById('teamLeakOwnReplay');if(own)own.onclick=()=>{const m=own.dataset.metric,p=own.dataset.pos||'all',t=own.dataset.target||'hits';close();route('hhstats');setTimeout(()=>hhAuditModal(m,p,t,true),250)};const collective=document.getElementById('teamLeakCollectiveReplay');if(collective&&!collective.disabled)collective.onclick=async()=>{collective.disabled=true;const old=collective.textContent;collective.textContent='Carregando pacote…';try{await openTeamCollectiveReplayer(label)}catch(e){console.error(e);alert('Não foi possível abrir o Replayer coletivo: '+(e?.message||String(e)))}finally{collective.disabled=false;collective.textContent=old}}}
   document.querySelectorAll('[data-team-player]').forEach(el=>el.addEventListener('click',ev=>{if(ev.currentTarget.classList.contains('team-action-item'))return;openXray(el.dataset.teamPlayer)}))
   document.querySelectorAll('.team-open-leak').forEach(el=>el.addEventListener('click',ev=>{ev.stopPropagation();openLeak(el.dataset.teamLeak)}))
   document.querySelectorAll('[data-team-area-player]').forEach(el=>el.addEventListener('click',()=>openLeak(null,el.dataset.teamArea,el.dataset.teamAreaPlayer)))
   document.querySelectorAll('[data-team-area]:not([data-team-area-player])').forEach(el=>el.addEventListener('click',()=>openLeak(null,el.dataset.teamArea)))
   document.querySelectorAll('[data-team-collective]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.teamCollective)openLeak(el.dataset.teamCollective)}))
+  document.querySelectorAll('[data-team-lesson-leak]').forEach(el=>el.addEventListener('click',()=>openLeak(el.dataset.teamLessonLeak)))
+  document.querySelectorAll('[data-team-lesson-replay]').forEach(el=>el.addEventListener('click',async()=>{el.disabled=true;const old=el.textContent;el.textContent='Carregando…';try{await openTeamCollectiveReplayer(el.dataset.teamLessonReplay)}catch(e){alert('Não foi possível abrir o pacote: '+(e?.message||String(e)))}finally{el.disabled=false;el.textContent=old}}))
+
   document.querySelectorAll('[data-team-severity]').forEach(el=>el.addEventListener('click',()=>{teamLeakSeverity=el.dataset.teamSeverity||'all';const root=document.getElementById('teamCenterRoot');if(root){root.innerHTML=teamcenterHtml(rows,allRows);bindTeamCenterFilters(allRows);bindTeamActions(rows,allRows);setTimeout(()=>document.getElementById('teamLeaksSection')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}}))
   document.querySelectorAll('[data-team-nav]').forEach(el=>el.addEventListener('click',()=>{const dest=el.dataset.teamNav;if(dest==='players'){document.getElementById('teamPlayersSection')?.scrollIntoView({behavior:'smooth',block:'center'});return}route(dest)}))
 }
