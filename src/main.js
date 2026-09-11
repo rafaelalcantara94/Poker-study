@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.3.2 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.3.3 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -101,28 +101,47 @@ async function maxLateUnlockAudio(){
     return true
   }catch{return false}
 }
-function maxLateStopSound(){maxLateAlarmTimers.forEach(clearTimeout);maxLateAlarmTimers=[]}
-async function maxLateBeep(){
-  maxLateStopSound()
+function maxLateStopSound(){
+  maxLateAlarmTimers.forEach(clearTimeout);maxLateAlarmTimers=[]
+  try{window.speechSynthesis?.cancel()}catch{}
+}
+function maxLatePickMaleVoice(){
+  try{
+    const voices=window.speechSynthesis?.getVoices?.()||[]
+    const pt=voices.filter(v=>/^pt(-|_)/i.test(v.lang||''))
+    const maleHints=['antonio','daniel','felipe','ricardo','male','mascul','paulo','brasil']
+    return pt.find(v=>maleHints.some(h=>String(v.name||'').toLowerCase().includes(h)))||pt.find(v=>/pt-BR/i.test(v.lang||''))||pt[0]||voices[0]||null
+  }catch{return null}
+}
+function maxLateSpeak(name){
+  try{
+    if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return false
+    window.speechSynthesis.cancel()
+    const u=new SpeechSynthesisUtterance(`Atenção. Max late do ${String(name||'torneio')}.`)
+    u.lang='pt-BR';u.rate=.92;u.pitch=.82;u.volume=1
+    const voice=maxLatePickMaleVoice();if(voice)u.voice=voice
+    window.speechSynthesis.speak(u);return true
+  }catch{return false}
+}
+async function maxLateSingleBeep(){
   try{
     const ok=await maxLateUnlockAudio();if(!ok)return
-    const ctx=maxLateAudioCtx
-    for(let i=0;i<16;i++){
-      const timer=setTimeout(()=>{
-        try{
-          const o1=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain()
-          o1.type='square';o2.type='sawtooth'
-          const hi=i%2===0
-          o1.frequency.value=hi?1040:760;o2.frequency.value=hi?520:380
-          g.gain.setValueAtTime(.32,ctx.currentTime)
-          g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.34)
-          o1.connect(g);o2.connect(g);g.connect(ctx.destination)
-          o1.start();o2.start();o1.stop(ctx.currentTime+.36);o2.stop(ctx.currentTime+.36)
-        }catch{}
-      },i*500)
-      maxLateAlarmTimers.push(timer)
-    }
+    const ctx=maxLateAudioCtx,o1=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain()
+    o1.type='square';o2.type='sawtooth';o1.frequency.value=980;o2.frequency.value=490
+    g.gain.setValueAtTime(.42,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.7)
+    o1.connect(g);o2.connect(g);g.connect(ctx.destination);o1.start();o2.start();o1.stop(ctx.currentTime+.72);o2.stop(ctx.currentTime+.72)
   }catch{}
+}
+async function maxLateAlarmSequence(name){
+  maxLateStopSound()
+  for(let i=0;i<3;i++){
+    const timer=setTimeout(async()=>{
+      await maxLateSingleBeep()
+      const voiceTimer=setTimeout(()=>maxLateSpeak(name),850)
+      maxLateAlarmTimers.push(voiceTimer)
+    },i*6500)
+    maxLateAlarmTimers.push(timer)
+  }
 }
 async function maxLateRegisterServiceWorker(){
   if(!('serviceWorker'in navigator))return null
@@ -145,10 +164,10 @@ async function maxLateSystemNotify(title,body,id=''){
 }
 function maxLateFire(a){
   const rows=maxLateAlarms(),x=rows.find(r=>r.id===a.id);if(!x||x.fired)return
-  x.fired=true;x.firedAt=Date.now();saveMaxLateAlarms(rows);maxLateBeep()
+  x.fired=true;x.firedAt=Date.now();saveMaxLateAlarms(rows);maxLateAlarmSequence(x.name)
   const title=`MAX LATE ${String(x.name||'TORNEIO').toUpperCase()}`
   maxLateSystemNotify(title,'O Max Late chegou. Abra o Poker Study para revisar o torneio.',x.id)
-  const toast=document.createElement('div');toast.className='maxlate-alarm-toast';toast.innerHTML=`<div>⏰</div><section><small>POKER STUDY · MAX LATE</small><b>${esc(title)}</b><span>O cronômetro chegou a zero.</span></section><button>OK</button>`;document.body.appendChild(toast);toast.querySelector('button').onclick=()=>{maxLateStopSound();toast.remove()}
+  const toast=document.createElement('div');toast.className='maxlate-alarm-toast';toast.innerHTML=`<div>⏰</div><section><small>POKER STUDY · MAX LATE</small><b>${esc(title)}</b><span>O cronômetro chegou a zero. O aviso será repetido 3x.</span></section><button>Parar alarme</button>`;document.body.appendChild(toast);toast.querySelector('button').onclick=()=>{maxLateStopSound();toast.remove()}
   updateMaxLateHeader()
 }
 function maxLateTick(){
@@ -188,7 +207,7 @@ function renderMaxLateModalBody(){
   const root=document.getElementById('maxLateModalBody');if(!root)return
   const rows=maxLateAlarms().sort((a,b)=>a.endsAt-b.endsAt),active=rows.filter(a=>!a.fired&&a.endsAt>Date.now())
   root.innerHTML=`<div class="maxlate-create"><label><span>Torneio / identificação</span><input id="maxLateName" placeholder="Ex.: 109 ACR"></label><label><span>Horas</span><input id="maxLateHours" type="number" min="0" max="24" value="0"></label><label><span>Minutos</span><input id="maxLateMinutes" type="number" min="0" max="59" value="30"></label><button class="btn" id="maxLateCreate">⏰ Iniciar cronômetro</button></div>
-  <div class="maxlate-permission"><div><b>Notificação do Windows</b><span>${!('Notification'in window)?'Seu navegador não suporta notificações.':Notification.permission==='granted'?'✓ Permissão concedida — usaremos o sistema do Windows':Notification.permission==='denied'?'Bloqueada no navegador/Windows':'Ainda não autorizada'}</span></div><div class="maxlate-permission-actions"><button class="btn secondary small" id="maxLatePermission" ${!('Notification'in window)||Notification.permission==='granted'?'disabled':''}>Permitir notificação</button><button class="btn secondary small" id="maxLateTest">🔔 Testar alerta</button></div></div>
+  <div class="maxlate-permission"><div><b>Notificação do Windows</b><span>${!('Notification'in window)?'Seu navegador não suporta notificações.':Notification.permission==='granted'?'✓ Permissão concedida — usaremos o sistema do Windows':Notification.permission==='denied'?'Bloqueada no navegador/Windows':'Ainda não autorizada'}</span></div><div class="maxlate-permission-actions"><button class="btn secondary small" id="maxLatePermission" ${!('Notification'in window)||Notification.permission==='granted'?'disabled':''}>Permitir notificação</button><button class="btn secondary small" id="maxLateTest">🔊 Testar voz + alerta</button></div></div>
   <div class="maxlate-list-head"><b>Alarmes ativos</b><span>${active.length}</span></div>
   <div class="maxlate-list">${active.length?active.map(a=>`<article><div class="maxlate-clock">⏰</div><div><b>${esc(a.name)}</b><span>Termina ${new Date(a.endsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div><strong data-maxlate-time="${esc(a.id)}">${maxLateFmt(a.endsAt-Date.now())}</strong><button data-maxlate-cancel="${esc(a.id)}">Cancelar</button></article>`).join(''):'<div class="notice">Nenhum cronômetro ativo.</div>'}</div>
   <p class="maxlate-note">Para a notificação do sistema aparecer, deixe o navegador aberto (pode estar minimizado). Se o navegador estiver fechado por completo, esta versão web não consegue disparar o alerta.</p>`
@@ -201,11 +220,11 @@ function renderMaxLateModalBody(){
     const rows=maxLateAlarms();rows.push({id:uid(),name,createdAt:Date.now(),endsAt:Date.now()+duration,fired:false});saveMaxLateAlarms(rows);renderMaxLateModalBody();updateMaxLateHeader()
   }
   const perm=document.getElementById('maxLatePermission');if(perm)perm.onclick=async()=>{await maxLateRequestPermission();renderMaxLateModalBody()}
-  const test=document.getElementById('maxLateTest');if(test)test.onclick=async()=>{await maxLateUnlockAudio();await maxLateRequestPermission();maxLateBeep();const ok=await maxLateSystemNotify('MAX LATE · TESTE','Se você está vendo isto na Central de Notificações do Windows, está funcionando.','test');if(!ok)alert('O navegador não conseguiu enviar a notificação do Windows. Verifique as permissões do Chrome e do Windows.')}
+  const test=document.getElementById('maxLateTest');if(test)test.onclick=async()=>{const testName=String(document.getElementById('maxLateName')?.value||'Daily Big 10').trim()||'Daily Big 10';await maxLateUnlockAudio();await maxLateRequestPermission();maxLateAlarmSequence(testName);const ok=await maxLateSystemNotify(`MAX LATE ${testName.toUpperCase()}`,'Teste do alerta de Max Late.','test');if(!ok)alert('O navegador não conseguiu enviar a notificação do Windows. A voz ainda pode funcionar normalmente com o Poker Study aberto.')}
   root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
 }
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.3.2 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.3.3 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
