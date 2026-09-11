@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.0.1 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.0.2 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,7 +70,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.0.1 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.0.2 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -413,7 +413,7 @@ function updateTeamCoachPlan(id,patch){const rows=teamCoachPlans(),x=rows.find(p
 function removeTeamCoachPlan(id){saveTeamCoachPlans(teamCoachPlans().filter(x=>x.id!==id))}
 function teamCoachPlanPanel(){
   const plans=teamCoachPlans()
-  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.0.1</small></div></section>`
+  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.0.2</small></div></section>`
   return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Tema, jogadores, Review Pack, duração e reavaliação já vêm definidos.</p></div><span class="pill">${plans.filter(x=>x.status!=='done').length} ativa(s)</span></header><div class="coach-plan-list">${plans.slice(0,8).map(p=>`<article class="${p.status==='done'?'done':''}"><div class="coach-plan-main"><small>${p.status==='done'?'CONCLUÍDA':'PRÓXIMA AULA'}</small><h3>${esc(p.topic)}</h3><p>${esc((p.players||[]).map(x=>x.name).join(' · ')||'Jogadores do recorte')}</p><div class="coach-plan-meta"><span>⏱ ${p.duration||50} min</span><span>🎬 até ${p.maxHands||0} mãos</span><span>📅 reavaliar ${p.recheckAt?new Date(p.recheckAt+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span><span>📍 ${esc(p.source||'Central do Time')}</span></div></div><div class="coach-plan-actions"><button class="btn small" data-coach-plan-start="${esc(p.id)}" ${p.status==='done'?'disabled':''}>▶ Iniciar aula</button><button class="btn small secondary" data-coach-plan-replay="${esc(p.id)}">🎬 Replayer coletivo</button><button class="btn small secondary" data-coach-plan-done="${esc(p.id)}">${p.status==='done'?'✓ Concluída':'✓ Marcar concluída'}</button><button class="btn small ghost" data-coach-plan-delete="${esc(p.id)}">Excluir</button></div></article>`).join('')}</div></section>`
 }
 function bindTeamCoachPlanDelegation(){
@@ -2644,7 +2644,7 @@ async function teamLoadReviewPacks(label){
   return data||[]
 }
 function teamReplayFromPacks(packs,label){
-  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.0.1 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
+  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.0.2 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
   const players=[...new Set(packs.map(p=>p.user_id))],n=Math.max(1,players.length),requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/n)))
   const byPlayer=new Map()
   for(const p of packs){
@@ -2888,7 +2888,40 @@ function bindTeamCenterFilters(allRows){
 }
 function bindTeamActions(rows,allRows){
   const openXray=id=>{const row=rows.find(x=>x.member.user_id===id)||allRows.find(x=>x.member.user_id===id);if(!row||!row.snap)return;document.body.insertAdjacentHTML('beforeend',teamPlayerXray(row));const close=()=>document.getElementById('teamXrayBackdrop')?.remove();document.getElementById('teamXrayClose')?.addEventListener('click',close);document.getElementById('teamXrayBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamXrayBackdrop')close()});document.querySelector('.team-filter-this-player')?.addEventListener('click',e=>{teamCenterFilters.player=e.currentTarget.dataset.player;close();route('teamcenter')});document.getElementById('teamGoOwnStats')?.addEventListener('click',()=>{close();route('hhstats')});document.querySelectorAll('#teamXrayBackdrop .team-open-leak').forEach(b=>b.onclick=()=>{const lab=b.dataset.teamLeak;close();openLeak(lab)})}
-  const openLeak=(label,area=null,playerId=null)=>{document.body.insertAdjacentHTML('beforeend',teamLeakDiagnosis(label,rows,area,playerId));const close=()=>document.getElementById('teamLeakBackdrop')?.remove();document.getElementById('teamLeakClose')?.addEventListener('click',close);document.getElementById('teamLeakBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamLeakBackdrop')close()});document.querySelectorAll('.team-leak-player-xray').forEach(b=>b.onclick=()=>{const id=b.dataset.teamPlayer;close();openXray(id)});document.getElementById('teamLeakGoPlan')?.addEventListener('click',()=>{close();route('plan')});const own=document.getElementById('teamLeakOwnReplay');if(own)own.onclick=()=>{const m=own.dataset.metric,p=own.dataset.pos||'all',t=own.dataset.target||'hits';close();route('hhstats');setTimeout(()=>hhAuditModal(m,p,t,true),250)};const collective=document.getElementById('teamLeakCollectiveReplay');if(collective&&!collective.disabled)collective.onclick=async()=>{collective.disabled=true;const old=collective.textContent;collective.textContent='Carregando pacote…';try{await openTeamCollectiveReplayer(label)}catch(e){console.error(e);alert('Não foi possível abrir o Replayer coletivo: '+(e?.message||String(e)))}finally{collective.disabled=false;collective.textContent=old}}}
+  const openLeak=(label,area=null,playerId=null)=>{
+    document.body.insertAdjacentHTML('beforeend',teamLeakDiagnosis(label,rows,area,playerId))
+    const close=()=>document.getElementById('teamLeakBackdrop')?.remove()
+    const backdrop=document.getElementById('teamLeakBackdrop')
+    document.getElementById('teamLeakClose')?.addEventListener('click',close)
+    backdrop?.addEventListener('click',e=>{if(e.target.id==='teamLeakBackdrop')close()})
+    backdrop?.querySelectorAll('.team-leak-player-xray').forEach(b=>b.onclick=()=>{const id=b.dataset.teamPlayer;close();openXray(id)})
+    backdrop?.querySelectorAll('.team-leak-player-hands').forEach(b=>b.onclick=async ev=>{
+      ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…'
+      try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName)}
+      catch(e){console.error(e);alert('Não foi possível abrir as mãos: '+(e?.message||String(e)))}
+      finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}
+    })
+    document.getElementById('teamLeakGoPlan')?.addEventListener('click',()=>{close();route('plan')})
+    const collective=document.getElementById('teamLeakCollectiveReplay')
+    if(collective&&!collective.disabled)collective.onclick=async()=>{
+      collective.disabled=true;const old=collective.textContent;collective.textContent='Carregando pacote…'
+      try{const ok=await openTeamCollectiveReplayer(label);if(ok)close()}
+      catch(e){console.error(e);alert('Não foi possível abrir o Replayer coletivo: '+(e?.message||String(e)))}
+      finally{if(document.body.contains(collective)){collective.disabled=false;collective.textContent=old}}
+    }
+    const areaReplay=document.getElementById('teamAreaCollectiveReplay')
+    if(areaReplay)areaReplay.onclick=async()=>{
+      areaReplay.disabled=true;const old=areaReplay.textContent;areaReplay.textContent='Montando Review Pack…'
+      try{
+        const ok=await openTeamAreaCollectiveReplayer(areaReplay.dataset.teamArea,rows,areaReplay.dataset.teamAreaUser||null)
+        if(ok)close()
+      }catch(e){
+        console.error(e);alert('Não foi possível montar o Review Pack da área: '+(e?.message||String(e)))
+      }finally{
+        if(document.body.contains(areaReplay)){areaReplay.disabled=false;areaReplay.textContent=old}
+      }
+    }
+  }
   document.querySelectorAll('[data-team-player]').forEach(el=>el.addEventListener('click',ev=>{if(ev.currentTarget.classList.contains('team-action-item'))return;openXray(el.dataset.teamPlayer)}))
   document.querySelectorAll('.team-open-leak').forEach(el=>el.addEventListener('click',ev=>{ev.stopPropagation();openLeak(el.dataset.teamLeak)}))
   document.querySelectorAll('[data-team-area-player]').forEach(el=>el.addEventListener('click',()=>openLeak(null,el.dataset.teamArea,el.dataset.teamAreaPlayer)))
@@ -2896,9 +2929,6 @@ function bindTeamActions(rows,allRows){
   document.querySelectorAll('[data-team-collective]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.teamCollective)openLeak(el.dataset.teamCollective)}))
   document.querySelectorAll('[data-team-lesson-leak]').forEach(el=>el.addEventListener('click',()=>openLeak(el.dataset.teamLessonLeak)))
   document.querySelectorAll('[data-team-lesson-replay]').forEach(el=>el.addEventListener('click',async()=>{el.disabled=true;const old=el.textContent;el.textContent='Carregando…';try{await openTeamCollectiveReplayer(el.dataset.teamLessonReplay)}catch(e){alert('Não foi possível abrir o pacote: '+(e?.message||String(e)))}finally{el.disabled=false;el.textContent=old}}))
-
-  document.querySelectorAll('.team-leak-player-hands').forEach(b=>b.addEventListener('click',async ev=>{ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName)}catch(e){alert('Não foi possível abrir as mãos: '+(e?.message||String(e)))}finally{b.disabled=false;b.textContent=old}}))
-  const areaReplay=document.getElementById('teamAreaCollectiveReplay');if(areaReplay)areaReplay.onclick=async()=>{areaReplay.disabled=true;const old=areaReplay.textContent;areaReplay.textContent='Carregando…';try{await openTeamAreaCollectiveReplayer(areaReplay.dataset.teamArea,rows,areaReplay.dataset.teamAreaUser||null)}catch(e){alert('Não foi possível montar o Review Pack da área: '+(e?.message||String(e)))}finally{areaReplay.disabled=false;areaReplay.textContent=old}}
   document.querySelectorAll('[data-team-focus-replay]').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamCollectiveReplayer(b.dataset.teamFocusReplay)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{b.disabled=false;b.textContent=old}}))
   document.querySelectorAll('[data-coach-action]').forEach(b=>b.addEventListener('click',async()=>{const kind=b.dataset.coachAction;if(kind==='collective'){await openTeamCollectiveReplayer(b.dataset.teamLeak);return}if(kind==='playerLeak'){openLeak(b.dataset.teamLeak);return}}))
 
