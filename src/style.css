@@ -813,3 +813,9 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .replay-identity-banner{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #2f4968;border-radius:9px;background:#0d1929}
 .replay-identity-banner b{font-size:12px;color:#eaf2ff}.replay-identity-banner span{font-size:9px;color:#8fa8c8}
 .hero-seat .player-name,.hero-seat .seat-label{font-weight:900}
+
+
+/* V10.4.2 — collective replayer identity fix */
+.replay-player-line{display:flex;align-items:center;gap:7px;min-height:18px;margin-bottom:3px;color:#8ea7c8;font-size:9px}
+.replay-player-badge{display:inline-flex;align-items:center;border:1px solid #4c5fd0;background:#1b2b65;color:#dfe7ff;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.02em}
+.seat-info.hero b{color:#eaffdf}
