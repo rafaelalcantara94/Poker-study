@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.1.0 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.2.0 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,7 +70,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.1.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.2.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -413,7 +413,7 @@ function updateTeamCoachPlan(id,patch){const rows=teamCoachPlans(),x=rows.find(p
 function removeTeamCoachPlan(id){saveTeamCoachPlans(teamCoachPlans().filter(x=>x.id!==id))}
 function teamCoachPlanPanel(){
   const plans=teamCoachPlans()
-  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.1.0</small></div></section>`
+  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.2.0</small></div></section>`
   return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Tema, jogadores, Review Pack, duração e reavaliação já vêm definidos.</p></div><span class="pill">${plans.filter(x=>x.status!=='done').length} ativa(s)</span></header><div class="coach-plan-list">${plans.slice(0,8).map(p=>`<article class="${p.status==='done'?'done':''}"><div class="coach-plan-main"><small>${p.status==='done'?'CONCLUÍDA':'PRÓXIMA AULA'}</small><h3>${esc(p.topic)}</h3><p>${esc((p.players||[]).map(x=>x.name).join(' · ')||'Jogadores do recorte')}</p><div class="coach-plan-meta"><span>⏱ ${p.duration||50} min</span><span>🎬 até ${p.maxHands||0} mãos</span><span>📅 reavaliar ${p.recheckAt?new Date(p.recheckAt+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span><span>📍 ${esc(p.source||'Central do Time')}</span></div></div><div class="coach-plan-actions"><button class="btn small" data-coach-plan-start="${esc(p.id)}" ${p.status==='done'?'disabled':''}>▶ Iniciar aula</button><button class="btn small secondary" data-coach-plan-replay="${esc(p.id)}">🎬 Replayer coletivo</button><button class="btn small secondary" data-coach-plan-done="${esc(p.id)}">${p.status==='done'?'✓ Concluída':'✓ Marcar concluída'}</button><button class="btn small ghost" data-coach-plan-delete="${esc(p.id)}">Excluir</button></div></article>`).join('')}</div></section>`
 }
 function bindTeamCoachPlanDelegation(){
@@ -2644,7 +2644,7 @@ async function teamLoadReviewPacks(label){
   return data||[]
 }
 function teamReplayFromPacks(packs,label){
-  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.1.0 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
+  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.2.0 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
   const players=[...new Set(packs.map(p=>p.user_id))],n=Math.max(1,players.length),requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/n)))
   const byPlayer=new Map()
   for(const p of packs){
@@ -2876,6 +2876,44 @@ function teamAreaExplainedCard(x,area){
   const cls=!top?'ok':top.score>=1.5?'high':top.score>=.75?'mid':'watch'
   return `<button class="coach-map-cell ${cls}" data-team-area="${esc(area)}" data-team-area-player="${esc(x.member.user_id)}"><span>${!top?'Sem alerta':top.score>=1.5?'Alta':top.score>=.75?'Média':'Atenção'}</span><b>${top?esc(top.label):'—'}</b><small>${top?`${teamNum(top.value)}% vs ${esc(top.range)} · ${(+top.den||0).toLocaleString('pt-BR')} opp`:'Nenhum sinal fora da referência'}</small><em>${leaks.length?`${leaks.length} métrica${leaks.length===1?'':'s'}`:'limpo'}</em></button>`
 }
+
+function teamTrendModel(x){
+  const s=x?.snap;if(!s)return null
+  const views=s.stats?.views||{},now=views['30d']||views['30d|all']||null,base=views['90d']||views['90d|all']||views.all||null
+  if(!now||!base||!(+now.hands))return null
+  const nLeaks=now.leaks||[],bLeaks=base.leaks||[]
+  const severity=a=>(a||[]).reduce((n,l)=>n+(+l.score||0),0)
+  const current=severity(nLeaks),reference=severity(bLeaks)
+  const leakDelta=current-reference
+  const wrNow=+now.bb100||0,wrBase=+base.bb100||0
+  return {now,base,leakDelta,wrDelta:wrNow-wrBase,wrNow,wrBase,current,reference}
+}
+function teamTrendArrow(v,invert=false){
+  const good=invert?v<-.05:v>.05,bad=invert?v>.05:v<-.05
+  return {cls:good?'good':bad?'bad':'flat',icon:good?'↗':bad?'↘':'→'}
+}
+function teamTrendPanel(ready){
+  const rows=ready.map(x=>({x,t:teamTrendModel(x)})).filter(z=>z.t)
+  if(!rows.length)return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA</small><h2>O time está melhorando?</h2><p>Precisamos de amostra recente para comparar os últimos 30 dias com a base de 90 dias.</p></div></header><div class="notice">Ainda não há recorte temporal suficiente para uma leitura confiável.</div></section>`
+  const avgWr=rows.reduce((n,z)=>n+z.t.wrDelta,0)/rows.length
+  const avgLeak=rows.reduce((n,z)=>n+z.t.leakDelta,0)/rows.length
+  const wrA=teamTrendArrow(avgWr),leakA=teamTrendArrow(avgLeak,true)
+  return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA · 30D VS 90D</small><h2>O time está melhorando?</h2><p>Não é mais uma lista de stats: mostra direção. Verde = evolução; vermelho = atenção.</p></div><span class="pill">${rows.length} jogador${rows.length===1?'':'es'}</span></header>
+    <div class="trend-summary"><article class="${wrA.cls}"><small>WINRATE</small><b>${wrA.icon} ${avgWr>=0?'+':''}${teamNum(avgWr)} bb/100</b><span>mudança média do grupo</span></article><article class="${leakA.cls}"><small>CARGA DE DESVIOS</small><b>${leakA.icon} ${avgLeak>=0?'+':''}${teamNum(avgLeak)}</b><span>variação da pressão dos leaks</span></article></div>
+    <div class="trend-player-list">${rows.map(({x,t})=>{const wa=teamTrendArrow(t.wrDelta),la=teamTrendArrow(t.leakDelta,true);return `<button data-team-player="${esc(x.member.user_id)}"><div><b>${esc(x.member.display_name||x.member.email)}</b><small>${(+t.now.hands||0).toLocaleString('pt-BR')} mãos nos últimos 30d</small></div><span class="${wa.cls}">${wa.icon} ${t.wrDelta>=0?'+':''}${teamNum(t.wrDelta)} bb/100</span><span class="${la.cls}">${la.icon} ${Math.abs(t.leakDelta)<.05?'estável':t.leakDelta<0?'menos desvios':'mais desvios'}</span></button>`}).join('')}</div>
+  </section>`
+}
+function teamFocusTrendPanel(ready,data){
+  const focus=data.topCollective?.label||data.all[0]?.label
+  if(!focus)return ''
+  const pts=ready.map(x=>{
+    const views=x.snap?.stats?.views||{},v30=views['30d']||views['30d|all'],v90=views['90d']||views['90d|all']||views.all
+    const find=(v)=>(v?.leaks||[]).find(l=>l.label===focus)
+    return {x,a:find(v30),b:find(v90)}
+  }).filter(z=>z.a||z.b)
+  if(!pts.length)return ''
+  return `<section class="panel coach-focus-trend"><header><div><small>EVOLUÇÃO DO FOCO #1</small><h2>${esc(focus)}</h2><p>Como o principal tema de hoje se comporta no recorte recente em relação à base.</p></div></header><div class="focus-trend-bars">${pts.map(({x,a,b})=>{const av=+a?.score||0,bv=+b?.score||0,max=Math.max(1,av,bv),delta=av-bv,ta=teamTrendArrow(delta,true);return `<button data-team-player="${esc(x.member.user_id)}"><b>${esc(x.member.display_name||x.member.email)}</b><div class="focus-bars"><i><em style="width:${Math.min(100,bv/max*100)}%"></em></i><i class="recent"><em style="width:${Math.min(100,av/max*100)}%"></em></i></div><span class="${ta.cls}">${ta.icon} ${delta<-.05?'melhorando':delta>.05?'piorando':'estável'}</span><small>90d → 30d</small></button>`}).join('')}</div></section>`
+}
 function teamCoachCommandCenter(rows,allRows=rows){
   const ready=rows.filter(x=>x.snap),data=teamCommandData(ready),plan=teamMorningPlan(ready,data),total=ready.reduce((n,x)=>n+(+x.snap.hands||0),0),critical=data.all.filter(x=>x.score>=1.5).length
   const current=(allRows||[]).find(x=>x.member.user_id===user?.id),name=current?.member?.display_name||'Gestor'
@@ -2883,7 +2921,7 @@ function teamCoachCommandCenter(rows,allRows=rows){
   const focusPlayers=data.topCollective?[...data.topCollective.players]:focus?[focus.player]:[]
   const maxArea=Math.max(1,...data.areas.map(x=>x.count))
   return `<div class="coach-command">
-    <div class="coach-command-head"><div><span class="team-kicker">V11.1 · DAILY COACH</span><h1>Bom dia, ${esc(name)}.</h1><p>Seu time precisa de atenção em <b>${Math.min(critical||data.all.length,4)}</b> ponto${Math.min(critical||data.all.length,4)===1?'':'s'} prioritário${Math.min(critical||data.all.length,4)===1?'':'s'} hoje. A Central já organizou o que fazer primeiro.</p></div><div class="coach-health"><small>RECORTE ATUAL</small><strong>${ready.length} jogadores · ${total.toLocaleString('pt-BR')} mãos</strong><span>${critical} alertas altos</span></div></div>
+    <div class="coach-command-head"><div><span class="team-kicker">V11.2 · COACH TRENDS</span><h1>Bom dia, ${esc(name)}.</h1><p>Seu time precisa de atenção em <b>${Math.min(critical||data.all.length,4)}</b> ponto${Math.min(critical||data.all.length,4)===1?'':'s'} prioritário${Math.min(critical||data.all.length,4)===1?'':'s'} hoje. A Central já organizou o que fazer primeiro.</p></div><div class="coach-health"><small>RECORTE ATUAL</small><strong>${ready.length} jogadores · ${total.toLocaleString('pt-BR')} mãos</strong><span>${critical} alertas altos</span></div></div>
     ${teamFilterBar(allRows)}
     <section class="coach-focus-card"><div class="coach-focus-copy"><small>FOCO #1 DO TIME</small><h2>${focus?esc(data.topCollective?.label||focus.label):'Nenhuma prioridade crítica agora'}</h2><p>${focus?`${focusPlayers.map(esc).join(' + ')} · ${teamPriorityReason(focus)}`:'Continue acumulando amostra e acompanhando o time.'}</p><div class="coach-focus-why"><b>Por que isso vem primeiro?</b><span>${data.topCollective?`O mesmo tema aparece em ${data.topCollective.players.size} jogadores, combinando recorrência coletiva, severidade e amostra.`:focus?`É o desvio com maior prioridade no recorte atual.`:'Sem intervenção necessária.'}</span></div></div><div class="coach-focus-actions">${focus?`<button class="btn team-open-leak" data-team-leak="${esc(data.topCollective?.label||focus.label)}">🔎 Entender o problema</button>${data.topCollective?`<button class="btn secondary team-focus-replay" data-team-focus-replay="${esc(data.topCollective.label)}">🎬 Revisar mãos</button>`:''}<button class="btn secondary" data-team-create-plan="${esc(data.topCollective?.label||focus.label)}">🎓 Criar aula</button>`:''}</div></section>
     <div class="coach-command-grid">
@@ -2894,7 +2932,7 @@ function teamCoachCommandCenter(rows,allRows=rows){
     </div>
     <section class="panel coach-priorities"><header><div><small>PRIORIZAÇÃO</small><h2>Prioridades do time</h2><p>Coletivo vira aula; individual vira revisão 1:1. Sem duplicar a mesma informação em dois blocos.</p></div></header><div class="coach-priority-columns"><div><h3>👥 Coletivas</h3>${data.collective.slice(0,5).map((g,i)=>{const top=g.items.sort((a,b)=>b.score-a.score)[0];return `<button class="team-open-leak" data-team-leak="${esc(g.label)}"><span>${i+1}</span><div><b>${esc(g.label)}</b><small>${[...g.players].map(esc).join(' · ')} · ${g.items.reduce((n,x)=>n+(+x.den||0),0).toLocaleString('pt-BR')} opp</small></div><em>Aula →</em></button>`}).join('')||'<p class="muted">Nenhum problema coletivo neste recorte.</p>'}</div><div><h3>👤 Individuais</h3>${data.perPlayer.filter(x=>x.top).slice(0,5).map((x,i)=>`<button class="team-open-leak" data-team-leak="${esc(x.top.label)}"><span>${i+1}</span><div><b>${esc(x.row.member.display_name||x.row.member.email)} · ${esc(x.top.label)}</b><small>${teamPriorityReason(x.top)}</small></div><em>Revisar →</em></button>`).join('')||'<p class="muted">Nenhuma prioridade individual.</p>'}</div></div></section>
     <section class="panel coach-map"><header><div><small>MAPA TÉCNICO EXPLICADO</small><h2>Onde cada jogador está pedindo atenção?</h2><p>A célula não mostra só “Média”: mostra o principal problema, referência, amostra e quantas métricas daquela família estão fora do esperado.</p></div></header><div class="coach-map-table"><div class="coach-map-head"><span>Jogador</span>${['Pré-flop','3Bet / 4Bet','Blinds','CBet / Pós-flop','Outros'].map(a=>`<b>${esc(a)}</b>`).join('')}</div>${ready.map(x=>`<div class="coach-map-row"><button class="coach-map-player" data-team-player="${esc(x.member.user_id)}">${esc(x.member.display_name||x.member.email)}</button>${['Pré-flop','3Bet / 4Bet','Blinds','CBet / Pós-flop','Outros'].map(a=>teamAreaExplainedCard(x,a)).join('')}</div>`).join('')}</div></section>
-    <div class="coach-command-grid coach-bottom-grid execution-only"><section class="panel coach-secondary coach-secondary-full"><header><div><small>VISÃO SECUNDÁRIA</small><h2>Contexto de desempenho</h2><p>Consulta rápida. A agenda acima continua sendo a fonte de decisão do gestor.</p></div></header><div class="coach-mini-table">${ready.map(x=>{const z=x.snap.stats||{};return `<button data-team-player="${esc(x.member.user_id)}"><b>${esc(x.member.display_name||x.member.email)}</b><span>${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos</span><span class="${+z.bb100>=0?'good-text':'bad-text'}">${+z.bb100>=0?'+':''}${teamNum(z.bb100)} bb/100</span><span>VPIP ${teamNum(z.vpip)} · PFR ${teamNum(z.pfr)} · 3B ${teamNum(z.threeBet)}</span></button>`}).join('')}</div></section>
+    ${teamTrendPanel(ready)}${teamFocusTrendPanel(ready,data)}<div class="coach-command-grid coach-bottom-grid execution-only"><section class="panel coach-secondary coach-secondary-full"><header><div><small>VISÃO SECUNDÁRIA</small><h2>Contexto de desempenho</h2><p>Consulta rápida. A agenda acima continua sendo a fonte de decisão do gestor.</p></div></header><div class="coach-mini-table">${ready.map(x=>{const z=x.snap.stats||{};return `<button data-team-player="${esc(x.member.user_id)}"><b>${esc(x.member.display_name||x.member.email)}</b><span>${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos</span><span class="${+z.bb100>=0?'good-text':'bad-text'}">${+z.bb100>=0?'+':''}${teamNum(z.bb100)} bb/100</span><span>VPIP ${teamNum(z.vpip)} · PFR ${teamNum(z.pfr)} · 3B ${teamNum(z.threeBet)}</span></button>`}).join('')}</div></section>
     </div>
   </div>`
 }
