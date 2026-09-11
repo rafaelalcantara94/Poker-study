@@ -1,3 +1,23 @@
+## V10.1.21 — Financial Clean Start
+
+Esta versão mantém todas as correções validadas da V10.1.20 e adiciona o script de reset financeiro final para começar a operação real com base limpa.
+
+### Reset financeiro
+
+Execute no Supabase SQL Editor o arquivo `reset_finance_clean_start_v10_1_21.sql`.
+
+O reset apaga somente os dados operacionais/financeiros de teste:
+
+- fechamentos de caixa e itens de fechamento;
+- pedidos e itens de reload;
+- livro financeiro;
+- lançamentos de Make Up;
+- saldo de Make Up congelado.
+
+Ele preserva usuários, equipes, membros e as configurações do perfil financeiro, como split, percentual de Banco e limite mensal. O regime é devolvido para `Normal`, o Make Up congelado fica em zero e, como o razão é zerado, Make Up ativo e Banco acumulado também voltam a zero.
+
+> **Importante:** o script é destrutivo para o módulo financeiro e deve ser executado apenas quando você decidir encerrar os testes e iniciar a base real.
+
 ## V10.1.20 — Regime congelado e saldo atual
 
 - Corrige a prévia de saque para respeitar o **Regime Make Up congelado** sempre que o perfil estiver configurado como congelado.
