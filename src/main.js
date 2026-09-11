@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.0.0 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.0.1 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,7 +70,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.0.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.0.1 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -413,7 +413,7 @@ function updateTeamCoachPlan(id,patch){const rows=teamCoachPlans(),x=rows.find(p
 function removeTeamCoachPlan(id){saveTeamCoachPlans(teamCoachPlans().filter(x=>x.id!==id))}
 function teamCoachPlanPanel(){
   const plans=teamCoachPlans()
-  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.0.0</small></div></section>`
+  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.0.1</small></div></section>`
   return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Tema, jogadores, Review Pack, duração e reavaliação já vêm definidos.</p></div><span class="pill">${plans.filter(x=>x.status!=='done').length} ativa(s)</span></header><div class="coach-plan-list">${plans.slice(0,8).map(p=>`<article class="${p.status==='done'?'done':''}"><div class="coach-plan-main"><small>${p.status==='done'?'CONCLUÍDA':'PRÓXIMA AULA'}</small><h3>${esc(p.topic)}</h3><p>${esc((p.players||[]).map(x=>x.name).join(' · ')||'Jogadores do recorte')}</p><div class="coach-plan-meta"><span>⏱ ${p.duration||50} min</span><span>🎬 até ${p.maxHands||0} mãos</span><span>📅 reavaliar ${p.recheckAt?new Date(p.recheckAt+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span><span>📍 ${esc(p.source||'Central do Time')}</span></div></div><div class="coach-plan-actions"><button class="btn small" data-coach-plan-start="${esc(p.id)}" ${p.status==='done'?'disabled':''}>▶ Iniciar aula</button><button class="btn small secondary" data-coach-plan-replay="${esc(p.id)}">🎬 Replayer coletivo</button><button class="btn small secondary" data-coach-plan-done="${esc(p.id)}">${p.status==='done'?'✓ Concluída':'✓ Marcar concluída'}</button><button class="btn small ghost" data-coach-plan-delete="${esc(p.id)}">Excluir</button></div></article>`).join('')}</div></section>`
 }
 function bindTeamCoachPlanDelegation(){
@@ -2556,7 +2556,7 @@ function teamLeakKey(l){
 }
 function teamReviewRowsForLeak(facts,leak){
   let rows=(facts||[]).filter(x=>x.game==='holdem')
-  const pos=String(leak?.pos||'all');if(pos!=='all')rows=rows.filter(x=>x.position===pos)
+  const pos=String(leak?.pos||'all');if(pos!=='all')rows=rows.filter(x=>v76PositionGroup(String(x.position||''))===pos)
   const metric=String(leak?.metric||''),target=String(leak?.reviewTarget||'hits')
   let opp=()=>true,hit=()=>false
   const bool=(oppKey,hitKey)=>{opp=x=>!!x[oppKey];hit=x=>!!x[hitKey]}
@@ -2608,20 +2608,20 @@ async function publishTeamReviewPacks(teamId,facts,leaks){
     packs.push({leak,ids})
   }
   const allHands=await hhHandsByIds([...allIds]),byId=new Map(allHands.map(h=>[h.handId,h]))
-  let ok=0,totalHands=0
+  let ok=0,totalHands=0,empty=0,failed=0
   for(const p of packs){
     const meName=(db.members||[]).find(m=>m.user_id===user?.id)?.display_name||user?.email||''
     const hands=p.ids.map(id=>teamCompactReplayHand(byId.get(id),meName)).filter(Boolean)
-    if(!hands.length)continue
+    if(!hands.length){empty++;console.warn('Review pack vazio',p.leak.label,p.leak.pos,p.leak.metric);continue}
     const {error}=await supabase.rpc('publish_team_review_pack',{
       p_team:teamId,p_leak_key:teamLeakKey(p.leak),p_label:p.leak.label||'Leak',
       p_metric:p.leak.metric||'',p_position:p.leak.pos||'all',p_review_target:p.leak.reviewTarget||'hits',
       p_hands:hands
     })
-    if(error){console.warn('Review pack sync failed',p.leak.label,error);continue}
+    if(error){failed++;console.warn('Review pack sync failed',p.leak.label,error);continue}
     ok++;totalHands+=hands.length
   }
-  return {packs:ok,hands:totalHands}
+  return {packs:ok,hands:totalHands,requested:packs.length,empty,failed}
 }
 function replayPlayerIdentity(h){
   if(!h)return {name:'Hero',site:'',nick:''}
@@ -2644,7 +2644,7 @@ async function teamLoadReviewPacks(label){
   return data||[]
 }
 function teamReplayFromPacks(packs,label){
-  if(!packs?.length){alert('Nenhum pacote de revisão sincronizado para este recorte. Abra o Stats HH dos jogadores nesta versão para sincronizar os Review Packs.');return false}
+  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.0.1 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
   const players=[...new Set(packs.map(p=>p.user_id))],n=Math.max(1,players.length),requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/n)))
   const byPlayer=new Map()
   for(const p of packs){
@@ -2699,7 +2699,7 @@ async function publishTeamSnapshot(facts){
     let review={packs:0,hands:0}
     try{review=await publishTeamReviewPacks(teamId,facts,payload.leaks)}catch(packErr){console.warn('Review packs sync failed',packErr)}
     const when=data?new Date(data).toLocaleString('pt-BR'):'agora'
-    setTeamSnapshotStatus('good','✓ Snapshot + revisão sincronizados · '+payload.hands.toLocaleString('pt-BR')+' mãos · '+review.packs+' pacotes · '+when)
+    setTeamSnapshotStatus(review.failed?'bad':'good','✓ Snapshot + revisão sincronizados · '+payload.hands.toLocaleString('pt-BR')+' mãos · '+review.packs+'/'+(review.requested||review.packs)+' pacotes'+(review.empty?` · ${review.empty} sem mãos`:``)+(review.failed?` · ${review.failed} falharam`:``)+' · '+when)
     return {ok:true,payload,updatedAt:data,review}
   }catch(e){
     console.error('Team snapshot sync failed',e)
