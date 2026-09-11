@@ -493,7 +493,7 @@ async function hhStatsSnapshot(){
   try{const d=await replayDb();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readonly'),r=tx.objectStore(HH_SNAPSHOT_STORE).get(HH_SNAPSHOT_KEY);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});hhPersistedSnapshot=rec;return rec}catch(e){console.warn('HH snapshot read failed',e);return null}
 }
 async function saveHhStatsSnapshot(facts,html=''){
-  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:1};hhPersistedSnapshot=rec
+  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:2};hhPersistedSnapshot=rec
   try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot write failed',e)}
 }
 async function clearHhStatsSnapshot(){hhPersistedSnapshot=null;try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot clear failed',e)}}
@@ -813,7 +813,7 @@ function heroHandFacts(h){
   const openerIndex=threeBetOpener?pf.beforeHero.indexOf(threeBetOpener):-1
   const threeBetCallerCount=openerIndex>=0?pf.beforeHero.slice(openerIndex+1).filter(x=>x.type==='call').length:0
   return {
-    handId:h.handId,date:h.dateTime.slice(0,10).replace(/\//g,'-'),time:h.dateTime,game:detectGameType(h),
+    handId:h.handId,tournamentId:h.tournamentId||'',date:h.dateTime.slice(0,10).replace(/\//g,'-'),time:h.dateTime,game:detectGameType(h),
     position:pos,preflopState:pf.state,stack,players:h.seats.length,heroCards:(h.heroCards||[]).slice(0,2),board:h.board||[],bb:h.bb||0,
     threeBetOpenerPos,threeBetEffectiveBb,threeBetOpenBb,threeBetCallerCount,threeBetOutcome,fourBetOutcome,
     vpip,pfr,rfiOpp,rfi,limpOpp,limp,threeBetOpp,threeBet,squeezeOpp,squeeze,
@@ -1982,7 +1982,7 @@ function bindHhAudit(){
 async function refreshHhStats(){
   const t0=performance.now();let cached=0,recomputed=0,usedSnapshot=false
   const snap=await hhStatsSnapshot()
-  if(snap&&Array.isArray(snap.facts)&&snap.facts.length){
+  if(snap&&snap.schema===2&&Array.isArray(snap.facts)&&snap.facts.length){
     hhStatsCache=snap.facts;cached=hhStatsCache.length;usedSnapshot=true
     const t1=performance.now();bindHhStatsFilters();const t2=performance.now()
     hhPerfLast={storage:t1-t0,facts:0,render:t2-t1,total:t2-t0,cached,recomputed}
@@ -1990,12 +1990,12 @@ async function refreshHhStats(){
     const imports=await hhStatsImports(),t1=performance.now(),byId=new Map()
     for(const r of imports){
       const cacheKey=r.id+'|'+(r.importedAt||'')+'|'+((r.hands||[]).length)
-      let facts=Array.isArray(r.facts)&&r.facts.length?r.facts:hhFactsSessionCache.get(cacheKey)
+      let facts=(r.perfSchema===2&&Array.isArray(r.facts)&&r.facts.length)?r.facts:hhFactsSessionCache.get(cacheKey)
       if(facts){cached+=facts.length}else{
         facts=[]
         for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
         recomputed+=facts.length;hhFactsSessionCache.set(cacheKey,facts)
-        try{await saveHhStatsImport({...r,facts,perfSchema:1},false)}catch(e){console.warn('HH facts cache persist failed',e)}
+        try{await saveHhStatsImport({...r,facts,perfSchema:2},false)}catch(e){console.warn('HH facts cache persist failed',e)}
       }
       for(const f of facts)if(f?.handId)byId.set(f.handId,f)
       if(recomputed&&recomputed%5000<50)await new Promise(r=>setTimeout(r,0))
@@ -2472,10 +2472,46 @@ async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEn
 
 // --- V10.2.0 Team Intelligence ------------------------------------------------
 let teamIntelRows=[]
-function teamSnapshotPayload(facts){
+function teamAbiBucket(v){
+  v=+v||0
+  if(v<=0)return 'unknown'
+  if(v<=10)return '0-10'
+  if(v<=25)return '10-25'
+  if(v<=50)return '25-50'
+  if(v<=100)return '50-100'
+  return '100+'
+}
+function teamTechSnapshot(facts){
   const holdem=(facts||[]).filter(x=>x.game==='holdem'),s=aggregateHhStats(holdem),entries=v78LeakEntries(holdem)
   const leaks=entries.filter(x=>['tight','aggro'].includes(x.state)).sort((a,b)=>b.score-a.score).slice(0,20).map(x=>({label:x.statLabel,group:x.group,value:x.value,den:x.den,range:v75RangeText(x.bench),state:x.state,score:x.score,pos:x.pos}))
   return {hands:s.hands,vpip:s.vpip,pfr:s.pfr,threeBet:s.threeBet,wwsf:s.wwsf,bb100:s.bb100,redline:v76Redline100(holdem),eligible:entries.length,high:leaks.filter(x=>x.score>=1.5).length,leaks}
+}
+function teamPeriodFacts(facts,key){
+  const holdem=(facts||[]).filter(x=>x.game==='holdem')
+  if(key==='all'||!holdem.length)return holdem
+  const dates=holdem.map(x=>String(x.date||'')).filter(Boolean).sort(),anchor=dates.at(-1)
+  if(!anchor)return holdem
+  const end=new Date(anchor+'T12:00:00'),days=key==='30d'?30:key==='90d'?90:key==='180d'?180:key==='365d'?365:null
+  if(!days)return holdem
+  const cut=new Date(end);cut.setDate(cut.getDate()-days+1);const iso=cut.toISOString().slice(0,10)
+  return holdem.filter(x=>String(x.date||'')>=iso&&String(x.date||'')<=anchor)
+}
+function teamSnapshotPayload(facts){
+  const base=teamTechSnapshot(facts)
+  const tourMap=new Map((db.tournaments||[]).map(t=>[String(t.external_id||''),((+t.buyin||0)/Math.max(1,1+(+t.reentries||0)))]).filter(x=>x[0]))
+  const enriched=(facts||[]).map(f=>({...f,_teamAbi:tourMap.get(String(f.tournamentId||''))||0}))
+  const matched=enriched.filter(x=>x._teamAbi>0).length
+  const periods=['all','30d','90d','180d','365d'],abis=['all','0-10','10-25','25-50','50-100','100+'],views={}
+  for(const period of periods){
+    const pf=teamPeriodFacts(enriched,period)
+    for(const abi of abis){
+      const ff=abi==='all'?pf:pf.filter(x=>teamAbiBucket(x._teamAbi)===abi)
+      if(abi!=='all'&&!ff.length)continue
+      views[period+'|'+abi]=teamTechSnapshot(ff)
+    }
+  }
+  const dates=enriched.map(x=>String(x.date||'')).filter(Boolean).sort()
+  return {...base,leaks:base.leaks,views,periodsAvailable:periods,abiBucketsAvailable:abis.filter(a=>a==='all'||Object.keys(views).some(k=>k.endsWith('|'+a))),abiCoverage:{matched,total:enriched.length,pct:enriched.length?matched/enriched.length*100:0},dateRange:{min:dates[0]||null,max:dates.at(-1)||null}}
 }
 function setTeamSnapshotStatus(kind,msg){
   const el=document.getElementById('hhTeamSyncStatus');if(!el)return
@@ -2511,27 +2547,54 @@ async function loadTeamIntel(){
     return {manager:true,rows:teamIntelRows}
   }catch(e){console.error('Team intelligence load failed',e);return {manager:true,rows:[],error:e}}
 }
+let teamCenterFilters={player:'all',period:'all',abi:'all'}
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando diagnóstico técnico da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
-function teamcenterHtml(rows){
+function teamViewSnap(snap,period='all',abi='all'){
+  if(!snap)return null
+  const views=snap.stats?.views||{},view=views[period+'|'+abi]||views[period+'|all']||views['all|all']
+  if(!view)return snap
+  return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,abiCoverage:snap.stats?.abiCoverage,dateRange:snap.stats?.dateRange,abiBucketsAvailable:snap.stats?.abiBucketsAvailable},leaks:view.leaks||[]}
+}
+function teamFilteredRows(rows){
+  return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period,teamCenterFilters.abi)}))
+}
+function teamFilterBar(rows){
+  const ready=rows.filter(x=>x.snap),abiOpts=new Set(['all'])
+  ready.forEach(x=>(x.snap.stats?.abiBucketsAvailable||[]).forEach(a=>abiOpts.add(a)))
+  const abiLabels={'all':'Todos os ABIs','0-10':'$0–10','10-25':'$10–25','25-50':'$25–50','50-100':'$50–100','100+':'$100+'}
+  const periodLabels={'all':'Base completa','30d':'Últimos 30 dias','90d':'Últimos 90 dias','180d':'Últimos 6 meses','365d':'Últimos 12 meses'}
+  const cover=ready.reduce((a,x)=>a+(+x.snap.stats?.abiCoverage?.matched||0),0),coverTotal=ready.reduce((a,x)=>a+(+x.snap.stats?.abiCoverage?.total||0),0),pct=coverTotal?cover/coverTotal*100:0
+  return `<section class="team-filterbar"><div><small>JOGADOR</small><select id="teamFilterPlayer"><option value="all">Todos os jogadores</option>${rows.map(x=>`<option value="${esc(x.member.user_id)}" ${teamCenterFilters.player===x.member.user_id?'selected':''}>${esc(x.member.display_name||x.member.email)}</option>`).join('')}</select></div><div><small>PERÍODO</small><select id="teamFilterPeriod">${Object.entries(periodLabels).map(([k,v])=>`<option value="${k}" ${teamCenterFilters.period===k?'selected':''}>${v}</option>`).join('')}</select></div><div><small>ABI</small><select id="teamFilterAbi">${[...abiOpts].map(k=>`<option value="${k}" ${teamCenterFilters.abi===k?'selected':''}>${abiLabels[k]||k}</option>`).join('')}</select></div><button class="btn secondary small" id="teamClearFilters">Limpar filtros</button><span class="team-filter-meta">${coverTotal?`Cobertura ABI: ${pct.toFixed(0)}% das mãos vinculadas ao SharkScope`:'ABI disponível após vincular HHs aos torneios importados'}</span></section>`
+}
+function teamcenterHtml(rows,allRows=rows){
   const ready=rows.filter(x=>x.snap),total=ready.reduce((n,x)=>n+(+x.snap.hands||0),0)
   const allLeaks=ready.flatMap(x=>(x.snap.leaks||[]).map(l=>({...l,player:x.member.display_name||x.member.email}))).sort((a,b)=>b.score-a.score)
   const highLeaks=allLeaks.filter(x=>x.score>=1.5),mediumLeaks=allLeaks.filter(x=>x.score>=.75&&x.score<1.5),critical=highLeaks.length
   const avg=ready.length?ready.reduce((n,x)=>n+(+x.snap.stats?.bb100||0),0)/ready.length:0
   const ranking=[...ready].sort((a,b)=>(+b.snap.stats?.bb100||0)-(+a.snap.stats?.bb100||0))
-  const latest=ready.map(x=>x.snap.updated_at).filter(Boolean).sort().at(-1),latestText=latest?new Date(latest).toLocaleString('pt-BR'):'—'
+  const latest=allRows.filter(x=>x.snap).map(x=>x.snap.updated_at).filter(Boolean).sort().at(-1),latestText=latest?new Date(latest).toLocaleString('pt-BR'):'—'
   const highByPlayer=ready.map(x=>({name:x.member.display_name||x.member.email,n:(x.snap.leaks||[]).filter(l=>l.score>=1.5).length})).sort((a,b)=>b.n-a.n),topPlayer=highByPlayer[0]
   const grouped={};allLeaks.forEach(l=>{const k=l.label||'Leak';if(!grouped[k])grouped[k]=new Set();grouped[k].add(l.player)})
   const collective=Object.entries(grouped).filter(([,s])=>s.size>1).sort((a,b)=>b[1].size-a[1].size),threeBetCount=allLeaks.filter(l=>/3bet/i.test(l.label||'')).length
-  return `<section class="team-hero"><div class="team-hero-copy"><span class="team-kicker">V10.2.2 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p></div><div class="team-hero-side"><small>ÚLTIMA ATUALIZAÇÃO</small><b>${esc(latestText)}</b><span>${ready.length}/${rows.length} jogadores sincronizados</span></div></section>
-  <div class="team-kpis team-kpis-v2"><div><span class="team-kpi-icon">👥</span><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong><em>${rows.length?Math.round(ready.length/rows.length*100):0}% do time</em></div><div><span class="team-kpi-icon">▤</span><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong><em>${ready.map(x=>`${esc(x.member.display_name||x.member.email)} ${(+x.snap.hands||0).toLocaleString('pt-BR')}`).join(' · ')}</em></div><div><span class="team-kpi-icon good-text">↗</span><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong><em>Média simples dos snapshots</em></div><div><span class="team-kpi-icon bad-text">!</span><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong><em>${highByPlayer.map(x=>`${x.n} ${esc(x.name)}`).join(' · ')}</em></div></div>
-  <div class="team-grid team-grid-v2"><section class="panel team-ranking-card"><header class="team-section-head"><div><span class="team-section-icon">♟</span><h2>Desempenho dos jogadores</h2><p class="muted">Visão técnica dos snapshots mais recentes.</p></div><span class="pill">${ready.length} ativos</span></header>${ranking.length?`<div class="team-table"><div class="team-tr team-th"><span>Jogador</span><span>Mãos</span><span>bb/100</span><span>VPIP</span><span>PFR</span><span>3Bet</span><span>WWSF</span><span>Alertas</span></div>${ranking.map((x,i)=>{const z=x.snap.stats||{};return `<div class="team-tr"><span class="team-player"><i>${esc((x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase())}</i><b>${i+1}. ${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')}</small></span><span>${(+x.snap.hands||0).toLocaleString('pt-BR')}</span><span class="${z.bb100>=0?'good-text':'bad-text'}"><b>${z.bb100>=0?'+':''}${teamNum(z.bb100)}</b></span><span>${teamNum(z.vpip)}%</span><span>${teamNum(z.pfr)}%</span><span>${teamNum(z.threeBet)}%</span><span>${teamNum(z.wwsf)}%</span><span><b class="team-alert-count">${z.high||0}</b></span></div>`}).join('')}</div>`:'<p class="muted">Nenhum jogador publicou Stats HH ainda.</p>'}</section>
+  const scopeText=[teamCenterFilters.player==='all'?'Time inteiro':(allRows.find(x=>x.member.user_id===teamCenterFilters.player)?.member.display_name||'Jogador'),({all:'Base completa','30d':'30 dias','90d':'90 dias','180d':'6 meses','365d':'12 meses'})[teamCenterFilters.period],({'all':'Todos ABIs','0-10':'ABI $0–10','10-25':'ABI $10–25','25-50':'ABI $25–50','50-100':'ABI $50–100','100+':'ABI $100+'})[teamCenterFilters.abi]].join(' · ')
+  return `${teamFilterBar(allRows)}<section class="team-hero"><div class="team-hero-copy"><span class="team-kicker">V10.2.3 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p><span class="team-scope">${esc(scopeText)}</span></div><div class="team-hero-side"><small>ÚLTIMA ATUALIZAÇÃO</small><b>${esc(latestText)}</b><span>${ready.length}/${rows.length} jogadores no recorte</span></div></section>
+  <div class="team-kpis team-kpis-v2"><div><span class="team-kpi-icon">👥</span><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong><em>${rows.length?Math.round(ready.length/rows.length*100):0}% do recorte</em></div><div><span class="team-kpi-icon">▤</span><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong><em>${ready.map(x=>`${esc(x.member.display_name||x.member.email)} ${(+x.snap.hands||0).toLocaleString('pt-BR')}`).join(' · ')||'Sem mãos neste filtro'}</em></div><div><span class="team-kpi-icon good-text">↗</span><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong><em>Média simples dos jogadores do recorte</em></div><div><span class="team-kpi-icon bad-text">!</span><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong><em>${highByPlayer.map(x=>`${x.n} ${esc(x.name)}`).join(' · ')||'Nenhum alerta'}</em></div></div>
+  <div class="team-grid team-grid-v2"><section class="panel team-ranking-card"><header class="team-section-head"><div><span class="team-section-icon">♟</span><h2>Desempenho dos jogadores</h2><p class="muted">Visão técnica do recorte selecionado.</p></div><span class="pill">${ready.length} ativos</span></header>${ranking.length?`<div class="team-table"><div class="team-tr team-th"><span>Jogador</span><span>Mãos</span><span>bb/100</span><span>VPIP</span><span>PFR</span><span>3Bet</span><span>WWSF</span><span>Alertas</span></div>${ranking.map((x,i)=>{const z=x.snap.stats||{};return `<div class="team-tr"><span class="team-player"><i>${esc((x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase())}</i><b>${i+1}. ${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')}</small></span><span>${(+x.snap.hands||0).toLocaleString('pt-BR')}</span><span class="${z.bb100>=0?'good-text':'bad-text'}"><b>${z.bb100>=0?'+':''}${teamNum(z.bb100)}</b></span><span>${teamNum(z.vpip)}%</span><span>${teamNum(z.pfr)}%</span><span>${teamNum(z.threeBet)}%</span><span>${teamNum(z.wwsf)}%</span><span><b class="team-alert-count">${z.high||0}</b></span></div>`}).join('')}</div>`:'<div class="notice">Nenhum dado encontrado para este conjunto de filtros.</div>'}</section>
   <section class="panel team-alert-card"><header class="team-section-head"><div><span class="team-section-icon">◉</span><h2>Distribuição dos alertas</h2><p class="muted">Leitura rápida da gravidade atual.</p></div></header><div class="team-alert-ring" style="--high:${allLeaks.length?critical/allLeaks.length*100:0}"><div><strong>${allLeaks.length}</strong><span>alertas</span></div></div><div class="team-alert-legend"><div><i class="high"></i><span>Alta prioridade</span><b>${critical}</b></div><div><i class="medium"></i><span>Média prioridade</span><b>${mediumLeaks.length}</b></div><div><i class="low"></i><span>Demais sinais</span><b>${Math.max(0,allLeaks.length-critical-mediumLeaks.length)}</b></div></div></section></div>
-  <div class="team-grid team-grid-bottom"><section class="panel"><header class="team-section-head"><div><span class="team-section-icon">🎯</span><h2>Principais leaks do time</h2><p class="muted">Ordenados por prioridade e força da amostra.</p></div><span class="pill">${allLeaks.length} sinais</span></header>${allLeaks.length?`<div class="team-leaks">${allLeaks.slice(0,8).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.label)}</b><small>${esc(x.player)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${x.score>=1.5?'critical':x.score>=.75?'important':'attention'}">${x.score>=1.5?'ALTA':x.score>=.75?'MÉDIA':'ATENÇÃO'}</em></div>`).join('')}</div>`:'<p class="muted">Sem leaks publicados.</p>'}</section>
-  <section class="panel team-insights"><header class="team-section-head"><div><span class="team-section-icon">💡</span><h2>Insights do time</h2><p class="muted">O que os snapshots estão dizendo agora.</p></div></header><div class="team-insight good"><b>↗ Winrate do grupo</b><span>A média atual está em ${avg>=0?'+':''}${teamNum(avg)} bb/100 nos snapshots publicados.</span></div><div class="team-insight warn"><b>🎯 Concentração de prioridade</b><span>${topPlayer&&topPlayer.n?`${esc(topPlayer.name)} concentra ${topPlayer.n} alerta${topPlayer.n===1?'':'s'} de alta prioridade.`:'Nenhum alerta de alta prioridade no momento.'}</span></div><div class="team-insight purple"><b>🧠 Foco técnico</b><span>${threeBetCount?`${threeBetCount} dos sinais atuais estão relacionados a 3Bet.`:'Ainda não há concentração clara em 3Bet.'}</span></div><div class="team-insight blue"><b>👥 Estudo coletivo</b><span>${collective.length?`${esc(collective[0][0])} aparece em ${collective[0][1].size} jogadores e merece avaliação coletiva.`:'Nenhum leak idêntico aparece em mais de um jogador neste snapshot.'}</span></div></section></div>
-  <section class="panel team-action team-action-v2"><header class="team-section-head"><div><span class="team-section-icon">🧭</span><h2>Plano de ação do gestor</h2><p class="muted">Quem merece atenção primeiro e qual tema abrir na próxima revisão.</p></div></header><div class="team-action-cards">${ranking.length?ranking.map(x=>{const top=(x.snap.leaks||[])[0],z=x.snap.stats||{},initials=(x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase();return `<article><header><i>${esc(initials)}</i><span><b>${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')} · ${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos</small></span><em>${z.high||0} alta${z.high===1?'':'s'}</em></header><div>${top?`<small>FOCO SUGERIDO</small><strong>${esc(top.label)}</strong><span>${teamNum(top.value)}% · ref. ${esc(top.range)} · ${(+top.den||0).toLocaleString('pt-BR')} oportunidades</span>`:'<strong>Nenhum desvio prioritário</strong><span>Snapshot sem foco crítico publicado.</span>'}</div></article>`}).join(''):'<p class="muted">Aguardando snapshots.</p>'}</div>${rows.some(x=>!x.snap)?`<div class="notice">Para aparecer aqui, cada jogador precisa abrir o <b>Stats HH</b> uma vez nesta versão. O sistema publica somente o resumo técnico; as HH brutas continuam individuais.</div>`:''}</section>`
+  <div class="team-grid team-grid-bottom"><section class="panel"><header class="team-section-head"><div><span class="team-section-icon">🎯</span><h2>Principais leaks do time</h2><p class="muted">Ordenados por prioridade e força da amostra.</p></div><span class="pill">${allLeaks.length} sinais</span></header>${allLeaks.length?`<div class="team-leaks">${allLeaks.slice(0,8).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.label)}</b><small>${esc(x.player)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${x.score>=1.5?'critical':x.score>=.75?'important':'attention'}">${x.score>=1.5?'ALTA':x.score>=.75?'MÉDIA':'ATENÇÃO'}</em></div>`).join('')}</div>`:'<p class="muted">Sem leaks publicados neste filtro.</p>'}</section>
+  <section class="panel team-insights"><header class="team-section-head"><div><span class="team-section-icon">💡</span><h2>Insights do time</h2><p class="muted">O que o recorte selecionado está dizendo agora.</p></div></header><div class="team-insight good"><b>↗ Winrate do grupo</b><span>A média atual está em ${avg>=0?'+':''}${teamNum(avg)} bb/100 neste recorte.</span></div><div class="team-insight warn"><b>🎯 Concentração de prioridade</b><span>${topPlayer&&topPlayer.n?`${esc(topPlayer.name)} concentra ${topPlayer.n} alerta${topPlayer.n===1?'':'s'} de alta prioridade.`:'Nenhum alerta de alta prioridade no momento.'}</span></div><div class="team-insight purple"><b>🧠 Foco técnico</b><span>${threeBetCount?`${threeBetCount} dos sinais atuais estão relacionados a 3Bet.`:'Ainda não há concentração clara em 3Bet.'}</span></div><div class="team-insight blue"><b>👥 Estudo coletivo</b><span>${collective.length?`${esc(collective[0][0])} aparece em ${collective[0][1].size} jogadores e merece avaliação coletiva.`:'Nenhum leak idêntico aparece em mais de um jogador neste recorte.'}</span></div></section></div>
+  <section class="panel team-action team-action-v2"><header class="team-section-head"><div><span class="team-section-icon">🧭</span><h2>Plano de ação do gestor</h2><p class="muted">Quem merece atenção primeiro dentro do filtro atual.</p></div></header><div class="team-action-cards">${ranking.length?ranking.map(x=>{const top=(x.snap.leaks||[])[0],z=x.snap.stats||{},initials=(x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase();return `<article><header><i>${esc(initials)}</i><span><b>${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')} · ${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos</small></span><em>${z.high||0} alta${z.high===1?'':'s'}</em></header><div>${top?`<small>FOCO SUGERIDO</small><strong>${esc(top.label)}</strong><span>${teamNum(top.value)}% · ref. ${esc(top.range)} · ${(+top.den||0).toLocaleString('pt-BR')} oportunidades</span>`:'<strong>Nenhum desvio prioritário</strong><span>Snapshot sem foco crítico publicado para este filtro.</span>'}</div></article>`}).join(''):'<p class="muted">Aguardando dados neste filtro.</p>'}</div></section>`
 }
-async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();root.innerHTML=!x.manager?`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`:x.error?`<section class="panel"><h2>⚠️ Central do Time indisponível</h2><p class="muted">${esc(x.error?.message||String(x.error))}</p></section>`:teamcenterHtml(x.rows)}
+function bindTeamCenterFilters(allRows){
+  const rerender=()=>{const root=document.getElementById('teamCenterRoot');if(!root)return;root.innerHTML=teamcenterHtml(teamFilteredRows(allRows),allRows);bindTeamCenterFilters(allRows)}
+  const p=document.getElementById('teamFilterPlayer'),d=document.getElementById('teamFilterPeriod'),a=document.getElementById('teamFilterAbi')
+  if(p)p.onchange=()=>{teamCenterFilters.player=p.value;rerender()}
+  if(d)d.onchange=()=>{teamCenterFilters.period=d.value;rerender()}
+  if(a)a.onchange=()=>{teamCenterFilters.abi=a.value;rerender()}
+  const clear=document.getElementById('teamClearFilters');if(clear)clear.onclick=()=>{teamCenterFilters={player:'all',period:'all',abi:'all'};rerender()}
+}
+async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();if(!x.manager){root.innerHTML=`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`;return}if(x.error){root.innerHTML=`<section class="panel"><h2>⚠️ Central do Time indisponível</h2><p class="muted">${esc(x.error?.message||String(x.error))}</p></section>`;return}root.innerHTML=teamcenterHtml(teamFilteredRows(x.rows),x.rows);bindTeamCenterFilters(x.rows)}
 
 function leakData(){const m={};for(const h of db.hands){for(const k of [h.topic,...tagList(h.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};m[k].hands++;m[k].confidence+=+h.confidence||0;if(h.status!=='done')m[k].pending++}}for(const s of db.studies){for(const k of [s.topic,...tagList(s.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};if(s.status==='done')m[k].studies++}}return Object.entries(m).map(([topic,v])=>({topic,...v,score:v.pending*3+v.hands-Math.min(v.studies,5)-(v.confidence/Math.max(1,v.hands))/2})).sort((a,b)=>b.score-a.score)}
 function leaks(){
@@ -2742,7 +2805,7 @@ function bindPage(p){
           const text=await f.text(),hands=parseGgHistory(text)
           if(!hands.length){ignored++;continue}
           valid++;total+=hands.length
-          const facts=hands.map(heroHandFacts).filter(Boolean);await saveHhStatsImport({id:displayName+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:displayName,importedAt:new Date().toISOString(),hands,facts,perfSchema:1})
+          const facts=hands.map(heroHandFacts).filter(Boolean);await saveHhStatsImport({id:displayName+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:displayName,importedAt:new Date().toISOString(),hands,facts,perfSchema:2})
           if(i%8===0)await new Promise(r=>setTimeout(r,0))
         }
         await refreshHhStats()
