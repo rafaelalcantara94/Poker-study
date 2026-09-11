@@ -2472,15 +2472,6 @@ async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEn
 
 // --- V10.2.0 Team Intelligence ------------------------------------------------
 let teamIntelRows=[]
-function teamAbiBucket(v){
-  v=+v||0
-  if(v<=0)return 'unknown'
-  if(v<=10)return '0-10'
-  if(v<=25)return '10-25'
-  if(v<=50)return '25-50'
-  if(v<=100)return '50-100'
-  return '100+'
-}
 function teamTechSnapshot(facts){
   const holdem=(facts||[]).filter(x=>x.game==='holdem'),s=aggregateHhStats(holdem),entries=v78LeakEntries(holdem)
   const leaks=entries.filter(x=>['tight','aggro'].includes(x.state)).sort((a,b)=>b.score-a.score).slice(0,20).map(x=>({label:x.statLabel,group:x.group,value:x.value,den:x.den,range:v75RangeText(x.bench),state:x.state,score:x.score,pos:x.pos}))
@@ -2498,20 +2489,13 @@ function teamPeriodFacts(facts,key){
 }
 function teamSnapshotPayload(facts){
   const base=teamTechSnapshot(facts)
-  const tourMap=new Map((db.tournaments||[]).map(t=>[String(t.external_id||''),((+t.buyin||0)/Math.max(1,1+(+t.reentries||0)))]).filter(x=>x[0]))
-  const enriched=(facts||[]).map(f=>({...f,_teamAbi:tourMap.get(String(f.tournamentId||''))||0}))
-  const matched=enriched.filter(x=>x._teamAbi>0).length
-  const periods=['all','30d','90d','180d','365d'],abis=['all','0-10','10-25','25-50','50-100','100+'],views={}
+  const periods=['all','30d','90d','180d','365d'],views={}
   for(const period of periods){
-    const pf=teamPeriodFacts(enriched,period)
-    for(const abi of abis){
-      const ff=abi==='all'?pf:pf.filter(x=>teamAbiBucket(x._teamAbi)===abi)
-      if(abi!=='all'&&!ff.length)continue
-      views[period+'|'+abi]=teamTechSnapshot(ff)
-    }
+    const pf=teamPeriodFacts(facts,period)
+    views[period]=teamTechSnapshot(pf)
   }
-  const dates=enriched.map(x=>String(x.date||'')).filter(Boolean).sort()
-  return {...base,leaks:base.leaks,views,periodsAvailable:periods,abiBucketsAvailable:abis.filter(a=>a==='all'||Object.keys(views).some(k=>k.endsWith('|'+a))),abiCoverage:{matched,total:enriched.length,pct:enriched.length?matched/enriched.length*100:0},dateRange:{min:dates[0]||null,max:dates.at(-1)||null}}
+  const dates=(facts||[]).map(x=>String(x.date||'')).filter(Boolean).sort()
+  return {...base,leaks:base.leaks,views,periodsAvailable:periods,dateRange:{min:dates[0]||null,max:dates.at(-1)||null}}
 }
 function setTeamSnapshotStatus(kind,msg){
   const el=document.getElementById('hhTeamSyncStatus');if(!el)return
@@ -2547,25 +2531,21 @@ async function loadTeamIntel(){
     return {manager:true,rows:teamIntelRows}
   }catch(e){console.error('Team intelligence load failed',e);return {manager:true,rows:[],error:e}}
 }
-let teamCenterFilters={player:'all',period:'all',abi:'all'}
+let teamCenterFilters={player:'all',period:'all'}
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando diagnóstico técnico da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
-function teamViewSnap(snap,period='all',abi='all'){
+function teamViewSnap(snap,period='all'){
   if(!snap)return null
-  const views=snap.stats?.views||{},view=views[period+'|'+abi]||views[period+'|all']||views['all|all']
+  const views=snap.stats?.views||{},view=views[period]||views['all']
   if(!view)return snap
-  return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,abiCoverage:snap.stats?.abiCoverage,dateRange:snap.stats?.dateRange,abiBucketsAvailable:snap.stats?.abiBucketsAvailable},leaks:view.leaks||[]}
+  return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,dateRange:snap.stats?.dateRange},leaks:view.leaks||[]}
 }
 function teamFilteredRows(rows){
-  return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period,teamCenterFilters.abi)}))
+  return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period)}))
 }
 function teamFilterBar(rows){
-  const ready=rows.filter(x=>x.snap),abiOpts=new Set(['all'])
-  ready.forEach(x=>(x.snap.stats?.abiBucketsAvailable||[]).forEach(a=>abiOpts.add(a)))
-  const abiLabels={'all':'Todos os ABIs','0-10':'$0–10','10-25':'$10–25','25-50':'$25–50','50-100':'$50–100','100+':'$100+'}
   const periodLabels={'all':'Base completa','30d':'Últimos 30 dias','90d':'Últimos 90 dias','180d':'Últimos 6 meses','365d':'Últimos 12 meses'}
-  const cover=ready.reduce((a,x)=>a+(+x.snap.stats?.abiCoverage?.matched||0),0),coverTotal=ready.reduce((a,x)=>a+(+x.snap.stats?.abiCoverage?.total||0),0),pct=coverTotal?cover/coverTotal*100:0
-  return `<section class="team-filterbar"><div><small>JOGADOR</small><select id="teamFilterPlayer"><option value="all">Todos os jogadores</option>${rows.map(x=>`<option value="${esc(x.member.user_id)}" ${teamCenterFilters.player===x.member.user_id?'selected':''}>${esc(x.member.display_name||x.member.email)}</option>`).join('')}</select></div><div><small>PERÍODO</small><select id="teamFilterPeriod">${Object.entries(periodLabels).map(([k,v])=>`<option value="${k}" ${teamCenterFilters.period===k?'selected':''}>${v}</option>`).join('')}</select></div><div><small>ABI</small><select id="teamFilterAbi">${[...abiOpts].map(k=>`<option value="${k}" ${teamCenterFilters.abi===k?'selected':''}>${abiLabels[k]||k}</option>`).join('')}</select></div><button class="btn secondary small" id="teamClearFilters">Limpar filtros</button><span class="team-filter-meta">${coverTotal?`Cobertura ABI: ${pct.toFixed(0)}% das mãos vinculadas ao SharkScope`:'ABI disponível após vincular HHs aos torneios importados'}</span></section>`
+  return `<section class="team-filterbar"><div><small>JOGADOR</small><select id="teamFilterPlayer"><option value="all">Todos os jogadores</option>${rows.map(x=>`<option value="${esc(x.member.user_id)}" ${teamCenterFilters.player===x.member.user_id?'selected':''}>${esc(x.member.display_name||x.member.email)}</option>`).join('')}</select></div><div><small>PERÍODO</small><select id="teamFilterPeriod">${Object.entries(periodLabels).map(([k,v])=>`<option value="${k}" ${teamCenterFilters.period===k?'selected':''}>${v}</option>`).join('')}</select></div><button class="btn secondary small" id="teamClearFilters">Limpar filtros</button><span class="team-filter-meta">Filtros aplicados aos snapshots técnicos publicados pelos jogadores.</span></section>`
 }
 function teamcenterHtml(rows,allRows=rows){
   const ready=rows.filter(x=>x.snap),total=ready.reduce((n,x)=>n+(+x.snap.hands||0),0)
@@ -2577,8 +2557,8 @@ function teamcenterHtml(rows,allRows=rows){
   const highByPlayer=ready.map(x=>({name:x.member.display_name||x.member.email,n:(x.snap.leaks||[]).filter(l=>l.score>=1.5).length})).sort((a,b)=>b.n-a.n),topPlayer=highByPlayer[0]
   const grouped={};allLeaks.forEach(l=>{const k=l.label||'Leak';if(!grouped[k])grouped[k]=new Set();grouped[k].add(l.player)})
   const collective=Object.entries(grouped).filter(([,s])=>s.size>1).sort((a,b)=>b[1].size-a[1].size),threeBetCount=allLeaks.filter(l=>/3bet/i.test(l.label||'')).length
-  const scopeText=[teamCenterFilters.player==='all'?'Time inteiro':(allRows.find(x=>x.member.user_id===teamCenterFilters.player)?.member.display_name||'Jogador'),({all:'Base completa','30d':'30 dias','90d':'90 dias','180d':'6 meses','365d':'12 meses'})[teamCenterFilters.period],({'all':'Todos ABIs','0-10':'ABI $0–10','10-25':'ABI $10–25','25-50':'ABI $25–50','50-100':'ABI $50–100','100+':'ABI $100+'})[teamCenterFilters.abi]].join(' · ')
-  return `${teamFilterBar(allRows)}<section class="team-hero"><div class="team-hero-copy"><span class="team-kicker">V10.2.3 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p><span class="team-scope">${esc(scopeText)}</span></div><div class="team-hero-side"><small>ÚLTIMA ATUALIZAÇÃO</small><b>${esc(latestText)}</b><span>${ready.length}/${rows.length} jogadores no recorte</span></div></section>
+  const scopeText=[teamCenterFilters.player==='all'?'Time inteiro':(allRows.find(x=>x.member.user_id===teamCenterFilters.player)?.member.display_name||'Jogador'),({all:'Base completa','30d':'30 dias','90d':'90 dias','180d':'6 meses','365d':'12 meses'})[teamCenterFilters.period]].join(' · ')
+  return `${teamFilterBar(allRows)}<section class="team-hero"><div class="team-hero-copy"><span class="team-kicker">V10.2.4 · TEAM INTELLIGENCE</span><h2>Raio-X técnico da equipe</h2><p>Compare snapshots, identifique prioridades e transforme dados em evolução.</p><span class="team-scope">${esc(scopeText)}</span></div><div class="team-hero-side"><small>ÚLTIMA ATUALIZAÇÃO</small><b>${esc(latestText)}</b><span>${ready.length}/${rows.length} jogadores no recorte</span></div></section>
   <div class="team-kpis team-kpis-v2"><div><span class="team-kpi-icon">👥</span><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong><em>${rows.length?Math.round(ready.length/rows.length*100):0}% do recorte</em></div><div><span class="team-kpi-icon">▤</span><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong><em>${ready.map(x=>`${esc(x.member.display_name||x.member.email)} ${(+x.snap.hands||0).toLocaleString('pt-BR')}`).join(' · ')||'Sem mãos neste filtro'}</em></div><div><span class="team-kpi-icon good-text">↗</span><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong><em>Média simples dos jogadores do recorte</em></div><div><span class="team-kpi-icon bad-text">!</span><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong><em>${highByPlayer.map(x=>`${x.n} ${esc(x.name)}`).join(' · ')||'Nenhum alerta'}</em></div></div>
   <div class="team-grid team-grid-v2"><section class="panel team-ranking-card"><header class="team-section-head"><div><span class="team-section-icon">♟</span><h2>Desempenho dos jogadores</h2><p class="muted">Visão técnica do recorte selecionado.</p></div><span class="pill">${ready.length} ativos</span></header>${ranking.length?`<div class="team-table"><div class="team-tr team-th"><span>Jogador</span><span>Mãos</span><span>bb/100</span><span>VPIP</span><span>PFR</span><span>3Bet</span><span>WWSF</span><span>Alertas</span></div>${ranking.map((x,i)=>{const z=x.snap.stats||{};return `<div class="team-tr"><span class="team-player"><i>${esc((x.member.display_name||x.member.email||'?').slice(0,2).toUpperCase())}</i><b>${i+1}. ${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')}</small></span><span>${(+x.snap.hands||0).toLocaleString('pt-BR')}</span><span class="${z.bb100>=0?'good-text':'bad-text'}"><b>${z.bb100>=0?'+':''}${teamNum(z.bb100)}</b></span><span>${teamNum(z.vpip)}%</span><span>${teamNum(z.pfr)}%</span><span>${teamNum(z.threeBet)}%</span><span>${teamNum(z.wwsf)}%</span><span><b class="team-alert-count">${z.high||0}</b></span></div>`}).join('')}</div>`:'<div class="notice">Nenhum dado encontrado para este conjunto de filtros.</div>'}</section>
   <section class="panel team-alert-card"><header class="team-section-head"><div><span class="team-section-icon">◉</span><h2>Distribuição dos alertas</h2><p class="muted">Leitura rápida da gravidade atual.</p></div></header><div class="team-alert-ring" style="--high:${allLeaks.length?critical/allLeaks.length*100:0}"><div><strong>${allLeaks.length}</strong><span>alertas</span></div></div><div class="team-alert-legend"><div><i class="high"></i><span>Alta prioridade</span><b>${critical}</b></div><div><i class="medium"></i><span>Média prioridade</span><b>${mediumLeaks.length}</b></div><div><i class="low"></i><span>Demais sinais</span><b>${Math.max(0,allLeaks.length-critical-mediumLeaks.length)}</b></div></div></section></div>
@@ -2588,11 +2568,10 @@ function teamcenterHtml(rows,allRows=rows){
 }
 function bindTeamCenterFilters(allRows){
   const rerender=()=>{const root=document.getElementById('teamCenterRoot');if(!root)return;root.innerHTML=teamcenterHtml(teamFilteredRows(allRows),allRows);bindTeamCenterFilters(allRows)}
-  const p=document.getElementById('teamFilterPlayer'),d=document.getElementById('teamFilterPeriod'),a=document.getElementById('teamFilterAbi')
+  const p=document.getElementById('teamFilterPlayer'),d=document.getElementById('teamFilterPeriod')
   if(p)p.onchange=()=>{teamCenterFilters.player=p.value;rerender()}
   if(d)d.onchange=()=>{teamCenterFilters.period=d.value;rerender()}
-  if(a)a.onchange=()=>{teamCenterFilters.abi=a.value;rerender()}
-  const clear=document.getElementById('teamClearFilters');if(clear)clear.onclick=()=>{teamCenterFilters={player:'all',period:'all',abi:'all'};rerender()}
+  const clear=document.getElementById('teamClearFilters');if(clear)clear.onclick=()=>{teamCenterFilters={player:'all',period:'all'};rerender()}
 }
 async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();if(!x.manager){root.innerHTML=`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`;return}if(x.error){root.innerHTML=`<section class="panel"><h2>⚠️ Central do Time indisponível</h2><p class="muted">${esc(x.error?.message||String(x.error))}</p></section>`;return}root.innerHTML=teamcenterHtml(teamFilteredRows(x.rows),x.rows);bindTeamCenterFilters(x.rows)}
 
