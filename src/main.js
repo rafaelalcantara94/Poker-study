@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.1.21 • TEAM READY</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.2.0 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,8 +70,8 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.1.21 • TEAM READY</small></div><nav class="nav">
-  ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.2.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>route(b.dataset.p))
@@ -83,9 +83,9 @@ function route(p){
   if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p))
-  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload / Caixas','Reloads, fechamentos de caixa, Make Up, Banco e gestão financeira'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
+  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],teamcenter:['Central do Time','Inteligência técnica, prioridades e comparação dos jogadores'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload / Caixas','Reloads, fechamentos de caixa, Make Up, Banco e gestão financeira'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
   title.textContent=meta[0];subtitle.textContent=meta[1]
-  page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,leaks,plan,evolution,goals,reports})[p]()
+  page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,teamcenter,leaks,plan,evolution,goals,reports})[p]()
   bindPage(p)
 }
 
@@ -2005,6 +2005,7 @@ async function refreshHhStats(){
     // Cria um snapshot compacto: nas próximas aberturas completas não é preciso desserializar as HH brutas.
     saveHhStatsSnapshot(hhStatsCache).catch(()=>{})
   }
+  publishTeamSnapshot(hhStatsCache).catch(()=>{})
   const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V9.4</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}${usedSnapshot?' · <b>snapshot</b>':''}`
 }
 const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
@@ -2467,6 +2468,36 @@ async function importCsvRows(){
 }
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
+
+
+// --- V10.2.0 Team Intelligence ------------------------------------------------
+let teamIntelRows=[]
+function teamSnapshotPayload(facts){
+  const holdem=(facts||[]).filter(x=>x.game==='holdem'),s=aggregateHhStats(holdem),entries=v78LeakEntries(holdem)
+  const leaks=entries.filter(x=>['tight','aggro'].includes(x.state)).sort((a,b)=>b.score-a.score).slice(0,20).map(x=>({label:x.statLabel,group:x.group,value:x.value,den:x.den,range:v75RangeText(x.bench),state:x.state,score:x.score,pos:x.pos}))
+  return {hands:s.hands,vpip:s.vpip,pfr:s.pfr,threeBet:s.threeBet,wwsf:s.wwsf,bb100:s.bb100,redline:v76Redline100(holdem),eligible:entries.length,high:leaks.filter(x=>x.score>=1.5).length,leaks}
+}
+async function publishTeamSnapshot(facts){
+  if(!user||!facts?.length)return
+  try{const {teamId}=await ensureTeamContext(),payload=teamSnapshotPayload(facts);await supabase.from('team_hh_snapshots').upsert({team_id:teamId,user_id:user.id,hands:payload.hands,stats:payload,leaks:payload.leaks,updated_at:new Date().toISOString()},{onConflict:'team_id,user_id'})}catch(e){console.warn('Team snapshot sync failed',e)}
+}
+async function loadTeamIntel(){
+  try{const {teamId}=await ensureTeamContext(),[mgr,members,snaps]=await Promise.all([supabase.rpc('is_team_manager',{p_team:teamId}),supabase.from('team_members').select('*').eq('team_id',teamId).order('joined_at'),supabase.from('team_hh_snapshots').select('*').eq('team_id',teamId)]);if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[]}};const sm=new Map((snaps.data||[]).map(x=>[x.user_id,x]));teamIntelRows=(members.data||[]).map(m=>({member:m,snap:sm.get(m.user_id)||null}));return {manager:true,rows:teamIntelRows}}catch(e){console.warn(e);return {manager:false,rows:[]}}
+}
+function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando diagnóstico técnico da equipe…</p></section></div>`}
+function teamNum(v,d=1){return Number(v||0).toFixed(d)}
+function teamcenterHtml(rows){
+  const ready=rows.filter(x=>x.snap),total=ready.reduce((n,x)=>n+(+x.snap.hands||0),0),allLeaks=ready.flatMap(x=>(x.snap.leaks||[]).map(l=>({...l,player:x.member.display_name||x.member.email}))).sort((a,b)=>b.score-a.score),critical=allLeaks.filter(x=>x.score>=1.5).length
+  const avg=ready.length?ready.reduce((n,x)=>n+(+x.snap.stats?.bb100||0),0)/ready.length:0
+  const ranking=[...ready].sort((a,b)=>(+b.snap.stats?.bb100||0)-(+a.snap.stats?.bb100||0))
+  return `<section class="team-intro panel"><div><span class="team-kicker">V10.2 · VISÃO DO GESTOR</span><h2>Raio-X técnico da equipe</h2><p class="muted">Compara snapshots publicados pelo Stats HH de cada jogador sem misturar as Hand Histories individuais.</p></div><span class="pill">${rows.length} jogador${rows.length===1?'':'es'}</span></section>
+  <div class="team-kpis"><div><small>JOGADORES COM DADOS</small><strong>${ready.length}/${rows.length}</strong></div><div><small>MÃOS ANALISADAS</small><strong>${total.toLocaleString('pt-BR')}</strong></div><div><small>WINRATE MÉDIO</small><strong class="${avg>=0?'good-text':'bad-text'}">${avg>=0?'+':''}${teamNum(avg)} bb/100</strong></div><div><small>ALERTAS DE ALTA PRIORIDADE</small><strong>${critical}</strong></div></div>
+  <div class="team-grid"><section class="panel"><header class="team-section-head"><div><h2>Ranking da equipe</h2><p class="muted">Comparação técnica dos snapshots mais recentes.</p></div></header>${ranking.length?`<div class="team-table"><div class="team-tr team-th"><span>Jogador</span><span>Mãos</span><span>bb/100</span><span>VPIP</span><span>PFR</span><span>3Bet</span><span>WWSF</span><span>Alta</span></div>${ranking.map((x,i)=>{const z=x.snap.stats||{};return `<div class="team-tr"><span><b>${i+1}. ${esc(x.member.display_name||x.member.email)}</b><small>${esc(x.member.role||'player')}</small></span><span>${(+x.snap.hands||0).toLocaleString('pt-BR')}</span><span class="${z.bb100>=0?'good-text':'bad-text'}">${z.bb100>=0?'+':''}${teamNum(z.bb100)}</span><span>${teamNum(z.vpip)}%</span><span>${teamNum(z.pfr)}%</span><span>${teamNum(z.threeBet)}%</span><span>${teamNum(z.wwsf)}%</span><span><b class="team-alert-count">${z.high||0}</b></span></div>`}).join('')}</div>`:'<p class="muted">Nenhum jogador publicou Stats HH ainda.</p>'}</section>
+  <section class="panel"><header class="team-section-head"><div><h2>Principais leaks do time</h2><p class="muted">Ordenados pelo score de prioridade já usado no Stats HH.</p></div></header>${allLeaks.length?`<div class="team-leaks">${allLeaks.slice(0,8).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.label)}</b><small>${esc(x.player)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${x.score>=1.5?'critical':x.score>=.75?'important':'attention'}">${x.score>=1.5?'ALTA':x.score>=.75?'MÉDIA':'ATENÇÃO'}</em></div>`).join('')}</div>`:'<p class="muted">Sem leaks publicados.</p>'}</section></div>
+  <section class="panel team-action"><header class="team-section-head"><div><h2>Plano de ação do gestor</h2><p class="muted">Quem deve receber atenção primeiro, usando gravidade + amostra do motor atual.</p></div></header>${ranking.length?ranking.map(x=>{const top=(x.snap.leaks||[])[0],z=x.snap.stats||{};return `<div class="team-action-row"><span><b>${esc(x.member.display_name||x.member.email)}</b><small>${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos · ${z.high||0} alta prioridade</small></span><span>${top?`Foco sugerido: <b>${esc(top.label)}</b> (${teamNum(top.value)}%, ref. ${esc(top.range)})`:'Nenhum desvio prioritário publicado'}</span></div>`}).join(''):'<p class="muted">Aguardando snapshots.</p>'}${rows.some(x=>!x.snap)?`<div class="notice">Para aparecer aqui, cada jogador precisa abrir o <b>Stats HH</b> uma vez nesta V10.2. O sistema publica somente o resumo técnico; as HH brutas continuam individuais.</div>`:''}</section>`
+}
+async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();root.innerHTML=x.manager?teamcenterHtml(x.rows):`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`}
+
 function leakData(){const m={};for(const h of db.hands){for(const k of [h.topic,...tagList(h.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};m[k].hands++;m[k].confidence+=+h.confidence||0;if(h.status!=='done')m[k].pending++}}for(const s of db.studies){for(const k of [s.topic,...tagList(s.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};if(s.status==='done')m[k].studies++}}return Object.entries(m).map(([topic,v])=>({topic,...v,score:v.pending*3+v.hands-Math.min(v.studies,5)-(v.confidence/Math.max(1,v.hands))/2})).sort((a,b)=>b.score-a.score)}
 function leaks(){
   const a=leakData(),pending=db.hands.filter(x=>x.status!=='done').length,avg=db.hands.length?db.hands.reduce((n,h)=>n+(+h.confidence||0),0)/db.hands.length:0
@@ -2643,6 +2674,7 @@ async function renderSavedReplays(loadText){
 }
 function bindPage(p){
   if(p==='reload'){initReloadPage()}
+  if(p==='teamcenter'){initTeamCenter()}
   if(p==='reviews'){bindReviews();return}
   if(p==='leaks'||p==='plan'){bindReviewDestinationLinks();if(p==='plan')document.querySelectorAll('[data-plan-study-start]').forEach(b=>b.onclick=()=>startStudyPlanTask(b.dataset.planStudyStart))}
   if(p==='evolution'){bindLeakEvolution()}
