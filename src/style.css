@@ -807,3 +807,9 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .team-sync-note{line-height:1.5}.team-coach-xray{width:min(1120px,96vw)}
 .replay-hand-row .sidebar-hand-info small{line-height:1.35}
 @media(max-width:1100px){.team-coach-summary{grid-template-columns:1fr 1fr}.team-lesson-grid{grid-template-columns:1fr}}@media(max-width:650px){.team-coach-summary{grid-template-columns:1fr}}
+
+
+/* V10.4.1 — player identity in collective replayer */
+.replay-identity-banner{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;border:1px solid #2f4968;border-radius:9px;background:#0d1929}
+.replay-identity-banner b{font-size:12px;color:#eaf2ff}.replay-identity-banner span{font-size:9px;color:#8fa8c8}
+.hero-seat .player-name,.hero-seat .seat-label{font-weight:900}
