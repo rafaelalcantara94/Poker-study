@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.2.0 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.3.0 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -69,12 +69,93 @@ async function load(){
   for(const h of db.hands){h.image_url='';if(h.image_path){const {data}=await supabase.storage.from('hand-images').createSignedUrl(h.image_path,3600);h.image_url=data?.signedUrl||''}}
 }
 
+
+const MAXLATE_KEY='poker_study_maxlate_alarms_v113'
+let maxLateTimerHandle=null
+function maxLateAlarms(){
+  try{return JSON.parse(localStorage.getItem(MAXLATE_KEY)||'[]')}catch{return []}
+}
+function saveMaxLateAlarms(rows){localStorage.setItem(MAXLATE_KEY,JSON.stringify(rows||[]))}
+function maxLateFmt(ms){
+  ms=Math.max(0,ms||0);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60
+  return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`
+}
+function maxLateActive(){return maxLateAlarms().filter(a=>!a.fired&&+a.endsAt>Date.now()).sort((a,b)=>a.endsAt-b.endsAt)}
+function maxLateNext(){return maxLateActive()[0]||null}
+async function maxLateRequestPermission(){
+  if(!('Notification'in window))return 'unsupported'
+  if(Notification.permission==='default')try{return await Notification.requestPermission()}catch{return Notification.permission}
+  return Notification.permission
+}
+function maxLateBeep(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC()
+    const seq=[0,260,520]
+    seq.forEach(delay=>setTimeout(()=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.18,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.35);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.36)},delay))
+    setTimeout(()=>ctx.close(),1300)
+  }catch{}
+}
+function maxLateFire(a){
+  const rows=maxLateAlarms(),x=rows.find(r=>r.id===a.id);if(!x||x.fired)return
+  x.fired=true;x.firedAt=Date.now();saveMaxLateAlarms(rows);maxLateBeep()
+  const title=`MAX LATE ${String(x.name||'TORNEIO').toUpperCase()}`
+  if('Notification'in window&&Notification.permission==='granted'){
+    try{const n=new Notification(title,{body:'O cronômetro de Max Late chegou a zero.',tag:'maxlate-'+x.id,requireInteraction:true});n.onclick=()=>{window.focus();n.close()}}catch{}
+  }
+  const toast=document.createElement('div');toast.className='maxlate-alarm-toast';toast.innerHTML=`<div>⏰</div><section><small>POKER STUDY · MAX LATE</small><b>${esc(title)}</b><span>O cronômetro chegou a zero.</span></section><button>OK</button>`;document.body.appendChild(toast);toast.querySelector('button').onclick=()=>toast.remove()
+  updateMaxLateHeader()
+}
+function maxLateTick(){
+  const rows=maxLateAlarms(),now=Date.now()
+  rows.filter(a=>!a.fired&&+a.endsAt<=now).forEach(maxLateFire)
+  updateMaxLateHeader()
+  const open=document.getElementById('maxLateOverlay');if(open)renderMaxLateModalBody()
+}
+function startMaxLateWatcher(){
+  if(maxLateTimerHandle)clearInterval(maxLateTimerHandle)
+  maxLateTimerHandle=setInterval(maxLateTick,1000);maxLateTick()
+}
+function updateMaxLateHeader(){
+  const box=document.getElementById('maxLateWidget');if(!box)return
+  const next=maxLateNext(),count=maxLateActive().length
+  box.classList.toggle('active',!!next)
+  const time=box.querySelector('.maxlate-header-time'),badge=box.querySelector('.maxlate-count')
+  if(time)time.textContent=next?maxLateFmt(next.endsAt-Date.now()):'Registro de Max late'
+  if(badge){badge.textContent=count;badge.hidden=!count}
+}
+function openMaxLateModal(){
+  document.getElementById('maxLateOverlay')?.remove()
+  const el=document.createElement('div');el.id='maxLateOverlay';el.className='maxlate-overlay';el.innerHTML=`<section class="maxlate-modal"><header><div><small>⏰ POKER STUDY</small><h2>Registro de Max Late</h2><p>Crie alarmes para não perder o fim do late registration.</p></div><button class="maxlate-close">×</button></header><div id="maxLateModalBody"></div></section>`;document.body.appendChild(el)
+  el.querySelector('.maxlate-close').onclick=()=>el.remove();el.onclick=e=>{if(e.target===el)el.remove()}
+  renderMaxLateModalBody()
+}
+function renderMaxLateModalBody(){
+  const root=document.getElementById('maxLateModalBody');if(!root)return
+  const rows=maxLateAlarms().sort((a,b)=>a.endsAt-b.endsAt),active=rows.filter(a=>!a.fired&&a.endsAt>Date.now())
+  root.innerHTML=`<div class="maxlate-create"><label><span>Torneio / identificação</span><input id="maxLateName" placeholder="Ex.: 109 ACR"></label><label><span>Horas</span><input id="maxLateHours" type="number" min="0" max="24" value="0"></label><label><span>Minutos</span><input id="maxLateMinutes" type="number" min="0" max="59" value="30"></label><button class="btn" id="maxLateCreate">⏰ Iniciar cronômetro</button></div>
+  <div class="maxlate-permission"><div><b>Notificação do PC</b><span>${!('Notification'in window)?'Seu navegador não suporta notificações.':Notification.permission==='granted'?'✓ Permitida':Notification.permission==='denied'?'Bloqueada no navegador':'Ainda não autorizada'}</span></div><button class="btn secondary small" id="maxLatePermission" ${!('Notification'in window)||Notification.permission==='granted'?'disabled':''}>Permitir notificação</button></div>
+  <div class="maxlate-list-head"><b>Alarmes ativos</b><span>${active.length}</span></div>
+  <div class="maxlate-list">${active.length?active.map(a=>`<article><div class="maxlate-clock">⏰</div><div><b>${esc(a.name)}</b><span>Termina ${new Date(a.endsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div><strong>${maxLateFmt(a.endsAt-Date.now())}</strong><button data-maxlate-cancel="${esc(a.id)}">Cancelar</button></article>`).join(''):'<div class="notice">Nenhum cronômetro ativo.</div>'}</div>
+  <p class="maxlate-note">Para a notificação do sistema aparecer, deixe o navegador aberto (pode estar minimizado). Se o navegador estiver fechado por completo, esta versão web não consegue disparar o alerta.</p>`
+  const create=document.getElementById('maxLateCreate');if(create)create.onclick=async()=>{
+    const name=String(document.getElementById('maxLateName')?.value||'').trim()
+    const h=Math.max(0,+document.getElementById('maxLateHours')?.value||0),m=Math.max(0,+document.getElementById('maxLateMinutes')?.value||0),duration=(h*60+m)*60000
+    if(!name)return alert('Digite o nome do torneio. Ex.: 109 ACR')
+    if(duration<60000)return alert('Defina pelo menos 1 minuto.')
+    await maxLateRequestPermission()
+    const rows=maxLateAlarms();rows.push({id:uid(),name,createdAt:Date.now(),endsAt:Date.now()+duration,fired:false});saveMaxLateAlarms(rows);renderMaxLateModalBody();updateMaxLateHeader()
+  }
+  const perm=document.getElementById('maxLatePermission');if(perm)perm.onclick=async()=>{await maxLateRequestPermission();renderMaxLateModalBody()}
+  root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
+}
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.2.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.3.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
-  </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
+  </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>route(b.dataset.p))
+  document.getElementById('maxLateWidget')?.addEventListener('click',openMaxLateModal)
+  startMaxLateWatcher()
   logout.onclick=async()=>supabase.auth.signOut()
   closeModal.onclick=()=>modal.classList.remove('show')
   route(currentPage)
@@ -413,7 +494,7 @@ function updateTeamCoachPlan(id,patch){const rows=teamCoachPlans(),x=rows.find(p
 function removeTeamCoachPlan(id){saveTeamCoachPlans(teamCoachPlans().filter(x=>x.id!==id))}
 function teamCoachPlanPanel(){
   const plans=teamCoachPlans()
-  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.2.0</small></div></section>`
+  if(!plans.length)return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Quando você transformar uma recomendação da Central em aula, ela aparece aqui já preenchida.</p></div></header><div class="notice"><b>Nenhuma aula criada neste navegador.</b><br>Volte à Central do Time e use <b>Criar no Plano de Estudos</b> na Aula recomendada do gestor.<br><small>Workflow V11.3.0</small></div></section>`
   return `<section class="panel coach-plan-panel"><header><div><span class="study-notes-kicker">PLANO DO GESTOR</span><h2>🎓 Aulas criadas pela Central do Time</h2><p class="muted">Tema, jogadores, Review Pack, duração e reavaliação já vêm definidos.</p></div><span class="pill">${plans.filter(x=>x.status!=='done').length} ativa(s)</span></header><div class="coach-plan-list">${plans.slice(0,8).map(p=>`<article class="${p.status==='done'?'done':''}"><div class="coach-plan-main"><small>${p.status==='done'?'CONCLUÍDA':'PRÓXIMA AULA'}</small><h3>${esc(p.topic)}</h3><p>${esc((p.players||[]).map(x=>x.name).join(' · ')||'Jogadores do recorte')}</p><div class="coach-plan-meta"><span>⏱ ${p.duration||50} min</span><span>🎬 até ${p.maxHands||0} mãos</span><span>📅 reavaliar ${p.recheckAt?new Date(p.recheckAt+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</span><span>📍 ${esc(p.source||'Central do Time')}</span></div></div><div class="coach-plan-actions"><button class="btn small" data-coach-plan-start="${esc(p.id)}" ${p.status==='done'?'disabled':''}>▶ Iniciar aula</button><button class="btn small secondary" data-coach-plan-replay="${esc(p.id)}">🎬 Replayer coletivo</button><button class="btn small secondary" data-coach-plan-done="${esc(p.id)}">${p.status==='done'?'✓ Concluída':'✓ Marcar concluída'}</button><button class="btn small ghost" data-coach-plan-delete="${esc(p.id)}">Excluir</button></div></article>`).join('')}</div></section>`
 }
 function bindTeamCoachPlanDelegation(){
@@ -2644,7 +2725,7 @@ async function teamLoadReviewPacks(label){
   return data||[]
 }
 function teamReplayFromPacks(packs,label){
-  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.2.0 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
+  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.3.0 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
   const players=[...new Set(packs.map(p=>p.user_id))],n=Math.max(1,players.length),requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/n)))
   const byPlayer=new Map()
   for(const p of packs){
