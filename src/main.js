@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.2.0 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V10.2.1 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,7 +70,7 @@ async function load(){
 }
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.2.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V10.2.1 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><span class="user">${esc(user.email)}</span></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -1041,7 +1041,7 @@ function v75BenchBadge(info){if(!info||info.state==='neutral')return '';return `
 function statCard(label,value,sub=''){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}</div>`}
 function auditStatCard(label,value,sub,metric,pos='all'){return `<button class="stat-card stat-card-button" data-audit-metric="${metric}" data-audit-pos="${pos}"><small>${label}</small><strong>${value}</strong>${sub?`<span>${sub}</span>`:''}<em>Ver mãos →</em></button>`}
 function hhGameLabel(k){return ({holdem:"NL Hold'em",omaha:'PLO / Omaha',plo5:'PLO5 / Omaha 5',other:'Outros',all:'Todas'})[k]||k}
-function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.1: oportunidades pré-flop auditadas + triagem estratégica beta para revisão de 3Bet.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div><div id="hhPerfBar" class="hh-perf-bar">⚡ Performance V9.4 · aguardando medição…</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
+function hhstats(){return `<div class="panel"><div class="hhstats-head"><div><h2>HH Stats <span class="pill good">TRACKER CORE</span></h2><p class="muted">Motor V8.1: oportunidades pré-flop auditadas + triagem estratégica beta para revisão de 3Bet.</p></div><div class="toolbar"><input id="hhStatsFiles" type="file" accept=".txt,text/plain" multiple hidden><input id="hhStatsFolder" type="file" accept=".txt,text/plain" webkitdirectory directory multiple hidden><button class="btn" id="pickHhStatsFiles">📄 Selecionar vários arquivos</button><button class="btn" id="pickHhStatsFolder">📁 Importar pasta inteira</button><button class="btn secondary" id="clearHhStats">Limpar</button></div></div><div id="hhStatsStatus" class="muted">As HH já salvas serão recalculadas automaticamente; não é necessário reimportar.</div><div id="hhPerfBar" class="hh-perf-bar">⚡ Performance V9.4 · aguardando medição…</div><div id="hhTeamSyncStatus" class="hh-team-sync muted">☁️ Snapshot do time: aguardando Stats HH…</div></div><div class="panel hhstats-filter-panel"><div class="hhstats-filters hhstats-filters-v2"><label>Modalidade<select id="hhGameFilter"><option value="holdem">NL Hold'em</option><option value="omaha">PLO / Omaha</option><option value="plo5">PLO5 / Omaha 5</option><option value="other">Outros</option><option value="all">Todas as modalidades</option></select></label><label>Posição<select id="hhPositionFilter"><option value="all">Todas</option><option>UTG</option><option>UTG+1</option><option>MP1</option><option>MP2</option><option>MP</option><option>HJ</option><option>CO</option><option>BTN</option><option>SB</option><option>BB</option></select></label><label>Stack do Hero<select id="hhStackFilter"><option value="all">Todos</option><option value="0-10">≤ 10bb</option><option value="10-15">10–15bb</option><option value="15-25">15–25bb</option><option value="25-40">25–40bb</option><option value="40+">40bb+</option></select></label><label>Jogadores<select id="hhPlayersFilter"><option value="all">Todos</option><option value="2">2-max</option><option value="3">3-max</option><option value="4">4-max</option><option value="5">5-max</option><option value="6">6-max</option><option value="7">7-max</option><option value="8">8-max</option><option value="9">9-max</option></select></label><label>Data inicial<input id="hhDateStart" type="date"></label><label>Data final<input id="hhDateEnd" type="date"></label><button class="btn secondary" id="clearHhFilters">Limpar filtros</button></div><div id="hhFilterSummary" class="muted"></div></div><div id="hhStatsView"><div class="panel"><p class="muted">Carregando banco local de mãos...</p></div></div>`}
 function hhRateSub(a,b,label='oportunidades'){return `${a.toLocaleString('pt-BR')} / ${b.toLocaleString('pt-BR')} ${label}`}
 function hhPctDisplay(v,den){return den?`${v.toFixed(1)}%`:'—'}
 
@@ -2477,12 +2477,39 @@ function teamSnapshotPayload(facts){
   const leaks=entries.filter(x=>['tight','aggro'].includes(x.state)).sort((a,b)=>b.score-a.score).slice(0,20).map(x=>({label:x.statLabel,group:x.group,value:x.value,den:x.den,range:v75RangeText(x.bench),state:x.state,score:x.score,pos:x.pos}))
   return {hands:s.hands,vpip:s.vpip,pfr:s.pfr,threeBet:s.threeBet,wwsf:s.wwsf,bb100:s.bb100,redline:v76Redline100(holdem),eligible:entries.length,high:leaks.filter(x=>x.score>=1.5).length,leaks}
 }
+function setTeamSnapshotStatus(kind,msg){
+  const el=document.getElementById('hhTeamSyncStatus');if(!el)return
+  el.className='hh-team-sync '+(kind||'muted');el.textContent=msg
+}
 async function publishTeamSnapshot(facts){
-  if(!user||!facts?.length)return
-  try{const {teamId}=await ensureTeamContext(),payload=teamSnapshotPayload(facts);await supabase.from('team_hh_snapshots').upsert({team_id:teamId,user_id:user.id,hands:payload.hands,stats:payload,leaks:payload.leaks,updated_at:new Date().toISOString()},{onConflict:'team_id,user_id'})}catch(e){console.warn('Team snapshot sync failed',e)}
+  if(!user)return {ok:false,reason:'no-user'}
+  if(!facts?.length){setTeamSnapshotStatus('muted','☁️ Snapshot do time: sem mãos para publicar.');return {ok:false,reason:'empty'}}
+  setTeamSnapshotStatus('syncing','☁️ Snapshot do time: sincronizando…')
+  try{
+    const {teamId}=await ensureTeamContext(),payload=teamSnapshotPayload(facts)
+    const {data,error}=await supabase.rpc('publish_team_hh_snapshot',{p_team:teamId,p_hands:payload.hands,p_stats:payload,p_leaks:payload.leaks})
+    if(error)throw error
+    const when=data?new Date(data).toLocaleString('pt-BR'):'agora'
+    setTeamSnapshotStatus('good','✓ Snapshot do time sincronizado · '+payload.hands.toLocaleString('pt-BR')+' mãos · '+when)
+    return {ok:true,payload,updatedAt:data}
+  }catch(e){
+    console.error('Team snapshot sync failed',e)
+    setTeamSnapshotStatus('bad','⚠ Snapshot do time NÃO sincronizado: '+(e?.message||String(e)))
+    return {ok:false,error:e}
+  }
 }
 async function loadTeamIntel(){
-  try{const {teamId}=await ensureTeamContext(),[mgr,members,snaps]=await Promise.all([supabase.rpc('is_team_manager',{p_team:teamId}),supabase.from('team_members').select('*').eq('team_id',teamId).order('joined_at'),supabase.from('team_hh_snapshots').select('*').eq('team_id',teamId)]);if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[]}};const sm=new Map((snaps.data||[]).map(x=>[x.user_id,x]));teamIntelRows=(members.data||[]).map(m=>({member:m,snap:sm.get(m.user_id)||null}));return {manager:true,rows:teamIntelRows}}catch(e){console.warn(e);return {manager:false,rows:[]}}
+  try{
+    const {teamId}=await ensureTeamContext(),mgr=await supabase.rpc('is_team_manager',{p_team:teamId})
+    if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[]}}
+    const {data,error}=await supabase.rpc('get_team_hh_intelligence',{p_team:teamId})
+    if(error)throw error
+    teamIntelRows=(data||[]).map(r=>({
+      member:{user_id:r.user_id,role:r.role,display_name:r.display_name,email:r.email,joined_at:r.joined_at},
+      snap:r.hands==null?null:{user_id:r.user_id,hands:r.hands,stats:r.stats||{},leaks:r.leaks||[],updated_at:r.updated_at}
+    }))
+    return {manager:true,rows:teamIntelRows}
+  }catch(e){console.error('Team intelligence load failed',e);return {manager:true,rows:[],error:e}}
 }
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando diagnóstico técnico da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
@@ -2496,7 +2523,7 @@ function teamcenterHtml(rows){
   <section class="panel"><header class="team-section-head"><div><h2>Principais leaks do time</h2><p class="muted">Ordenados pelo score de prioridade já usado no Stats HH.</p></div></header>${allLeaks.length?`<div class="team-leaks">${allLeaks.slice(0,8).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.label)}</b><small>${esc(x.player)} · ${teamNum(x.value)}% · ref. ${esc(x.range)} · ${(+x.den||0).toLocaleString('pt-BR')} opp</small></span><em class="${x.score>=1.5?'critical':x.score>=.75?'important':'attention'}">${x.score>=1.5?'ALTA':x.score>=.75?'MÉDIA':'ATENÇÃO'}</em></div>`).join('')}</div>`:'<p class="muted">Sem leaks publicados.</p>'}</section></div>
   <section class="panel team-action"><header class="team-section-head"><div><h2>Plano de ação do gestor</h2><p class="muted">Quem deve receber atenção primeiro, usando gravidade + amostra do motor atual.</p></div></header>${ranking.length?ranking.map(x=>{const top=(x.snap.leaks||[])[0],z=x.snap.stats||{};return `<div class="team-action-row"><span><b>${esc(x.member.display_name||x.member.email)}</b><small>${(+x.snap.hands||0).toLocaleString('pt-BR')} mãos · ${z.high||0} alta prioridade</small></span><span>${top?`Foco sugerido: <b>${esc(top.label)}</b> (${teamNum(top.value)}%, ref. ${esc(top.range)})`:'Nenhum desvio prioritário publicado'}</span></div>`}).join(''):'<p class="muted">Aguardando snapshots.</p>'}${rows.some(x=>!x.snap)?`<div class="notice">Para aparecer aqui, cada jogador precisa abrir o <b>Stats HH</b> uma vez nesta V10.2. O sistema publica somente o resumo técnico; as HH brutas continuam individuais.</div>`:''}</section>`
 }
-async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();root.innerHTML=x.manager?teamcenterHtml(x.rows):`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`}
+async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();root.innerHTML=!x.manager?`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`:x.error?`<section class="panel"><h2>⚠️ Central do Time indisponível</h2><p class="muted">${esc(x.error?.message||String(x.error))}</p></section>`:teamcenterHtml(x.rows)}
 
 function leakData(){const m={};for(const h of db.hands){for(const k of [h.topic,...tagList(h.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};m[k].hands++;m[k].confidence+=+h.confidence||0;if(h.status!=='done')m[k].pending++}}for(const s of db.studies){for(const k of [s.topic,...tagList(s.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};if(s.status==='done')m[k].studies++}}return Object.entries(m).map(([topic,v])=>({topic,...v,score:v.pending*3+v.hands-Math.min(v.studies,5)-(v.confidence/Math.max(1,v.hands))/2})).sort((a,b)=>b.score-a.score)}
 function leaks(){

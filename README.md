@@ -50,3 +50,10 @@ Correção da regra de caixa após fechamento:
 - Disponível: `max(0, caixa considerado - Make Up ativo)`.
 
 Exemplo validado: caixa 4.000 + reload 2.000 - saque 1.000 = caixa 5.000; MU ativo 3.000; disponível 2.000.
+
+
+## V10.2.1
+- Corrige publicação dos snapshots do Stats HH via RPC segura.
+- Central do Time passa a ler membros + snapshots via RPC de gestor.
+- Stats HH mostra confirmação ou erro explícito de sincronização.
+- Execute `upgrade_v10_2_0_to_v10_2_1_team_snapshot_rpc.sql` antes do deploy.
