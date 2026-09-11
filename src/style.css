@@ -819,3 +819,10 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 .replay-player-line{display:flex;align-items:center;gap:7px;min-height:18px;margin-bottom:3px;color:#8ea7c8;font-size:9px}
 .replay-player-badge{display:inline-flex;align-items:center;border:1px solid #4c5fd0;background:#1b2b65;color:#dfe7ff;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.02em}
 .seat-info.hero b{color:#eaffdf}
+
+
+/* V10.4.3 — Central -> Plano de Estudos workflow */
+.coach-plan-panel{border-color:#5c4823!important;background:linear-gradient(145deg,#141b29,#181726)!important;margin-bottom:12px}
+.coach-plan-panel>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}.coach-plan-panel h2{margin:3px 0 2px}.coach-plan-list{display:grid;gap:9px}.coach-plan-list article{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid #39465a;background:#0d1827;border-radius:11px;padding:12px}.coach-plan-list article.done{opacity:.65}.coach-plan-main>small{font-size:8px;font-weight:1000;color:#e0b84e}.coach-plan-main h3{font-size:15px;margin:3px 0}.coach-plan-main p{font-size:9px;color:#8fa5c3;margin:0 0 7px}.coach-plan-meta{display:flex;gap:7px;flex-wrap:wrap}.coach-plan-meta span{font-size:8px;color:#9ab0cc;border:1px solid #2c405a;border-radius:999px;padding:4px 7px}.coach-plan-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.coach-plan-actions .ghost{background:transparent;color:#7e93af}
+.team-lesson-agenda footer{font-weight:700}.team-lesson-actions [data-team-create-plan]{border-color:#70582a}
+@media(max-width:900px){.coach-plan-list article{grid-template-columns:1fr}.coach-plan-actions{justify-content:flex-start}}
