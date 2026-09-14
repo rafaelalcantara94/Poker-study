@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.0 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.1 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -224,7 +224,7 @@ function renderMaxLateModalBody(){
   root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
 }
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.1 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -236,13 +236,20 @@ function shell(){
   route(currentPage)
 }
 function route(p){
+  const __routeStarted=performance.now()
   if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p))
   const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer GG','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],teamcenter:['Central do Time','Inteligência técnica, prioridades e comparação dos jogadores'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload / Caixas','Reloads, fechamentos de caixa, Make Up, Banco e gestão financeira'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
   title.textContent=meta[0];subtitle.textContent=meta[1]
-  page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,teamcenter,leaks,plan,evolution,goals,reports})[p]()
-  bindPage(p)
+  try{
+    page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,teamcenter,leaks,plan,evolution,goals,reports})[p]()
+    bindPage(p)
+    console.info('[Poker Study][Route]',p,Math.round(performance.now()-__routeStarted)+'ms')
+  }catch(e){
+    console.error('[Poker Study][Route] render failed',p,e)
+    page.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Esta tela não conseguiu abrir</h2><p class="muted">${esc(e?.message||String(e))}</p><button class="btn" onclick="location.reload()">Recarregar app</button></section>`
+  }
 }
 
 
@@ -2863,19 +2870,66 @@ async function publishTeamSnapshot(facts){
     return {ok:false,error:e}
   }
 }
-async function loadTeamIntel(){
+
+const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1141'
+let teamIntelLoadPromise=null
+let teamIntelRenderSeq=0
+
+function teamIntelCacheRead(){
   try{
-    const {teamId}=await ensureTeamContext(),mgr=await supabase.rpc('is_team_manager',{p_team:teamId})
-    if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[]}}
-    const {data,error}=await supabase.rpc('get_team_hh_intelligence',{p_team:teamId})
-    if(error)throw error
-    teamIntelRows=(data||[]).map(r=>({
-      member:{user_id:r.user_id,role:r.role,display_name:r.display_name,email:r.email,joined_at:r.joined_at},
-      snap:r.hands==null?null:{user_id:r.user_id,hands:r.hands,stats:r.stats||{},leaks:r.leaks||[],updated_at:r.updated_at}
-    }))
-    return {manager:true,rows:teamIntelRows}
-  }catch(e){console.error('Team intelligence load failed',e);return {manager:true,rows:[],error:e}}
+    const c=JSON.parse(sessionStorage.getItem(TEAM_INTEL_CACHE_KEY)||'null')
+    if(!c||!Array.isArray(c.rows))return null
+    return c
+  }catch{return null}
 }
+function teamIntelCacheWrite(rows){
+  try{sessionStorage.setItem(TEAM_INTEL_CACHE_KEY,JSON.stringify({savedAt:Date.now(),rows:rows||[]}))}catch{}
+}
+function teamIntelTimeout(promise,ms,label){
+  let t
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{t=setTimeout(()=>reject(new Error(`${label} excedeu ${Math.round(ms/1000)}s`)),ms)})
+  ]).finally(()=>clearTimeout(t))
+}
+async function loadTeamIntelFresh(){
+  const started=performance.now()
+  const ctx=await teamIntelTimeout(ensureTeamContext(),8000,'Contexto da equipe')
+  const teamId=ctx?.teamId
+  if(!teamId)throw new Error('Equipe não encontrada para este usuário.')
+  const mgr=await teamIntelTimeout(supabase.rpc('is_team_manager',{p_team:teamId}),8000,'Permissão do gestor')
+  if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[],timing:{total:Math.round(performance.now()-started)}}}
+  const rpcStart=performance.now()
+  const {data,error}=await teamIntelTimeout(supabase.rpc('get_team_hh_intelligence',{p_team:teamId}),12000,'Inteligência da equipe')
+  if(error)throw error
+  teamIntelRows=(data||[]).map(r=>({
+    member:{user_id:r.user_id,role:r.role,display_name:r.display_name,email:r.email,joined_at:r.joined_at},
+    snap:r.hands==null?null:{user_id:r.user_id,hands:r.hands,stats:r.stats||{},leaks:r.leaks||[],updated_at:r.updated_at}
+  }))
+  teamIntelCacheWrite(teamIntelRows)
+  return {manager:true,rows:teamIntelRows,timing:{rpc:Math.round(performance.now()-rpcStart),total:Math.round(performance.now()-started)}}
+}
+async function loadTeamIntel({force=false}={}){
+  const cached=teamIntelCacheRead()
+  if(!force&&cached&&Date.now()-cached.savedAt<120000){
+    teamIntelRows=cached.rows
+    return {manager:true,rows:cached.rows,cached:true,cacheAge:Date.now()-cached.savedAt,timing:{total:0}}
+  }
+  if(teamIntelLoadPromise&&!force)return teamIntelLoadPromise
+  teamIntelLoadPromise=(async()=>{
+    try{return await loadTeamIntelFresh()}
+    catch(e){
+      console.error('Team intelligence load failed',e)
+      if(cached?.rows?.length){
+        teamIntelRows=cached.rows
+        return {manager:true,rows:cached.rows,cached:true,stale:true,error:e}
+      }
+      return {manager:true,rows:[],error:e}
+    }finally{teamIntelLoadPromise=null}
+  })()
+  return teamIntelLoadPromise
+}
+
 let teamCenterFilters={player:'all',period:'all'},teamLeakSeverity='all'
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando inteligência da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
@@ -3197,8 +3251,66 @@ function bindTeamActions(rows,allRows){
   document.querySelectorAll('[data-team-severity]').forEach(el=>el.addEventListener('click',()=>{teamLeakSeverity=el.dataset.teamSeverity||'all';const root=document.getElementById('teamCenterRoot');if(root){root.innerHTML=teamcenterHtml(rows,allRows);bindTeamCenterFilters(allRows);bindTeamActions(rows,allRows);setTimeout(()=>document.getElementById('teamLeaksSection')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}}))
   document.querySelectorAll('[data-team-nav]').forEach(el=>el.addEventListener('click',()=>{const dest=el.dataset.teamNav;if(dest==='players'){document.getElementById('teamPlayersSection')?.scrollIntoView({behavior:'smooth',block:'center'});return}route(dest)}))
 }
-async function initTeamCenter(){const root=document.getElementById('teamCenterRoot');if(!root)return;const x=await loadTeamIntel();if(!x.manager){root.innerHTML=`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`;return}if(x.error){root.innerHTML=`<section class="panel"><h2>⚠️ Central do Time indisponível</h2><p class="muted">${esc(x.error?.message||String(x.error))}</p></section>`;return}window.__teamCoachRows=x.rows;const rows=teamFilteredRows(x.rows);root.innerHTML=teamcenterHtml(rows,x.rows);bindTeamCenterFilters(x.rows);bindTeamActions(rows,x.rows)}
+async function initTeamCenter(){
+  const root=document.getElementById('teamCenterRoot');if(!root)return
+  const seq=++teamIntelRenderSeq
+  const started=performance.now()
+  const cached=teamIntelCacheRead()
 
+  const renderRows=(allRows,meta={})=>{
+    if(seq!==teamIntelRenderSeq||!document.getElementById('teamCenterRoot'))return
+    const r=document.getElementById('teamCenterRoot');if(!r)return
+    const prep=performance.now()
+    try{
+      window.__teamCoachRows=allRows
+      const rows=teamFilteredRows(allRows)
+      const htmlStart=performance.now()
+      const html=teamcenterHtml(rows,allRows)
+      const htmlMs=Math.round(performance.now()-htmlStart)
+      r.innerHTML=html
+      bindTeamCenterFilters(allRows)
+      bindTeamActions(rows,allRows)
+      const totalMs=Math.round(performance.now()-started)
+      console.info('[Poker Study][Central] render',{source:meta.source||'network',htmlMs,totalMs,rows:allRows.length})
+      const badge=document.createElement('div')
+      badge.className='team-perf-badge'
+      badge.textContent=meta.source==='cache'?'⚡ cache':'⚡ atualizado'
+      badge.title=`Central: ${totalMs}ms · HTML: ${htmlMs}ms`
+      r.prepend(badge)
+    }catch(e){
+      console.error('[Poker Study][Central] render failed',e)
+      r.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Não foi possível montar a Central</h2><p class="muted">Etapa: renderização do Coach Intelligence.</p><code>${esc(e?.message||String(e))}</code><div><button class="btn" id="retryTeamIntel">Tentar novamente</button></div></section>`
+      document.getElementById('retryTeamIntel')?.addEventListener('click',()=>initTeamCenter())
+    }
+  }
+
+  // Instant paint from the last successful result, while the fresh RPC runs.
+  if(cached?.rows?.length){
+    renderRows(cached.rows,{source:'cache'})
+    const r=document.getElementById('teamCenterRoot')
+    if(r)r.insertAdjacentHTML('afterbegin','<div class="team-refresh-strip" id="teamRefreshStrip">Atualizando inteligência em segundo plano…</div>')
+  }else{
+    root.innerHTML=`<section class="panel team-loading-fast"><div class="team-loading-line"><span></span></div><h2>🧠 Central do Time <span class="pill">TEAM INTELLIGENCE</span></h2><p>Buscando o último snapshot da equipe…</p><small>Se o banco demorar, esta tela não ficará presa indefinidamente.</small></section>`
+  }
+
+  // Give the browser a paint opportunity before network / heavy HTML work.
+  await new Promise(resolve=>requestAnimationFrame(()=>resolve()))
+  const x=await loadTeamIntel({force:true})
+  if(seq!==teamIntelRenderSeq)return
+
+  if(!x.manager){
+    root.innerHTML=`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`
+    return
+  }
+
+  if(x.error&&!x.rows?.length){
+    root.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Central do Time indisponível</h2><p class="muted">A consulta não concluiu. O app foi liberado para você continuar usando as outras abas.</p><code>${esc(x.error?.message||String(x.error))}</code><div><button class="btn" id="retryTeamIntel">Tentar novamente</button></div></section>`
+    document.getElementById('retryTeamIntel')?.addEventListener('click',()=>initTeamCenter())
+    return
+  }
+
+  renderRows(x.rows||[],{source:x.stale?'cache-stale':'network'})
+}
 function leakData(){const m={};for(const h of db.hands){for(const k of [h.topic,...tagList(h.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};m[k].hands++;m[k].confidence+=+h.confidence||0;if(h.status!=='done')m[k].pending++}}for(const s of db.studies){for(const k of [s.topic,...tagList(s.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};if(s.status==='done')m[k].studies++}}return Object.entries(m).map(([topic,v])=>({topic,...v,score:v.pending*3+v.hands-Math.min(v.studies,5)-(v.confidence/Math.max(1,v.hands))/2})).sort((a,b)=>b.score-a.score)}
 function leaks(){
   const a=leakData(),pending=db.hands.filter(x=>x.status!=='done').length,avg=db.hands.length?db.hands.reduce((n,h)=>n+(+h.confidence||0),0)/db.hands.length:0
