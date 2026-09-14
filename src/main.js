@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.3.3 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.0 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -224,7 +224,7 @@ function renderMaxLateModalBody(){
   root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
 }
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.3.3 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.0 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -3021,18 +3021,63 @@ function teamDailyProgress(plan){
   const s=teamDailyExecution(),total=plan.length,done=plan.filter(x=>s.done[teamTaskKey(x)]).length
   return {done,total,pct:total?Math.round(done/total*100):0,state:s}
 }
+
+function teamLeakTrendForRow(row,label){
+  const views=row?.snap?.stats?.views||{},v30=views['30d']||views['30d|all'],v90=views['90d']||views['90d|all']||views.all
+  const find=v=>(v?.leaks||[]).find(l=>String(l.label||'')===String(label||''))
+  const a=find(v30),b=find(v90)
+  if(!a&&!b)return {status:'unknown',delta:0,label:'sem histórico',a:null,b:null}
+  const av=+a?.score||0,bv=+b?.score||0,delta=av-bv
+  if(delta>.12)return {status:'worse',delta,label:'piorando',a,b}
+  if(delta<-.12)return {status:'better',delta,label:'melhorando',a,b}
+  return {status:'stable',delta,label:'estável',a,b}
+}
+function teamReviewHandsTarget(leak,collectivePlayers=1){
+  const den=+leak?.den||0
+  const per=den>=1000?25:den>=300?20:den>=100?15:10
+  return Math.min(100,Math.max(10,per*Math.max(1,collectivePlayers)))
+}
+function teamCoachSignals(ready,data){
+  const rows=[]
+  ready.forEach(x=>(x.snap?.leaks||[]).forEach(l=>{
+    const trend=teamLeakTrendForRow(x,l.label)
+    rows.push({row:x,leak:l,trend,player:x.member.display_name||x.member.email})
+  }))
+  const worsening=rows.filter(x=>x.trend.status==='worse').sort((a,b)=>b.trend.delta-a.trend.delta||b.leak.score-a.leak.score)
+  const improving=rows.filter(x=>x.trend.status==='better').sort((a,b)=>a.trend.delta-b.trend.delta||b.leak.score-a.leak.score)
+  const critical=rows.filter(x=>(+x.leak.score||0)>=1.5).sort((a,b)=>b.leak.score-a.leak.score)
+  return {rows,worsening,improving,critical}
+}
+function teamCoachBriefing(ready,data){
+  const s=teamCoachSignals(ready,data),bad=s.worsening[0]||s.critical[0]||null,good=s.improving[0]||null
+  const collective=data.topCollective||null
+  return `<section class="panel coach-briefing"><header><div><small>BRIEFING AUTOMÁTICO</small><h2>O que mudou desde a última leitura?</h2><p>Três respostas rápidas antes de você começar a trabalhar.</p></div></header>
+    <div class="coach-briefing-grid">
+      <article class="${bad?.trend.status==='worse'?'bad':'warn'}"><small>⚠️ MERECE ATENÇÃO</small><b>${bad?`${esc(bad.player)} · ${esc(bad.leak.label)}`:'Nenhuma piora relevante'}</b><span>${bad?`${teamPriorityReason(bad.leak)} · ${bad.trend.status==='worse'?'tendência de piora':'prioridade alta atual'}`:'O recorte está estável.'}</span>${bad?`<button class="team-open-leak" data-team-leak="${esc(bad.leak.label)}">Investigar →</button>`:''}</article>
+      <article class="${good?'good':'neutral'}"><small>✅ EVOLUÇÃO</small><b>${good?`${esc(good.player)} · ${esc(good.leak.label)}`:'Sem melhora confirmada ainda'}</b><span>${good?`O desvio recente caiu em relação à base de 90 dias.`:'Precisamos de mais mãos recentes para confirmar evolução.'}</span>${good?`<button data-team-player="${esc(good.row.member.user_id)}">Abrir Raio-X →</button>`:''}</article>
+      <article class="collective"><small>👥 OPORTUNIDADE COLETIVA</small><b>${collective?esc(collective.label):'Nenhum tema coletivo dominante'}</b><span>${collective?`${collective.players.size} jogadores afetados · ${collective.items.reduce((n,x)=>n+(+x.den||0),0).toLocaleString('pt-BR')} oportunidades somadas.`:'Os problemas estão mais individualizados neste recorte.'}</span>${collective?`<button data-team-create-plan="${esc(collective.label)}">Preparar aula →</button>`:''}</article>
+    </div>
+  </section>`
+}
 function teamMorningPlan(ready,data){
   const items=[]
-  if(data.topCollective){const x=data.topCollective.items?.sort((a,b)=>b.score-a.score)?.[0];items.push({kind:'AULA COLETIVA',title:data.topCollective.label,why:`${data.topCollective.players.size} jogadores afetados`,mins:20,action:'collective',label:data.topCollective.label})}
-  data.perPlayer.slice(0,3).forEach(x=>{if(x.top)items.push({kind:'REVISÃO INDIVIDUAL',title:`${x.row.member.display_name||x.row.member.email} · ${x.top.label}`,why:teamPriorityReason(x.top),mins:15,action:'playerLeak',label:x.top.label,userId:x.row.member.user_id,player:x.row.member.display_name||x.row.member.email})})
+  if(data.topCollective){
+    const sorted=[...(data.topCollective.items||[])].sort((a,b)=>b.score-a.score),x=sorted[0],players=data.topCollective.players.size
+    const affected=ready.filter(r=>(r.snap?.leaks||[]).some(l=>l.label===data.topCollective.label))
+    const trends=affected.map(r=>teamLeakTrendForRow(r,data.topCollective.label))
+    const worsening=trends.filter(t=>t.status==='worse').length,improving=trends.filter(t=>t.status==='better').length
+    const trendLabel=worsening?`${worsening} piorando`:improving===players?'grupo melhorando':improving?`${improving} melhorando`:'estável'
+    const hands=teamReviewHandsTarget(x,players)
+    items.push({kind:'AULA COLETIVA',title:data.topCollective.label,why:`${players} jogadores · ${trendLabel} · ${data.topCollective.items.reduce((n,l)=>n+(+l.den||0),0).toLocaleString('pt-BR')} opp`,mins:20,action:'collective',label:data.topCollective.label,hands,trend:worsening?'worse':improving?'better':'stable'})
+  }
+  const individuals=data.perPlayer.filter(x=>x.top).map(x=>{
+    const trend=teamLeakTrendForRow(x.row,x.top.label),player=x.row.member.display_name||x.row.member.email,hands=teamReviewHandsTarget(x.top,1)
+    const trendWeight=trend.status==='worse'?3:trend.status==='stable'?1:trend.status==='better'?-1:0
+    return {kind:'REVISÃO INDIVIDUAL',title:`${player} · ${x.top.label}`,why:`${teamPriorityReason(x.top)} · ${trend.label}`,mins:15,action:'playerLeak',label:x.top.label,userId:x.row.member.user_id,player,hands,trend:trend.status,rank:(+x.top.score||0)*10+trendWeight}
+  }).sort((a,b)=>b.rank-a.rank)
+  items.push(...individuals.slice(0,3))
   return items.slice(0,4)
 }
-function teamAreaExplainedCard(x,area){
-  const leaks=(x.snap?.leaks||[]).filter(l=>teamLeakArea(l.label,l.group)===area).sort((a,b)=>b.score-a.score),top=leaks[0]
-  const cls=!top?'ok':top.score>=1.5?'high':top.score>=.75?'mid':'watch'
-  return `<button class="coach-map-cell ${cls}" data-team-area="${esc(area)}" data-team-area-player="${esc(x.member.user_id)}"><span>${!top?'Sem alerta':top.score>=1.5?'Alta':top.score>=.75?'Média':'Atenção'}</span><b>${top?esc(top.label):'—'}</b><small>${top?`${teamNum(top.value)}% vs ${esc(top.range)} · ${(+top.den||0).toLocaleString('pt-BR')} opp`:'Nenhum sinal fora da referência'}</small><em>${leaks.length?`${leaks.length} métrica${leaks.length===1?'':'s'}`:'limpo'}</em></button>`
-}
-
 function teamTrendModel(x){
   const s=x?.snap;if(!s)return null
   const views=s.stats?.views||{},now=views['30d']||views['30d|all']||null,base=views['90d']||views['90d|all']||views.all||null
@@ -3051,12 +3096,12 @@ function teamTrendArrow(v,invert=false){
 function teamTrendPanel(ready){
   const rows=ready.map(x=>({x,t:teamTrendModel(x)})).filter(z=>z.t)
   if(!rows.length)return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA</small><h2>O time está melhorando?</h2><p>Precisamos de amostra recente para comparar os últimos 30 dias com a base de 90 dias.</p></div></header><div class="notice">Ainda não há recorte temporal suficiente para uma leitura confiável.</div></section>`
-  const avgWr=rows.reduce((n,z)=>n+z.t.wrDelta,0)/rows.length
-  const avgLeak=rows.reduce((n,z)=>n+z.t.leakDelta,0)/rows.length
+  const avgWr=rows.reduce((n,z)=>n+z.t.wrDelta,0)/rows.length,avgLeak=rows.reduce((n,z)=>n+z.t.leakDelta,0)/rows.length
   const wrA=teamTrendArrow(avgWr),leakA=teamTrendArrow(avgLeak,true)
-  return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA · 30D VS 90D</small><h2>O time está melhorando?</h2><p>Não é mais uma lista de stats: mostra direção. Verde = evolução; vermelho = atenção.</p></div><span class="pill">${rows.length} jogador${rows.length===1?'':'es'}</span></header>
-    <div class="trend-summary"><article class="${wrA.cls}"><small>WINRATE</small><b>${wrA.icon} ${avgWr>=0?'+':''}${teamNum(avgWr)} bb/100</b><span>mudança média do grupo</span></article><article class="${leakA.cls}"><small>CARGA DE DESVIOS</small><b>${leakA.icon} ${avgLeak>=0?'+':''}${teamNum(avgLeak)}</b><span>variação da pressão dos leaks</span></article></div>
-    <div class="trend-player-list">${rows.map(({x,t})=>{const wa=teamTrendArrow(t.wrDelta),la=teamTrendArrow(t.leakDelta,true);return `<button data-team-player="${esc(x.member.user_id)}"><div><b>${esc(x.member.display_name||x.member.email)}</b><small>${(+t.now.hands||0).toLocaleString('pt-BR')} mãos nos últimos 30d</small></div><span class="${wa.cls}">${wa.icon} ${t.wrDelta>=0?'+':''}${teamNum(t.wrDelta)} bb/100</span><span class="${la.cls}">${la.icon} ${Math.abs(t.leakDelta)<.05?'estável':t.leakDelta<0?'menos desvios':'mais desvios'}</span></button>`}).join('')}</div>
+  const maxWr=Math.max(1,...rows.flatMap(z=>[Math.abs(z.t.wrNow),Math.abs(z.t.wrBase)]))
+  return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA · 30D VS 90D</small><h2>O time está melhorando?</h2><p>Direção do grupo e leitura visual por jogador. Clique em um jogador para abrir o Raio-X.</p></div><span class="pill">${rows.length} jogador${rows.length===1?'':'es'}</span></header>
+    <div class="trend-summary"><article class="${wrA.cls}"><small>WINRATE</small><b>${wrA.icon} ${avgWr>=0?'+':''}${teamNum(avgWr)} bb/100</b><span>mudança média do grupo</span></article><article class="${leakA.cls}"><small>CARGA DE DESVIOS</small><b>${leakA.icon} ${avgLeak>=0?'+':''}${teamNum(avgLeak)}</b><span>${avgLeak<-.05?'menos desvios':avgLeak>.05?'mais desvios':'estável'}</span></article></div>
+    <div class="trend-visual-list">${rows.map(({x,t})=>{const wa=teamTrendArrow(t.wrDelta),la=teamTrendArrow(t.leakDelta,true);const bw=Math.max(4,Math.min(100,Math.abs(t.wrBase)/maxWr*100)),nw=Math.max(4,Math.min(100,Math.abs(t.wrNow)/maxWr*100));return `<button data-team-player="${esc(x.member.user_id)}"><div class="trend-name"><b>${esc(x.member.display_name||x.member.email)}</b><small>${(+t.now.hands||0).toLocaleString('pt-BR')} mãos · últimos 30d</small></div><div class="trend-mini-chart"><span><em>90d</em><i><b style="width:${bw}%"></b></i><strong>${t.wrBase>=0?'+':''}${teamNum(t.wrBase)}</strong></span><span class="recent"><em>30d</em><i><b style="width:${nw}%"></b></i><strong>${t.wrNow>=0?'+':''}${teamNum(t.wrNow)}</strong></span></div><div class="trend-verdict ${wa.cls}"><b>${wa.icon} ${t.wrDelta>=0?'+':''}${teamNum(t.wrDelta)} bb/100</b><small class="${la.cls}">${la.icon} ${Math.abs(t.leakDelta)<.05?'desvios estáveis':t.leakDelta<0?'menos desvios':'mais desvios'}</small></div></button>`}).join('')}</div>
   </section>`
 }
 function teamFocusTrendPanel(ready,data){
@@ -3077,13 +3122,13 @@ function teamCoachCommandCenter(rows,allRows=rows){
   const focusPlayers=data.topCollective?[...data.topCollective.players]:focus?[focus.player]:[]
   const maxArea=Math.max(1,...data.areas.map(x=>x.count))
   return `<div class="coach-command">
-    <div class="coach-command-head"><div><span class="team-kicker">V11.2 · COACH TRENDS</span><h1>Bom dia, ${esc(name)}.</h1><p>Seu time precisa de atenção em <b>${Math.min(critical||data.all.length,4)}</b> ponto${Math.min(critical||data.all.length,4)===1?'':'s'} prioritário${Math.min(critical||data.all.length,4)===1?'':'s'} hoje. A Central já organizou o que fazer primeiro.</p></div><div class="coach-health"><small>RECORTE ATUAL</small><strong>${ready.length} jogadores · ${total.toLocaleString('pt-BR')} mãos</strong><span>${critical} alertas altos</span></div></div>
+    <div class="coach-command-head"><div><span class="team-kicker">V11.4 · COACH INTELLIGENCE</span><h1>Bom dia, ${esc(name)}.</h1><p>Seu time precisa de atenção em <b>${Math.min(critical||data.all.length,4)}</b> ponto${Math.min(critical||data.all.length,4)===1?'':'s'} prioritário${Math.min(critical||data.all.length,4)===1?'':'s'} hoje. A Central já organizou o que fazer primeiro.</p></div><div class="coach-health"><small>RECORTE ATUAL</small><strong>${ready.length} jogadores · ${total.toLocaleString('pt-BR')} mãos</strong><span>${critical} alertas altos</span></div></div>
     ${teamFilterBar(allRows)}
-    <section class="coach-focus-card"><div class="coach-focus-copy"><small>FOCO #1 DO TIME</small><h2>${focus?esc(data.topCollective?.label||focus.label):'Nenhuma prioridade crítica agora'}</h2><p>${focus?`${focusPlayers.map(esc).join(' + ')} · ${teamPriorityReason(focus)}`:'Continue acumulando amostra e acompanhando o time.'}</p><div class="coach-focus-why"><b>Por que isso vem primeiro?</b><span>${data.topCollective?`O mesmo tema aparece em ${data.topCollective.players.size} jogadores, combinando recorrência coletiva, severidade e amostra.`:focus?`É o desvio com maior prioridade no recorte atual.`:'Sem intervenção necessária.'}</span></div></div><div class="coach-focus-actions">${focus?`<button class="btn team-open-leak" data-team-leak="${esc(data.topCollective?.label||focus.label)}">🔎 Entender o problema</button>${data.topCollective?`<button class="btn secondary team-focus-replay" data-team-focus-replay="${esc(data.topCollective.label)}">🎬 Revisar mãos</button>`:''}<button class="btn secondary" data-team-create-plan="${esc(data.topCollective?.label||focus.label)}">🎓 Criar aula</button>`:''}</div></section>
+    <section class="coach-focus-card"><div class="coach-focus-copy"><small>FOCO #1 DO TIME</small><h2>${focus?esc(data.topCollective?.label||focus.label):'Nenhuma prioridade crítica agora'}</h2><p>${focus?`${focusPlayers.map(esc).join(' + ')} · ${teamPriorityReason(focus)}`:'Continue acumulando amostra e acompanhando o time.'}</p><div class="coach-focus-why"><b>Por que isso vem primeiro?</b><span>${data.topCollective?`O mesmo tema aparece em ${data.topCollective.players.size} jogadores, combinando recorrência coletiva, severidade e amostra.`:focus?`É o desvio com maior prioridade no recorte atual.`:'Sem intervenção necessária.'}</span></div></div><div class="coach-focus-actions">${focus?`<button class="btn team-open-leak" data-team-leak="${esc(data.topCollective?.label||focus.label)}">🔎 Entender o problema</button>${data.topCollective?`<button class="btn secondary team-focus-replay" data-team-focus-replay="${esc(data.topCollective.label)}">🎬 Revisar mãos</button>`:''}<button class="btn secondary" data-team-create-plan="${esc(data.topCollective?.label||focus.label)}">🎓 Criar aula</button>`:''}</div></section>${teamCoachBriefing(ready,data)}
     <div class="coach-command-grid">
       <section class="panel coach-today"><header><div><small>AGENDA DO COACH</small><h2>O que fazer hoje</h2><p>Uma fila curta, em ordem de impacto. Cada item já leva direto para a ação necessária.</p></div><span class="pill">${teamDailyProgress(plan).done}/${teamDailyProgress(plan).total} concluídas</span></header>
       <div class="coach-day-progress"><i><b style="width:${teamDailyProgress(plan).pct}%"></b></i><span>${teamDailyProgress(plan).pct}% do plano de hoje</span></div>
-      <div class="coach-today-list">${plan.map((x,i)=>{const key=teamTaskKey(x),done=!!teamDailyProgress(plan).state.done[key];return `<article class="${done?'done':''}"><button class="coach-task-main" data-coach-action="${esc(x.action)}" data-team-leak="${esc(x.label||'')}" data-team-player="${esc(x.userId||'')}" data-team-player-name="${esc(x.player||'')}"><span>${done?'✓':i+1}</span><div><small>${esc(x.kind)}</small><b>${esc(x.title)}</b><p>${esc(x.why)}</p></div><em>${x.mins} min →</em></button><div class="coach-task-actions">${x.action==='collective'?`<button class="btn small secondary team-focus-replay" data-team-focus-replay="${esc(x.label)}">🎬 Mãos</button><button class="btn small secondary" data-team-create-plan="${esc(x.label)}">🎓 Aula</button>`:`<button class="btn small secondary team-open-leak" data-team-leak="${esc(x.label)}">🔎 Diagnóstico</button>`}<button class="btn small ghost" data-team-task-done="${esc(key)}">${done?'↩ Reabrir':'✓ Concluir'}</button></div></article>`}).join('')||'<div class="notice">Nenhuma ação prioritária hoje.</div>'}</div></section>
+      <div class="coach-today-list">${plan.map((x,i)=>{const key=teamTaskKey(x),done=!!teamDailyProgress(plan).state.done[key];return `<article class="${done?'done':''}"><button class="coach-task-main" data-coach-action="${esc(x.action)}" data-team-leak="${esc(x.label||'')}" data-team-player="${esc(x.userId||'')}" data-team-player-name="${esc(x.player||'')}"><span>${done?'✓':i+1}</span><div><small>${esc(x.kind)}</small><b>${esc(x.title)}</b><p>${esc(x.why)}</p><div class="coach-task-meta"><span class="${esc(x.trend||'stable')}">${x.trend==='worse'?'↘ piorando':x.trend==='better'?'↗ melhorando':'→ estável'}</span><span>🎬 ${x.hands||20} mãos</span></div></div><em>${x.mins} min →</em></button><div class="coach-task-actions">${x.action==='collective'?`<button class="btn small secondary team-focus-replay" data-team-focus-replay="${esc(x.label)}">🎬 Revisar ${x.hands||40} mãos</button><button class="btn small secondary" data-team-create-plan="${esc(x.label)}">🎓 Preparar aula</button>`:`<button class="btn small secondary team-open-leak" data-team-leak="${esc(x.label)}">🔎 Diagnóstico</button><button class="btn small secondary team-player-pack" data-team-leak="${esc(x.label)}" data-team-player="${esc(x.userId||'')}" data-team-player-name="${esc(x.player||'')}">🎬 Revisar ${x.hands||20} mãos</button>`}<button class="btn small ghost" data-team-task-done="${esc(key)}">${done?'↩ Reabrir':'✓ Concluir'}</button></div></article>`}).join('')||'<div class="notice">Nenhuma ação prioritária hoje.</div>'}</div></section>
       <section class="panel coach-players"><header><div><small>GESTÃO INDIVIDUAL</small><h2>Quem precisa de você hoje</h2><p>Um motivo claro por jogador; clique para abrir o Raio-X do Coach.</p></div></header><div class="coach-player-cards">${data.perPlayer.map((x,i)=>{const n=x.row.member.display_name||x.row.member.email;return `<button data-team-player="${esc(x.row.member.user_id)}"><i>${esc(n.slice(0,2).toUpperCase())}</i><div><b>${esc(n)}</b><small>${x.top?esc(x.top.label):'Sem prioridade crítica'}</small><p>${x.top?teamPriorityReason(x.top):'Aguardando mais amostra.'}</p></div><em class="${x.high?'bad-text':'good-text'}">${x.high?`${x.high} alta${x.high===1?'':'s'}`:'estável'} →</em></button>`}).join('')}</div></section>
     </div>
     <section class="panel coach-priorities"><header><div><small>PRIORIZAÇÃO</small><h2>Prioridades do time</h2><p>Coletivo vira aula; individual vira revisão 1:1. Sem duplicar a mesma informação em dois blocos.</p></div></header><div class="coach-priority-columns"><div><h3>👥 Coletivas</h3>${data.collective.slice(0,5).map((g,i)=>{const top=g.items.sort((a,b)=>b.score-a.score)[0];return `<button class="team-open-leak" data-team-leak="${esc(g.label)}"><span>${i+1}</span><div><b>${esc(g.label)}</b><small>${[...g.players].map(esc).join(' · ')} · ${g.items.reduce((n,x)=>n+(+x.den||0),0).toLocaleString('pt-BR')} opp</small></div><em>Aula →</em></button>`}).join('')||'<p class="muted">Nenhum problema coletivo neste recorte.</p>'}</div><div><h3>👤 Individuais</h3>${data.perPlayer.filter(x=>x.top).slice(0,5).map((x,i)=>`<button class="team-open-leak" data-team-leak="${esc(x.top.label)}"><span>${i+1}</span><div><b>${esc(x.row.member.display_name||x.row.member.email)} · ${esc(x.top.label)}</b><small>${teamPriorityReason(x.top)}</small></div><em>Revisar →</em></button>`).join('')||'<p class="muted">Nenhuma prioridade individual.</p>'}</div></div></section>
@@ -3144,6 +3189,8 @@ function bindTeamActions(rows,allRows){
   document.querySelectorAll('[data-team-lesson-replay]').forEach(el=>el.addEventListener('click',async()=>{el.disabled=true;const old=el.textContent;el.textContent='Carregando…';try{await openTeamCollectiveReplayer(el.dataset.teamLessonReplay)}catch(e){alert('Não foi possível abrir o pacote: '+(e?.message||String(e)))}finally{el.disabled=false;el.textContent=old}}))
   document.querySelectorAll('[data-team-focus-replay]').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamCollectiveReplayer(b.dataset.teamFocusReplay)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{b.disabled=false;b.textContent=old}}))
   document.querySelectorAll('[data-coach-action]').forEach(b=>b.addEventListener('click',async()=>{const kind=b.dataset.coachAction;if(kind==='collective'){await openTeamCollectiveReplayer(b.dataset.teamLeak);return}if(kind==='playerLeak'){openLeak(b.dataset.teamLeak);return}}))
+  document.querySelectorAll('.team-player-pack').forEach(b=>b.addEventListener('click',async ev=>{ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}}))
+
   document.querySelectorAll('[data-team-task-done]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();toggleTeamDailyTask(b.dataset.teamTaskDone);initTeamCenter()}))
 
 
