@@ -1,5 +1,7 @@
 import { supabase } from './supabase.js'
 import './style.css'
+import { maxLateWidgetHtml, bindMaxLateWidget } from './modules/max-late.js'
+import { createTeamIntelService } from './modules/team-intel-service.js'
 
 const app = document.querySelector('#app')
 let user = null
@@ -40,7 +42,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.2 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.0.0 • MODULAR CORE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -70,167 +72,13 @@ async function load(){
 }
 
 
-const MAXLATE_KEY='poker_study_maxlate_alarms_v113'
-let maxLateTimerHandle=null
-let maxLateAudioCtx=null
-let maxLateAlarmTimers=[]
-function maxLateAlarms(){
-  try{return JSON.parse(localStorage.getItem(MAXLATE_KEY)||'[]')}catch{return []}
-}
-function saveMaxLateAlarms(rows){localStorage.setItem(MAXLATE_KEY,JSON.stringify(rows||[]))}
-function maxLateFmt(ms){
-  ms=Math.max(0,ms||0);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60
-  return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`
-}
-function maxLateActive(){return maxLateAlarms().filter(a=>!a.fired&&+a.endsAt>Date.now()).sort((a,b)=>a.endsAt-b.endsAt)}
-function maxLateNext(){return maxLateActive()[0]||null}
-async function maxLateRequestPermission(){
-  if(!('Notification'in window))return 'unsupported'
-  await maxLateRegisterServiceWorker()
-  if(Notification.permission==='default')try{return await Notification.requestPermission()}catch{return Notification.permission}
-  return Notification.permission
-}
-async function maxLateUnlockAudio(){
-  try{
-    const AC=window.AudioContext||window.webkitAudioContext
-    if(!AC)return false
-    if(!maxLateAudioCtx)maxLateAudioCtx=new AC()
-    if(maxLateAudioCtx.state==='suspended')await maxLateAudioCtx.resume()
-    const g=maxLateAudioCtx.createGain();g.gain.value=.0001;g.connect(maxLateAudioCtx.destination)
-    const o=maxLateAudioCtx.createOscillator();o.connect(g);o.start();o.stop(maxLateAudioCtx.currentTime+.03)
-    return true
-  }catch{return false}
-}
-function maxLateStopSound(){
-  maxLateAlarmTimers.forEach(clearTimeout);maxLateAlarmTimers=[]
-  try{window.speechSynthesis?.cancel()}catch{}
-}
-function maxLatePickMaleVoice(){
-  try{
-    const voices=window.speechSynthesis?.getVoices?.()||[]
-    const pt=voices.filter(v=>/^pt(-|_)/i.test(v.lang||''))
-    const maleHints=['antonio','daniel','felipe','ricardo','male','mascul','paulo','brasil']
-    return pt.find(v=>maleHints.some(h=>String(v.name||'').toLowerCase().includes(h)))||pt.find(v=>/pt-BR/i.test(v.lang||''))||pt[0]||voices[0]||null
-  }catch{return null}
-}
-function maxLateSpeak(name){
-  try{
-    if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return false
-    window.speechSynthesis.cancel()
-    const u=new SpeechSynthesisUtterance(`Atenção. Max late do ${String(name||'torneio')}.`)
-    u.lang='pt-BR';u.rate=.92;u.pitch=.82;u.volume=1
-    const voice=maxLatePickMaleVoice();if(voice)u.voice=voice
-    window.speechSynthesis.speak(u);return true
-  }catch{return false}
-}
-async function maxLateSingleBeep(){
-  try{
-    const ok=await maxLateUnlockAudio();if(!ok)return
-    const ctx=maxLateAudioCtx,o1=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain()
-    o1.type='square';o2.type='sawtooth';o1.frequency.value=980;o2.frequency.value=490
-    g.gain.setValueAtTime(.42,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.7)
-    o1.connect(g);o2.connect(g);g.connect(ctx.destination);o1.start();o2.start();o1.stop(ctx.currentTime+.72);o2.stop(ctx.currentTime+.72)
-  }catch{}
-}
-async function maxLateAlarmSequence(name){
-  maxLateStopSound()
-  for(let i=0;i<3;i++){
-    const timer=setTimeout(async()=>{
-      await maxLateSingleBeep()
-      const voiceTimer=setTimeout(()=>maxLateSpeak(name),850)
-      maxLateAlarmTimers.push(voiceTimer)
-    },i*6500)
-    maxLateAlarmTimers.push(timer)
-  }
-}
-async function maxLateRegisterServiceWorker(){
-  if(!('serviceWorker'in navigator))return null
-  try{return await navigator.serviceWorker.register('/maxlate-sw.js')}catch(e){console.warn('Max Late SW registration failed',e);return null}
-}
-async function maxLateSystemNotify(title,body,id=''){
-  if(!('Notification'in window)||Notification.permission!=='granted')return false
-  try{
-    const reg=(await maxLateRegisterServiceWorker())||await navigator.serviceWorker.ready
-    if(reg?.showNotification){
-      await reg.showNotification(title,{body,tag:'poker-study-maxlate-'+id,requireInteraction:true,renotify:true,data:{url:location.href}})
-      return true
-    }
-  }catch(e){console.warn('Service Worker notification failed',e)}
-  try{
-    const n=new Notification(title,{body,tag:'poker-study-maxlate-'+id,requireInteraction:true})
-    n.onclick=()=>{window.focus();n.close()}
-    return true
-  }catch(e){console.warn('Notification fallback failed',e);return false}
-}
-function maxLateFire(a){
-  const rows=maxLateAlarms(),x=rows.find(r=>r.id===a.id);if(!x||x.fired)return
-  x.fired=true;x.firedAt=Date.now();saveMaxLateAlarms(rows);maxLateAlarmSequence(x.name)
-  const title=`MAX LATE ${String(x.name||'TORNEIO').toUpperCase()}`
-  maxLateSystemNotify(title,'O Max Late chegou. Abra o Poker Study para revisar o torneio.',x.id)
-  const toast=document.createElement('div');toast.className='maxlate-alarm-toast';toast.innerHTML=`<div>⏰</div><section><small>POKER STUDY · MAX LATE</small><b>${esc(title)}</b><span>O cronômetro chegou a zero. O aviso será repetido 3x.</span></section><button>Parar alarme</button>`;document.body.appendChild(toast);toast.querySelector('button').onclick=()=>{maxLateStopSound();toast.remove()}
-  updateMaxLateHeader()
-}
-function maxLateTick(){
-  const rows=maxLateAlarms(),now=Date.now()
-  rows.filter(a=>!a.fired&&+a.endsAt<=now).forEach(maxLateFire)
-  updateMaxLateHeader()
-  updateMaxLateModalCountdowns()
-}
-function startMaxLateWatcher(){
-  maxLateRegisterServiceWorker()
-  if(maxLateTimerHandle)clearInterval(maxLateTimerHandle)
-  maxLateTimerHandle=setInterval(maxLateTick,1000);maxLateTick()
-}
-function updateMaxLateHeader(){
-  const box=document.getElementById('maxLateWidget');if(!box)return
-  const next=maxLateNext(),count=maxLateActive().length
-  box.classList.toggle('active',!!next)
-  const time=box.querySelector('.maxlate-header-time'),badge=box.querySelector('.maxlate-count')
-  if(time)time.textContent=next?maxLateFmt(next.endsAt-Date.now()):'Registro de Max late'
-  if(badge){badge.textContent=count;badge.hidden=!count}
-}
-function updateMaxLateModalCountdowns(){
-  const root=document.getElementById('maxLateModalBody');if(!root)return
-  const rows=maxLateAlarms()
-  root.querySelectorAll('[data-maxlate-time]').forEach(el=>{
-    const a=rows.find(x=>String(x.id)===String(el.dataset.maxlateTime))
-    if(a&&!a.fired&&a.endsAt>Date.now())el.textContent=maxLateFmt(a.endsAt-Date.now())
-  })
-}
-function openMaxLateModal(){
-  document.getElementById('maxLateOverlay')?.remove()
-  const el=document.createElement('div');el.id='maxLateOverlay';el.className='maxlate-overlay';el.innerHTML=`<section class="maxlate-modal"><header><div><small>⏰ POKER STUDY</small><h2>Registro de Max Late</h2><p>Crie alarmes para não perder o fim do late registration.</p></div><button class="maxlate-close">×</button></header><div id="maxLateModalBody"></div></section>`;document.body.appendChild(el)
-  el.querySelector('.maxlate-close').onclick=()=>el.remove();el.onclick=e=>{if(e.target===el)el.remove()}
-  renderMaxLateModalBody()
-}
-function renderMaxLateModalBody(){
-  const root=document.getElementById('maxLateModalBody');if(!root)return
-  const rows=maxLateAlarms().sort((a,b)=>a.endsAt-b.endsAt),active=rows.filter(a=>!a.fired&&a.endsAt>Date.now())
-  root.innerHTML=`<div class="maxlate-create"><label><span>Torneio / identificação</span><input id="maxLateName" placeholder="Ex.: 109 ACR"></label><label><span>Horas</span><input id="maxLateHours" type="number" min="0" max="24" value="0"></label><label><span>Minutos</span><input id="maxLateMinutes" type="number" min="0" max="59" value="30"></label><button class="btn" id="maxLateCreate">⏰ Iniciar cronômetro</button></div>
-  <div class="maxlate-permission"><div><b>Notificação do Windows</b><span>${!('Notification'in window)?'Seu navegador não suporta notificações.':Notification.permission==='granted'?'✓ Permissão concedida — usaremos o sistema do Windows':Notification.permission==='denied'?'Bloqueada no navegador/Windows':'Ainda não autorizada'}</span></div><div class="maxlate-permission-actions"><button class="btn secondary small" id="maxLatePermission" ${!('Notification'in window)||Notification.permission==='granted'?'disabled':''}>Permitir notificação</button><button class="btn secondary small" id="maxLateTest">🔊 Testar voz + alerta</button></div></div>
-  <div class="maxlate-list-head"><b>Alarmes ativos</b><span>${active.length}</span></div>
-  <div class="maxlate-list">${active.length?active.map(a=>`<article><div class="maxlate-clock">⏰</div><div><b>${esc(a.name)}</b><span>Termina ${new Date(a.endsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div><strong data-maxlate-time="${esc(a.id)}">${maxLateFmt(a.endsAt-Date.now())}</strong><button data-maxlate-cancel="${esc(a.id)}">Cancelar</button></article>`).join(''):'<div class="notice">Nenhum cronômetro ativo.</div>'}</div>
-  <p class="maxlate-note">Para a notificação do sistema aparecer, deixe o navegador aberto (pode estar minimizado). Se o navegador estiver fechado por completo, esta versão web não consegue disparar o alerta.</p>`
-  const create=document.getElementById('maxLateCreate');if(create)create.onclick=async()=>{
-    const name=String(document.getElementById('maxLateName')?.value||'').trim()
-    const h=Math.max(0,+document.getElementById('maxLateHours')?.value||0),m=Math.max(0,+document.getElementById('maxLateMinutes')?.value||0),duration=(h*60+m)*60000
-    if(!name)return alert('Digite o nome do torneio. Ex.: 109 ACR')
-    if(duration<60000)return alert('Defina pelo menos 1 minuto.')
-    await maxLateUnlockAudio();await maxLateRequestPermission()
-    const rows=maxLateAlarms();rows.push({id:uid(),name,createdAt:Date.now(),endsAt:Date.now()+duration,fired:false});saveMaxLateAlarms(rows);renderMaxLateModalBody();updateMaxLateHeader()
-  }
-  const perm=document.getElementById('maxLatePermission');if(perm)perm.onclick=async()=>{await maxLateRequestPermission();renderMaxLateModalBody()}
-  const test=document.getElementById('maxLateTest');if(test)test.onclick=async()=>{const testName=String(document.getElementById('maxLateName')?.value||'Daily Big 10').trim()||'Daily Big 10';await maxLateUnlockAudio();await maxLateRequestPermission();maxLateAlarmSequence(testName);const ok=await maxLateSystemNotify(`MAX LATE ${testName.toUpperCase()}`,'Teste do alerta de Max Late.','test');if(!ok)alert('O navegador não conseguiu enviar a notificação do Windows. A voz ainda pode funcionar normalmente com o Poker Study aberto.')}
-  root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
-}
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.2 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.0.0 • MODULAR CORE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
-  </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
+  </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>route(b.dataset.p))
-  document.getElementById('maxLateWidget')?.addEventListener('click',openMaxLateModal)
-  startMaxLateWatcher()
+  bindMaxLateWidget()
   logout.onclick=async()=>supabase.auth.signOut()
   closeModal.onclick=()=>modal.classList.remove('show')
   route(currentPage)
@@ -2687,7 +2535,6 @@ async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEn
 
 
 // --- V10.2.0 Team Intelligence ------------------------------------------------
-let teamIntelRows=[]
 function teamTechSnapshot(facts){
   const holdem=(facts||[]).filter(x=>x.game==='holdem'),s=aggregateHhStats(holdem),entries=v78LeakEntries(holdem)
   const leaks=entries.filter(x=>['tight','aggro'].includes(x.state)).sort((a,b)=>b.score-a.score).slice(0,20).map(x=>({label:x.statLabel,group:x.group,value:x.value,den:x.den,range:v75RangeText(x.bench),state:x.state,score:x.score,pos:x.pos,metric:x.metric,reviewTarget:(x.bench?.min!=null&&x.value<x.bench.min)?'misses':'hits'}))
@@ -2871,64 +2718,9 @@ async function publishTeamSnapshot(facts){
   }
 }
 
-const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1141'
-let teamIntelLoadPromise=null
-let teamIntelRenderSeq=0
-
-function teamIntelCacheRead(){
-  try{
-    const c=JSON.parse(sessionStorage.getItem(TEAM_INTEL_CACHE_KEY)||'null')
-    if(!c||!Array.isArray(c.rows))return null
-    return c
-  }catch{return null}
-}
-function teamIntelCacheWrite(rows){
-  try{sessionStorage.setItem(TEAM_INTEL_CACHE_KEY,JSON.stringify({savedAt:Date.now(),rows:rows||[]}))}catch{}
-}
-function teamIntelTimeout(promise,ms,label){
-  let t
-  return Promise.race([
-    promise,
-    new Promise((_,reject)=>{t=setTimeout(()=>reject(new Error(`${label} excedeu ${Math.round(ms/1000)}s`)),ms)})
-  ]).finally(()=>clearTimeout(t))
-}
-async function loadTeamIntelFresh(){
-  const started=performance.now()
-  const ctx=await teamIntelTimeout(ensureTeamContext(),8000,'Contexto da equipe')
-  const teamId=ctx?.teamId
-  if(!teamId)throw new Error('Equipe não encontrada para este usuário.')
-  const mgr=await teamIntelTimeout(supabase.rpc('is_team_manager',{p_team:teamId}),8000,'Permissão do gestor')
-  if(mgr.error||!mgr.data){teamIntelRows=[];return {manager:false,rows:[],timing:{total:Math.round(performance.now()-started)}}}
-  const rpcStart=performance.now()
-  const {data,error}=await teamIntelTimeout(supabase.rpc('get_team_hh_intelligence',{p_team:teamId}),12000,'Inteligência da equipe')
-  if(error)throw error
-  teamIntelRows=(data||[]).map(r=>({
-    member:{user_id:r.user_id,role:r.role,display_name:r.display_name,email:r.email,joined_at:r.joined_at},
-    snap:r.hands==null?null:{user_id:r.user_id,hands:r.hands,stats:r.stats||{},leaks:r.leaks||[],updated_at:r.updated_at}
-  }))
-  teamIntelCacheWrite(teamIntelRows)
-  return {manager:true,rows:teamIntelRows,timing:{rpc:Math.round(performance.now()-rpcStart),total:Math.round(performance.now()-started)}}
-}
-async function loadTeamIntel({force=false}={}){
-  const cached=teamIntelCacheRead()
-  if(!force&&cached&&Date.now()-cached.savedAt<120000){
-    teamIntelRows=cached.rows
-    return {manager:true,rows:cached.rows,cached:true,cacheAge:Date.now()-cached.savedAt,timing:{total:0}}
-  }
-  if(teamIntelLoadPromise&&!force)return teamIntelLoadPromise
-  teamIntelLoadPromise=(async()=>{
-    try{return await loadTeamIntelFresh()}
-    catch(e){
-      console.error('Team intelligence load failed',e)
-      if(cached?.rows?.length){
-        teamIntelRows=cached.rows
-        return {manager:true,rows:cached.rows,cached:true,stale:true,error:e}
-      }
-      return {manager:true,rows:[],error:e}
-    }finally{teamIntelLoadPromise=null}
-  })()
-  return teamIntelLoadPromise
-}
+const teamIntelService=createTeamIntelService({supabase,ensureTeamContext})
+const teamIntelCacheRead=()=>teamIntelService.cacheRead()
+async function loadTeamIntel(options={}){return teamIntelService.load(options)}
 
 let teamCenterFilters={player:'all',period:'all'},teamLeakSeverity='all'
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando inteligência da equipe…</p></section></div>`}
