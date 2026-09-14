@@ -5,6 +5,7 @@ import { createTeamIntelService } from './modules/team-intel-service.js'
 import { createReviewPacks, replayPlayerIdentity, teamAdaptiveHandsPerPlayer } from './modules/review-packs.js'
 import { createTeamCenterRuntime } from './modules/team-center-runtime.js'
 import { createTeamCenterUI, teamLeakArea } from './modules/team-center-ui.js'
+import { createQuickHands } from './modules/quick-hands.js'
 
 const app = document.querySelector('#app')
 let user = null
@@ -36,6 +37,9 @@ let playerFinanceTab = 'reload'
 let reloadData = {members:[],requests:[],items:[],makeup:[],canManage:false,profiles:[],closings:[],ledger:[]}
 let reloadFilters = {start:'',end:'',site:'all',player:'all',status:'all'}
 
+const quickHands=createQuickHands({getUserId:()=>user?.id||null})
+let quickHandsCache=[]
+
 const esc = (s='') => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))
 const num = v => Number(String(v ?? '').replace(/[^0-9,.-]/g,'').replace(/,(?=\d{1,2}$)/,'.').replace(/,/g,'')) || 0
 const money = n => Number(n||0).toLocaleString('en-US',{style:'currency',currency:'USD'})
@@ -45,7 +49,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.2.0 • MODULAR CORE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.3.0 • MODULAR CORE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -76,7 +80,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.2.0 • MODULAR CORE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.3.0 • MODULAR CORE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -538,10 +542,101 @@ function cancelActiveStudySession(){if(!confirm('Cancelar esta sessão? As anota
 
 function hands(){
   const formats=[...new Set(db.hands.map(x=>x.format).filter(Boolean))],topics=[...new Set(db.hands.map(x=>x.topic).filter(Boolean))],positions=[...new Set(db.hands.map(x=>x.hero_position).filter(Boolean))]
-  return `<div class="toolbar hand-filters"><button class="btn" id="newHand">+ Nova mão</button><select id="handStatus"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="done">Estudadas</option><option value="favorite">Favoritas</option></select><select id="handPriority"><option value="all">Todas prioridades</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baixa</option></select><select id="handFormat"><option value="all">Todos formatos</option>${formats.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handTopic"><option value="all">Todos temas</option>${topics.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handPosition"><option value="all">Todas posições</option>${positions.map(x=>`<option>${esc(x)}</option>`).join('')}</select><input id="handSearch" placeholder="Buscar spot, tag, street..."></div><div id="handCount" class="muted">${db.hands.length} mãos</div><div id="handList">${handCards(db.hands)}</div>`
+  return `<div class="toolbar hand-filters"><button class="btn" id="newHand">+ Nova mão</button><button class="btn quick-hand-btn" id="newQuickHand">⚡ + Nova mão rápida</button><select id="handStatus"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="done">Estudadas</option><option value="favorite">Favoritas</option></select><select id="handPriority"><option value="all">Todas prioridades</option><option value="high">Alta</option><option value="normal">Normal</option><option value="low">Baixa</option></select><select id="handFormat"><option value="all">Todos formatos</option>${formats.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handTopic"><option value="all">Todos temas</option>${topics.map(x=>`<option>${esc(x)}</option>`).join('')}</select><select id="handPosition"><option value="all">Todas posições</option>${positions.map(x=>`<option>${esc(x)}</option>`).join('')}</select><input id="handSearch" placeholder="Buscar spot, tag, street..."></div>
+  <section id="quickHandsInbox" class="quick-hands-inbox"><div class="quick-hands-loading">⚡ Carregando mãos rápidas…</div></section>
+  <div id="handCount" class="muted">${db.hands.length} mãos completas</div><div id="handList">${handCards(db.hands)}</div>`
 }
 function handCards(list){return `<div class="hand-grid">${list.length?list.map(h=>`<article class="hand-card">${h.image_url?`<img src="${h.image_url}" alt="Imagem da mão">`:`<div class="no-image">Sem imagem</div>`}<div class="hand-body"><h3>${h.favorite?'★ ':''}${esc(h.tournament||'Mão sem torneio')}</h3><div class="muted">${h.date} · ${esc(h.site||'')} · ${esc(h.format||'')}</div><p><b>${esc(h.spot||'Spot')}</b> · ${esc(h.topic||'Geral')} ${h.priority==='high'?'<span class="pill warn">alta</span>':''}</p><p>${esc(h.question||'')}</p><div>${tagList(h.tags).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="toolbar" style="margin-top:10px"><button class="btn small secondary" data-view-hand="${h.id}">Ver detalhes</button><button class="btn small secondary" data-edit-hand="${h.id}">Editar</button><button class="btn small" data-toggle-hand="${h.id}">${h.status==='done'?'Reabrir':'Marcar estudada'}</button><button class="btn small secondary" data-fav-hand="${h.id}">${h.favorite?'★':'☆'}</button><button class="btn small danger" data-delete-hand="${h.id}">Apagar</button></div></div></article>`).join(''):'<p class="muted">Nenhuma mão encontrada.</p>'}</div>`}
 
+
+
+function quickHandAge(iso){
+  const d=new Date(iso),diff=Math.max(0,Date.now()-d.getTime()),mins=Math.floor(diff/60000)
+  if(mins<1)return 'agora'
+  if(mins<60)return `há ${mins} min`
+  const h=Math.floor(mins/60);if(h<24)return `há ${h}h`
+  const days=Math.floor(h/24);return `há ${days} dia${days===1?'':'s'}`
+}
+function quickHandImageUrl(q){return q?.image_blob?URL.createObjectURL(q.image_blob):''}
+function quickHandsHtml(rows){
+  if(!rows.length)return `<div class="quick-inbox-empty"><div><b>⚡ Mãos rápidas</b><p class="muted">Durante o grind, salve uma imagem, link ou anotação em poucos segundos. Depois transforme em uma mão completa.</p></div><button class="btn small quick-hand-btn" id="emptyNewQuickHand">+ Capturar mão</button></div>`
+  return `<div class="quick-inbox-head"><div><b>⚡ Mãos rápidas</b><span class="pill warn">${rows.length} pendente${rows.length===1?'':'s'}</span><p class="muted">Inbox do grind · capture agora, estude depois.</p></div></div><div class="quick-hand-grid">${rows.map(q=>{
+    const img=quickHandImageUrl(q),tags=q.tags||[]
+    return `<article class="quick-hand-card ${q.favorite?'favorite':''}">
+      ${img?`<img src="${img}" alt="Imagem da mão rápida">`:`<div class="quick-hand-no-image">⚡</div>`}
+      <div class="quick-hand-body">
+        <div class="quick-hand-meta"><span>${quickHandAge(q.created_at)}</span>${q.favorite?'<span>★ prioridade</span>':''}</div>
+        <h3>${esc(q.note||'Mão rápida')}</h3>
+        <div class="quick-hand-tags">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+        <div class="quick-hand-evidence">${q.image_blob?'<span>📷 imagem</span>':''}${q.link?`<a href="${esc(q.link)}" target="_blank" rel="noopener">🔗 abrir link</a>`:''}</div>
+        <div class="toolbar quick-hand-actions">
+          <button class="btn small" data-study-quick="${q.id}">🎓 Estudar mão</button>
+          <button class="btn small secondary" data-edit-quick="${q.id}">Editar</button>
+          <button class="btn small secondary" data-fav-quick="${q.id}">${q.favorite?'★':'☆'}</button>
+          <button class="btn small danger" data-delete-quick="${q.id}">Excluir</button>
+        </div>
+      </div>
+    </article>`
+  }).join('')}</div>`
+}
+async function refreshQuickHandsPanel(){
+  const root=document.getElementById('quickHandsInbox');if(!root)return
+  try{
+    quickHandsCache=await quickHands.list()
+    if(!document.getElementById('quickHandsInbox'))return
+    root.innerHTML=quickHandsHtml(quickHandsCache)
+    bindQuickHands()
+  }catch(e){
+    console.error('Quick hands load failed',e)
+    root.innerHTML=`<div class="quick-inbox-empty"><b>⚠ Não foi possível abrir as mãos rápidas.</b><p class="muted">${esc(e?.message||String(e))}</p></div>`
+  }
+}
+function quickHandModal(id=null){
+  const existing=id?quickHandsCache.find(x=>x.id===id):null
+  const selected=existing?.tags||[],img=quickHandImageUrl(existing)
+  openModal(existing?'Editar mão rápida':'Nova mão rápida',`
+    <div class="quick-capture-intro"><b>⚡ Captura de grind</b><p>Salve só o essencial agora. Quando o grind terminar, clique em <b>Estudar mão</b> para completar o registro.</p></div>
+    ${img?`<img src="${img}" class="quick-capture-preview" alt="Imagem salva">`:''}
+    <div class="form quick-capture-form">
+      <div class="field span2"><label>Imagem da mão</label><input id="qh_image" type="file" accept="image/*"><small class="muted">${existing?.image_blob?'Já existe uma imagem salva. Escolha outra para substituir.':'Print ou screenshot da mão.'}</small></div>
+      <div class="field span2"><label>Link</label><input id="qh_link" type="url" value="${esc(existing?.link||'')}" placeholder="https://..."></div>
+      <div class="field span2"><label>Tags rápidas</label><div class="tag-picker" id="quickTagPicker">${tagPicker(selected)}</div></div>
+      <div class="field span2"><label>Anotação rápida</label><textarea id="qh_note" placeholder="Ex.: Tenho call turn?">${esc(existing?.note||'')}</textarea></div>
+      ${existing?.image_blob?`<div class="field span2"><label class="check"><input id="qh_remove_image" type="checkbox"> Remover imagem atual</label></div>`:''}
+    </div>
+    <div class="quick-capture-footer"><span class="muted">Data e hora são registradas automaticamente.</span><button class="btn quick-hand-btn" id="saveQuickHand">${existing?'Salvar alterações':'⚡ Salvar mão rápida'}</button></div>
+    <p id="quickHandMsg" class="muted"></p>`)
+  document.querySelectorAll('#quickTagPicker [data-tag-choice]').forEach(b=>b.onclick=()=>b.classList.toggle('on'))
+  saveQuickHand.onclick=async()=>{
+    const f=qh_image.files[0],link=qh_link.value.trim(),note=qh_note.value.trim()
+    let imageBlob=existing?.image_blob||null,imageName=existing?.image_name||'',imageType=existing?.image_type||''
+    if(document.getElementById('qh_remove_image')?.checked){imageBlob=null;imageName='';imageType=''}
+    if(f){imageBlob=f;imageName=f.name;imageType=f.type}
+    if(!imageBlob&&!link&&!note)return alert('Adicione uma imagem, um link ou uma anotação rápida.')
+    saveQuickHand.disabled=true;quickHandMsg.textContent='Salvando…'
+    try{
+      const tags=[...document.querySelectorAll('#quickTagPicker [data-tag-choice].on')].map(b=>b.dataset.tagChoice)
+      await quickHands.save({id:existing?.id,note,link,tags,favorite:existing?.favorite||false,image_blob:imageBlob,image_name:imageName,image_type:imageType})
+      modal.classList.remove('show');await refreshQuickHandsPanel()
+    }catch(e){quickHandMsg.textContent='Erro: '+(e?.message||String(e));saveQuickHand.disabled=false}
+  }
+}
+async function promoteQuickHand(id){
+  const q=await quickHands.get(id)
+  if(!q)return alert('Essa mão rápida não foi encontrada.')
+  handModal(null,q)
+}
+function bindQuickHands(){
+  document.getElementById('emptyNewQuickHand')?.addEventListener('click',()=>quickHandModal())
+  document.querySelectorAll('[data-study-quick]').forEach(b=>b.onclick=()=>promoteQuickHand(b.dataset.studyQuick))
+  document.querySelectorAll('[data-edit-quick]').forEach(b=>b.onclick=()=>quickHandModal(b.dataset.editQuick))
+  document.querySelectorAll('[data-fav-quick]').forEach(b=>b.onclick=async()=>{await quickHands.toggleFavorite(b.dataset.favQuick);await refreshQuickHandsPanel()})
+  document.querySelectorAll('[data-delete-quick]').forEach(b=>b.onclick=async()=>{
+    const q=await quickHands.get(b.dataset.deleteQuick)
+    if(!q||!confirm('Excluir esta mão rápida?'))return
+    await quickHands.remove(q.id);await refreshQuickHandsPanel()
+  })
+}
 
 async function hhStatsImports(force=false){
   if(!force&&hhImportsMemoryCache)return hhImportsMemoryCache
@@ -2843,7 +2938,7 @@ function bindPage(p){
   if(p==='reports'){document.querySelectorAll('[data-report-period]').forEach(b=>b.onclick=()=>{const c=reportPeriod();c.mode=b.dataset.reportPeriod;if(c.mode!=='custom'){c.start='';c.end=''}localStorage.setItem(REPORT_PERIOD_KEY,JSON.stringify(c));route('reports')});const ap=document.getElementById('applyReportPeriod');if(ap)ap.onclick=()=>{const c=reportPeriod();c.mode='custom';c.start=document.getElementById('reportStart')?.value||'';c.end=document.getElementById('reportEnd')?.value||today();localStorage.setItem(REPORT_PERIOD_KEY,JSON.stringify(c));route('reports')}}
   if(p==='dashboard'||p==='analytics')bindFilters()
   if(p==='studies'){const ns=document.getElementById('newStudy');if(ns)ns.onclick=studyModal;const vl=document.getElementById('viewStudyLearnings');if(vl)vl.onclick=()=>{studyLearningOpen=!studyLearningOpen;route('studies')};const cl=document.getElementById('closeStudyLearnings');if(cl)cl.onclick=()=>{studyLearningOpen=false;route('studies')};const lt=document.getElementById('studyLearningTopic');if(lt)lt.onchange=()=>{studyLearningTopic=lt.value;route('studies')};const ls=document.getElementById('studyLearningSearch');if(ls)ls.oninput=()=>{studyLearningSearch=ls.value;const pos=ls.selectionStart;route('studies');const n=document.getElementById('studyLearningSearch');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch{}}};document.querySelectorAll('[data-learning-open]').forEach(b=>b.onclick=()=>openStudySessionHand(b.dataset.learningOpen));document.querySelectorAll('[data-toggle-study]').forEach(b=>b.onclick=()=>toggleStudy(b.dataset.toggleStudy));document.querySelectorAll('[data-study-start]').forEach(b=>b.onclick=()=>startStudyPlanTask(b.dataset.studyStart));const gp=document.getElementById('goStudyPlan');if(gp)gp.onclick=()=>route('plan');const cs=document.getElementById('completeStudySession');if(cs)cs.onclick=completeActiveStudySession;const cancel=document.getElementById('cancelStudySession');if(cancel)cancel.onclick=cancelActiveStudySession;const teamReplay=document.getElementById('studyTeamReplay');if(teamReplay)teamReplay.onclick=async()=>{const s=activeStudySession();if(s?.teamReplayLabel)try{await openTeamCollectiveReplayer(s.teamReplayLabel)}catch(e){alert('Não foi possível abrir o Replayer coletivo: '+(e?.message||String(e)))}};const note=document.getElementById('activeStudyNotes');if(note)note.oninput=()=>{const x=activeStudySession();if(x){x.notes=note.value;saveActiveStudySession(x)}};document.querySelectorAll('[data-study-review-hand]').forEach(b=>b.onclick=()=>toggleStudyReviewedHand(b.dataset.studyReviewHand));document.querySelectorAll('[data-study-hand-note]').forEach(inp=>inp.oninput=()=>{const x=activeStudySession();if(x){x.handNotes=x.handNotes||{};x.handNotes[inp.dataset.studyHandNote]=inp.value;saveActiveStudySession(x)}});document.querySelectorAll('[data-study-open]').forEach(b=>b.onclick=()=>openStudySessionHand(b.dataset.studyOpen));bindReviewDestinationLinks();bindStudyLiveTimer()}
-  if(p==='hands'){newHand.onclick=handModal;bindHandCards();const filterHands=()=>{let a=db.hands;if(handStatus.value==='pending')a=a.filter(x=>x.status!=='done');if(handStatus.value==='done')a=a.filter(x=>x.status==='done');if(handStatus.value==='favorite')a=a.filter(x=>x.favorite);if(handPriority.value!=='all')a=a.filter(x=>x.priority===handPriority.value);if(handFormat.value!=='all')a=a.filter(x=>x.format===handFormat.value);if(handTopic.value!=='all')a=a.filter(x=>x.topic===handTopic.value);if(handPosition.value!=='all')a=a.filter(x=>x.hero_position===handPosition.value);const q=handSearch.value.trim().toLowerCase();if(q)a=a.filter(x=>[x.spot,x.topic,x.tags,x.preflop,x.flop,x.turn,x.river,x.question,x.hero_position,x.villain_position,x.effective_stack].some(v=>String(v||'').toLowerCase().includes(q)));handCount.textContent=`${a.length} de ${db.hands.length} mãos`;handList.innerHTML=handCards(a);bindHandCards()};[handStatus,handPriority,handFormat,handTopic,handPosition].forEach(x=>x.onchange=filterHands);handSearch.oninput=filterHands}
+  if(p==='hands'){newHand.onclick=()=>handModal();newQuickHand.onclick=()=>quickHandModal();refreshQuickHandsPanel();bindHandCards();const filterHands=()=>{let a=db.hands;if(handStatus.value==='pending')a=a.filter(x=>x.status!=='done');if(handStatus.value==='done')a=a.filter(x=>x.status==='done');if(handStatus.value==='favorite')a=a.filter(x=>x.favorite);if(handPriority.value!=='all')a=a.filter(x=>x.priority===handPriority.value);if(handFormat.value!=='all')a=a.filter(x=>x.format===handFormat.value);if(handTopic.value!=='all')a=a.filter(x=>x.topic===handTopic.value);if(handPosition.value!=='all')a=a.filter(x=>x.hero_position===handPosition.value);const q=handSearch.value.trim().toLowerCase();if(q)a=a.filter(x=>[x.spot,x.topic,x.tags,x.preflop,x.flop,x.turn,x.river,x.question,x.hero_position,x.villain_position,x.effective_stack].some(v=>String(v||'').toLowerCase().includes(q)));handCount.textContent=`${a.length} de ${db.hands.length} mãos`;handList.innerHTML=handCards(a);bindHandCards()};[handStatus,handPriority,handFormat,handTopic,handPosition].forEach(x=>x.onchange=filterHands);handSearch.oninput=filterHands}
   if(p==='replayer'){
     const bindStatsReturn=()=>{const b=document.getElementById('backToHhStats');if(b)b.onclick=()=>{hhReplayContext=null;studyReplayContext=null;route('hhstats')};const s=document.getElementById('backToStudySession');if(s)s.onclick=()=>{studyReplayContext=null;route('studies')}}
     const loadText=(text,name='Hand History',refreshSaved=true)=>{hhReplayContext=null;studyReplayContext=null;const hands=parseGgHistory(text);if(!hands.length)return alert('Não consegui reconhecer nenhuma mão GG neste texto.');replayState={hands,selected:hands[0],step:0,sourceName:name,rawText:String(text||''),speed:1,playing:false,showOpponentCards:false,equilabOpen:false,rangeByHand:{},rangeColor:'blue'};replayWorkspace.innerHTML=replayWorkspaceHtml();bindStatsReturn();v835BindHandClassFilter();v835RenderReplayList();if(document.getElementById('replaySearch'))replaySearch.oninput=v835RenderReplayList;bindReplayStage();if(refreshSaved)renderSavedReplays(loadText)}
@@ -2900,13 +2995,17 @@ const STACKS=['≤10bb','11–15bb','16–20bb','21–30bb','31–40bb','41–60
 const STREET_TAGS=['Pré-flop','Flop','Turn','River']
 function opt(arr,val=''){return arr.map(x=>`<option value="${esc(x)}" ${String(x)===String(val)?'selected':''}>${esc(x)}</option>`).join('')}
 function tagPicker(selected=[]){return HAND_TAGS.map(t=>`<button type="button" class="tag-choice ${selected.includes(t)?'on':''}" data-tag-choice="${esc(t)}">${esc(t)}</button>`).join('')}
-function handModal(id=null){
+function handModal(id=null,quick=null){
   const h=id?db.hands.find(x=>x.id===id):null
-  const existingTags=tagList(h?.tags), knownTags=existingTags.filter(x=>HAND_TAGS.includes(x)), customTags=existingTags.filter(x=>!HAND_TAGS.includes(x)).join(', ')
-  const title=h?'Editar mão':'Nova mão'
-  openModal(title,`<div class="mode-switch"><button class="btn small" id="simpleMode">Registro rápido</button><button class="btn small secondary" id="advancedMode">Completo</button><span class="muted">Comece pelo rápido; abra o completo só quando precisar.</span></div>
+  const quickTags=quick?.tags||[]
+  const existingTags=h?tagList(h.tags):quickTags, knownTags=existingTags.filter(x=>HAND_TAGS.includes(x)), customTags=existingTags.filter(x=>!HAND_TAGS.includes(x)).join(', ')
+  const quickImg=quick?.image_blob?URL.createObjectURL(quick.image_blob):''
+  const quickDate=quick?.created_at?String(quick.created_at).slice(0,10):today()
+  const quickLink=String(quick?.link||'').trim()
+  const title=h?'Editar mão':quick?'Estudar mão rápida':'Nova mão'
+  openModal(title,`${quick?`<div class="quick-promote-banner"><b>⚡ Transformando captura em mão completa</b><p>Complete os dados que quiser. Ao salvar, ela sai automaticamente da fila de mãos rápidas.</p>${quickLink?`<a href="${esc(quickLink)}" target="_blank" rel="noopener">🔗 Abrir link original</a>`:''}</div>${quickImg?`<img src="${quickImg}" class="quick-capture-preview" alt="Imagem da captura">`:''}`:''}<div class="mode-switch"><button class="btn small" id="simpleMode">Registro rápido</button><button class="btn small secondary" id="advancedMode">Completo</button><span class="muted">Comece pelo rápido; abra o completo só quando precisar.</span></div>
   <div class="form quick-hand-form">
-    <div class="field"><label>Data</label><input id="h_date" type="date" value="${esc(h?.date||today())}"></div>
+    <div class="field"><label>Data</label><input id="h_date" type="date" value="${esc(h?.date||quickDate)}"></div>
     <div class="field"><label>Formato</label><select id="h_format">${opt(['PKO','MTT Regular','Satélite','Outro'],h?.format||'PKO')}</select></div>
     <div class="field"><label>Street principal</label><select id="h_street"><option value="">Selecione</option>${opt(STREET_TAGS,existingTags.find(x=>STREET_TAGS.includes(x))||'')}</select></div>
     <div class="field"><label>Spot</label><select id="h_spot"><option value="">Selecione</option>${opt(HAND_SPOTS,h?.spot||'')}</select></div>
@@ -2917,7 +3016,7 @@ function handModal(id=null){
     <div class="field"><label>Prioridade</label><select id="h_priority">${opt(['normal','high','low'],h?.priority||'normal')}</select></div>
     <div class="field"><label>Imagem da mão</label><input id="h_image" type="file" accept="image/*"></div>
     <div class="field span2"><label>Tags rápidas</label><div id="tagPicker" class="tag-picker">${tagPicker(knownTags)}</div></div>
-    <div class="field span2"><label>Dúvida / decisão que quer revisar</label><textarea id="h_question" placeholder="Ex.: Tenho raise no river?">${esc(h?.question||'')}</textarea></div>
+    <div class="field span2"><label>Dúvida / decisão que quer revisar</label><textarea id="h_question" placeholder="Ex.: Tenho raise no river?">${esc(h?.question||quick?.note||'')}</textarea></div>
   </div>
   <div id="advancedFields" class="advanced-hand-fields">
     <div class="notice">Campos opcionais. Use quando quiser documentar a mão em mais detalhes.</div><br>
@@ -2934,7 +3033,7 @@ function handModal(id=null){
       <div class="field span2"><label>Tags extras (opcional)</label><input id="h_custom_tags" value="${esc(customTags)}" placeholder="Digite somente tags que não estão acima"></div>
       ${h?.image_path?`<div class="field span2"><label class="check"><input id="h_remove_image" type="checkbox"> Remover imagem atual</label></div>`:''}
     </div>
-  </div><br><button class="btn" id="saveHand">${h?'Salvar alterações':'Salvar mão'}</button><p id="uploadMsg" class="muted"></p>`)
+  </div><br><button class="btn" id="saveHand">${h?'Salvar alterações':quick?'Salvar como mão completa':'Salvar mão'}</button><p id="uploadMsg" class="muted"></p>`)
   const adv=document.getElementById('advancedFields'), simpleBtn=document.getElementById('simpleMode'), advancedBtn=document.getElementById('advancedMode')
   const setMode=advanced=>{adv.classList.toggle('show',advanced);simpleBtn.classList.toggle('secondary',advanced);advancedBtn.classList.toggle('secondary',!advanced)}
   setMode(false);simpleBtn.onclick=()=>setMode(false);advancedBtn.onclick=()=>setMode(true)
@@ -2945,14 +3044,18 @@ function handModal(id=null){
     let image_path=h?.image_path||null
     const remove=document.getElementById('h_remove_image')?.checked
     if(remove&&image_path){await supabase.storage.from('hand-images').remove([image_path]);image_path=null}
-    const f=h_image.files[0]
+    let f=h_image.files[0]
+    if(!f&&quick?.image_blob)f=new File([quick.image_blob],quick.image_name||'mao-rapida.png',{type:quick.image_type||quick.image_blob.type||'image/png'})
     if(f){if(image_path)await supabase.storage.from('hand-images').remove([image_path]);const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');image_path=`${user.id}/${uid()}-${safe}`;const {error}=await supabase.storage.from('hand-images').upload(image_path,f);if(error){saveHand.disabled=false;return uploadMsg.textContent='Erro no upload: '+error.message}}
     const selectedTags=[...document.querySelectorAll('[data-tag-choice].on')].map(b=>b.dataset.tagChoice)
     if(h_street.value&&!selectedTags.includes(h_street.value))selectedTags.push(h_street.value)
     const custom=tagList(document.getElementById('h_custom_tags')?.value||'');const tags=[...new Set([...selectedTags,...custom])].join(', ')
-    const row={date:h_date.value,site:document.getElementById('h_site')?.value||h?.site||'',tournament:document.getElementById('h_tournament')?.value||h?.tournament||'',format:h_format.value,spot:h_spot.value,topic:h_topic.value||'Geral',blinds:document.getElementById('h_blinds')?.value||h?.blinds||'',effective_stack:h_stack.value,hero_position:h_hero.value,villain_position:h_villain.value,priority:h_priority.value,confidence:+(document.getElementById('h_confidence')?.value??h?.confidence??0),preflop:document.getElementById('h_preflop')?.value||h?.preflop||'',flop:document.getElementById('h_flop')?.value||h?.flop||'',turn:document.getElementById('h_turn')?.value||h?.turn||'',river:document.getElementById('h_river')?.value||h?.river||'',question:h_question.value,notes:document.getElementById('h_notes')?.value||h?.notes||'',tags,status:h?.status||'pending',image_path}
+    let finalNotes=document.getElementById('h_notes')?.value||h?.notes||''
+    if(quickLink&&!finalNotes.includes(quickLink))finalNotes=[finalNotes,`Link de referência: ${quickLink}`].filter(Boolean).join('\n\n')
+    const row={date:h_date.value,site:document.getElementById('h_site')?.value||h?.site||'',tournament:document.getElementById('h_tournament')?.value||h?.tournament||'',format:h_format.value,spot:h_spot.value,topic:h_topic.value||'Geral',blinds:document.getElementById('h_blinds')?.value||h?.blinds||'',effective_stack:h_stack.value,hero_position:h_hero.value,villain_position:h_villain.value,priority:h_priority.value,confidence:+(document.getElementById('h_confidence')?.value??h?.confidence??0),preflop:document.getElementById('h_preflop')?.value||h?.preflop||'',flop:document.getElementById('h_flop')?.value||h?.flop||'',turn:document.getElementById('h_turn')?.value||h?.turn||'',river:document.getElementById('h_river')?.value||h?.river||'',question:h_question.value,notes:finalNotes,tags,status:h?.status||'pending',image_path}
     const q=h?supabase.from('hands').update(row).eq('id',h.id):supabase.from('hands').insert({...row,user_id:user.id})
     const {error}=await q;if(error){saveHand.disabled=false;return uploadMsg.textContent=error.message}
+    if(quick?.id)await quickHands.remove(quick.id)
     modal.classList.remove('show');await load();route('hands')
   }
 }
