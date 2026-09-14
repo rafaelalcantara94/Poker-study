@@ -40,7 +40,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.1 • TEAM INTELLIGENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V11.4.2 • TEAM INTELLIGENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -224,7 +224,7 @@ function renderMaxLateModalBody(){
   root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
 }
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.1 • TEAM INTELLIGENCE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V11.4.2 • TEAM INTELLIGENCE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span><button id="maxLateWidget" class="maxlate-header" title="Registro de Max Late"><span class="maxlate-icon">⏰</span><span class="maxlate-header-time">Registro de Max late</span><i class="maxlate-count" hidden>0</i></button></div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -3147,6 +3147,21 @@ function teamTrendArrow(v,invert=false){
   const good=invert?v<-.05:v>.05,bad=invert?v>.05:v<-.05
   return {cls:good?'good':bad?'bad':'flat',icon:good?'↗':bad?'↘':'→'}
 }
+function teamAreaExplainedCard(row,area){
+  const fam=(row?.snap?.leaks||[]).filter(l=>(l.area||'').toLowerCase()===area.toLowerCase())
+  if(!fam.length){
+    return `<div class="coach-area clean"><small>${area}</small><b>Sem alerta</b><span>—</span></div>`
+  }
+  fam.sort((a,b)=>(+b.score||0)-(+a.score||0))
+  const top=fam[0]
+  const sev=(+top.score||0)>=1.5?'Alta':(+top.score||0)>=1?'Média':'Atenção'
+  return `<button class="coach-area ${sev.toLowerCase()}" data-team-leak="${esc(top.label)}">
+    <small>${area}</small>
+    <b>${esc(top.label)}</b>
+    <span>${sev} · ${(top.den||0).toLocaleString('pt-BR')} opp</span>
+  </button>`
+}
+
 function teamTrendPanel(ready){
   const rows=ready.map(x=>({x,t:teamTrendModel(x)})).filter(z=>z.t)
   if(!rows.length)return `<section class="panel coach-trends"><header><div><small>TENDÊNCIA</small><h2>O time está melhorando?</h2><p>Precisamos de amostra recente para comparar os últimos 30 dias com a base de 90 dias.</p></div></header><div class="notice">Ainda não há recorte temporal suficiente para uma leitura confiável.</div></section>`
