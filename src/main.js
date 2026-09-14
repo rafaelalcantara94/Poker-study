@@ -2,6 +2,8 @@ import { supabase } from './supabase.js'
 import './style.css'
 import { maxLateWidgetHtml, bindMaxLateWidget } from './modules/max-late.js'
 import { createTeamIntelService } from './modules/team-intel-service.js'
+import { createReviewPacks, replayPlayerIdentity, teamAdaptiveHandsPerPlayer } from './modules/review-packs.js'
+import { createTeamCenterRuntime } from './modules/team-center-runtime.js'
 
 const app = document.querySelector('#app')
 let user = null
@@ -42,7 +44,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.0.0 • MODULAR CORE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.1.0 • MODULAR CORE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -73,7 +75,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.0.0 • MODULAR CORE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.1.0 • MODULAR CORE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2561,139 +2563,28 @@ function teamSnapshotPayload(facts){
   return {...base,leaks:base.leaks,views,periodsAvailable:periods,dateRange:{min:dates[0]||null,max:dates.at(-1)||null}}
 }
 
-function teamLeakKey(l){
-  return [String(l?.label||'').trim(),String(l?.metric||''),String(l?.pos||'all'),String(l?.reviewTarget||'hits')].join('|')
-}
-function teamReviewRowsForLeak(facts,leak){
-  let rows=(facts||[]).filter(x=>x.game==='holdem')
-  const pos=String(leak?.pos||'all');if(pos!=='all')rows=rows.filter(x=>v76PositionGroup(String(x.position||''))===pos)
-  const metric=String(leak?.metric||''),target=String(leak?.reviewTarget||'hits')
-  let opp=()=>true,hit=()=>false
-  const bool=(oppKey,hitKey)=>{opp=x=>!!x[oppKey];hit=x=>!!x[hitKey]}
-  if(metric==='vpip'){opp=()=>true;hit=x=>!!x.vpip}
-  else if(metric==='pfr'){opp=()=>true;hit=x=>!!x.pfr}
-  else if(metric==='wwsf'){opp=x=>!!x.sawFlop;hit=x=>!!(x.sawFlop&&x.won)}
-  else if(metric==='rfi')bool('rfiOpp','rfi')
-  else if(metric==='limp')bool('limpOpp','limp')
-  else if(metric==='3bet')bool('threeBetOpp','threeBet')
-  else if(metric==='squeeze')bool('squeezeOpp','squeeze')
-  else if(metric==='call3')bool('faced3bet','call3bet')
-  else if(metric==='fold3')bool('faced3bet','foldTo3bet')
-  else if(metric==='4bet')bool('fourBetOpp','fourBet')
-  else if(metric==='steal')bool('stealOpp','steal')
-  else if(metric==='foldbbsteal')bool('bbVsStealOpp','foldBbVsSteal')
-  else if(metric==='cbet')bool('cbetOpp','cbet')
-  else if(metric==='cbett')bool('cbetTurnOpp','cbetTurn')
-  else if(metric==='cbetr')bool('cbetRiverOpp','cbetRiver')
-  else if(metric==='foldcbetf')bool('facedCbetFlop','foldVsCbetFlop')
-  else if(metric==='xrf'){opp=x=>(+x.xrFlopOpp||0)>0;hit=x=>(+x.xrFlop||0)>0}
-  else if(metric==='xrt'){opp=x=>(+x.xrTurnOpp||0)>0;hit=x=>(+x.xrTurn||0)>0}
-  else if(metric==='xrr'){opp=x=>(+x.xrRiverOpp||0)>0;hit=x=>(+x.xrRiver||0)>0}
-  else if(metric==='xr'){opp=x=>(+x.xrOppCount||0)>0;hit=x=>(+x.xrCount||0)>0}
-  else if(metric.startsWith('adv|')){
-    const p=metric.split('|'),hitKey=p[1],oppKey=p[2]
-    opp=x=>(+x[oppKey]||0)>0;hit=x=>(+x[hitKey]||0)>0
-  }else return []
-  rows=rows.filter(opp)
-  rows=target==='misses'?rows.filter(x=>!hit(x)):rows.filter(hit)
-  return rows.sort((a,b)=>String(b.time||b.date||'').localeCompare(String(a.time||a.date||'')))
-}
-function teamCompactReplayHand(h,sourcePlayer=''){
-  if(!h)return null
-  const x=JSON.parse(JSON.stringify(h));delete x.raw
-  x.teamSourcePlayer=sourcePlayer||x.teamSourcePlayer||''
-  x.teamSite=x.teamSite||x.site||x.network||x.room||'GG Poker'
-  x.teamHeroNickname=x.teamHeroNickname||x.heroNickname||x.heroName||x.hero||''
-  return x
-}
-async function publishTeamReviewPacks(teamId,facts,leaks){
-  const selected=(leaks||[]).filter(l=>l?.metric).slice(0,20)
-  if(!selected.length)return {packs:0,hands:0}
-  const packs=[]
-  const allIds=new Set()
-  for(const leak of selected){
-    const rows=teamReviewRowsForLeak(facts,leak).slice(0,50)
-    const ids=[...new Set(rows.map(x=>x.handId).filter(Boolean))]
-    ids.forEach(id=>allIds.add(id))
-    packs.push({leak,ids})
-  }
-  const allHands=await hhHandsByIds([...allIds]),byId=new Map(allHands.map(h=>[h.handId,h]))
-  let ok=0,totalHands=0,empty=0,failed=0
-  for(const p of packs){
-    const meName=(db.members||[]).find(m=>m.user_id===user?.id)?.display_name||user?.email||''
-    const hands=p.ids.map(id=>teamCompactReplayHand(byId.get(id),meName)).filter(Boolean)
-    if(!hands.length){empty++;console.warn('Review pack vazio',p.leak.label,p.leak.pos,p.leak.metric);continue}
-    const {error}=await supabase.rpc('publish_team_review_pack',{
-      p_team:teamId,p_leak_key:teamLeakKey(p.leak),p_label:p.leak.label||'Leak',
-      p_metric:p.leak.metric||'',p_position:p.leak.pos||'all',p_review_target:p.leak.reviewTarget||'hits',
-      p_hands:hands
-    })
-    if(error){failed++;console.warn('Review pack sync failed',p.leak.label,error);continue}
-    ok++;totalHands+=hands.length
-  }
-  return {packs:ok,hands:totalHands,requested:packs.length,empty,failed}
-}
-function replayPlayerIdentity(h){
-  if(!h)return {name:'Hero',site:'',nick:''}
-  const name=h.teamSourcePlayer||h.playerName||'Hero'
-  const site=h.teamSite||h.site||h.network||h.room||''
-  let nick=h.teamHeroNickname||h.heroNickname||h.heroName||''
-  if(String(nick).toLowerCase()==='hero')nick=''
-  return {name,site,nick}
-}
-function teamAdaptiveHandsPerPlayer(n){
-  if(n<=2)return 50
-  if(n<=6)return 30
-  if(n<=10)return 20
-  return 15
-}
-async function teamLoadReviewPacks(label){
-  const {teamId}=await ensureTeamContext()
-  const {data,error}=await supabase.rpc('get_team_review_packs',{p_team:teamId,p_label:label})
-  if(error)throw error
-  return data||[]
-}
-function teamReplayFromPacks(packs,label){
-  if(!packs?.length){alert('Nenhum Review Pack foi encontrado para este recorte. Na V11.3.2 corrigimos o agrupamento de posições (UTG+1→UTG e MP1/MP2→MP). Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.');return false}
-  const players=[...new Set(packs.map(p=>p.user_id))],n=Math.max(1,players.length),requested=teamAdaptiveHandsPerPlayer(n),perPlayer=Math.max(5,Math.min(requested,Math.floor(200/n)))
-  const byPlayer=new Map()
-  for(const p of packs){
-    if(!byPlayer.has(p.user_id))byPlayer.set(p.user_id,[])
-    const src=p.display_name||p.email||'Jogador'
-    const rows=[...(p.hands||[])].sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||'')))
-    for(const h of rows){
-      const c=JSON.parse(JSON.stringify(h)),orig=String(c.handId||'')
-      c.originalHandId=orig;c.handId=String(p.user_id||'player').slice(0,8)+'-'+orig
-      c.teamSourcePlayer=src;c.teamSite=c.teamSite||c.site||c.network||c.room||'GG Poker'
-      c.teamHeroNickname=c.teamHeroNickname||c.heroNickname||c.heroName||c.hero||''
-      c.teamLeakLabel=p.label||label
-      byPlayer.get(p.user_id).push(c)
-    }
-  }
-  const hands=[]
-  byPlayer.forEach(rows=>hands.push(...rows.slice(0,perPlayer)))
-  const dedup=[...new Map(hands.map(h=>[h.handId,h])).values()].sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||''))).slice(0,200)
-  if(!dedup.length){alert('Os Review Packs existem, mas não contêm mãos utilizáveis para este recorte.');return false}
-  replayState={hands:dedup,selected:dedup[0],step:firstReplayActionIndex(dedup[0]),sourceName:`Replayer · ${label}`,rawText:'',speed:1,playing:false,showOpponentCards:false,equilabOpen:false,rangeByHand:{},rangeColor:'blue'}
-  hhReplayContext={label:`Replayer · ${label}`,count:dedup.length,metaByHand:{},summary:`${players.length} jogador(es) · até ${perPlayer} mãos/jogador · ${dedup.length} mãos`,handClassFilter:'all',priorityFilter:'all',prioritizedIds:[],teamCollective:true}
-  modal.classList.remove('show');route('replayer');return true
-}
-async function openTeamCollectiveReplayer(label){
-  const packs=await teamLoadReviewPacks(label)
-  return teamReplayFromPacks(packs,label)
-}
-async function openTeamPlayerReviewPack(label,userId,playerName='Jogador'){
-  const packs=(await teamLoadReviewPacks(label)).filter(p=>p.user_id===userId)
-  return teamReplayFromPacks(packs,`${playerName} · ${label}`)
-}
-async function openTeamAreaCollectiveReplayer(area,rows,userId=null){
-  const labels=[...new Set((rows||[]).filter(x=>x.snap&&(!userId||x.member.user_id===userId)).flatMap(x=>(x.snap.leaks||[]).filter(l=>teamLeakArea(l.label,l.group)===area).map(l=>l.label)))]
-  if(!labels.length){alert('Nenhum leak desta área está disponível no recorte atual.');return false}
-  const sets=await Promise.all(labels.map(l=>teamLoadReviewPacks(l).catch(()=>[])))
-  let packs=sets.flat()
-  if(userId)packs=packs.filter(p=>p.user_id===userId)
-  return teamReplayFromPacks(packs,`${area}${userId?' · jogador':''}`)
-}
+const reviewPackApi=createReviewPacks({
+  supabase,
+  ensureTeamContext,
+  positionGroup:v76PositionGroup,
+  hhHandsByIds,
+  getDb:()=>db,
+  getUser:()=>user,
+  getReplayState:()=>replayState,
+  setReplayState:v=>{replayState=v},
+  firstReplayActionIndex,
+  getHhReplayContext:()=>hhReplayContext,
+  setHhReplayContext:v=>{hhReplayContext=v},
+  closeModal:()=>modal.classList.remove('show'),
+  route,
+  leakArea:teamLeakArea,
+  alertFn:msg=>alert(msg)
+})
+const publishTeamReviewPacks=(teamId,facts,leaks)=>reviewPackApi.publishTeamReviewPacks(teamId,facts,leaks)
+const openTeamCollectiveReplayer=label=>reviewPackApi.openTeamCollectiveReplayer(label)
+const openTeamPlayerReviewPack=(label,userId,playerName='Jogador')=>reviewPackApi.openTeamPlayerReviewPack(label,userId,playerName)
+const openTeamAreaCollectiveReplayer=(area,rows,userId=null)=>reviewPackApi.openTeamAreaCollectiveReplayer(area,rows,userId)
+
 function setTeamSnapshotStatus(kind,msg){
   const el=document.getElementById('hhTeamSyncStatus');if(!el)return
   el.className='hh-team-sync '+(kind||'muted');el.textContent=msg
@@ -3058,66 +2949,16 @@ function bindTeamActions(rows,allRows){
   document.querySelectorAll('[data-team-severity]').forEach(el=>el.addEventListener('click',()=>{teamLeakSeverity=el.dataset.teamSeverity||'all';const root=document.getElementById('teamCenterRoot');if(root){root.innerHTML=teamcenterHtml(rows,allRows);bindTeamCenterFilters(allRows);bindTeamActions(rows,allRows);setTimeout(()=>document.getElementById('teamLeaksSection')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}}))
   document.querySelectorAll('[data-team-nav]').forEach(el=>el.addEventListener('click',()=>{const dest=el.dataset.teamNav;if(dest==='players'){document.getElementById('teamPlayersSection')?.scrollIntoView({behavior:'smooth',block:'center'});return}route(dest)}))
 }
-async function initTeamCenter(){
-  const root=document.getElementById('teamCenterRoot');if(!root)return
-  const seq=++teamIntelRenderSeq
-  const started=performance.now()
-  const cached=teamIntelCacheRead()
-
-  const renderRows=(allRows,meta={})=>{
-    if(seq!==teamIntelRenderSeq||!document.getElementById('teamCenterRoot'))return
-    const r=document.getElementById('teamCenterRoot');if(!r)return
-    const prep=performance.now()
-    try{
-      window.__teamCoachRows=allRows
-      const rows=teamFilteredRows(allRows)
-      const htmlStart=performance.now()
-      const html=teamcenterHtml(rows,allRows)
-      const htmlMs=Math.round(performance.now()-htmlStart)
-      r.innerHTML=html
-      bindTeamCenterFilters(allRows)
-      bindTeamActions(rows,allRows)
-      const totalMs=Math.round(performance.now()-started)
-      console.info('[Poker Study][Central] render',{source:meta.source||'network',htmlMs,totalMs,rows:allRows.length})
-      const badge=document.createElement('div')
-      badge.className='team-perf-badge'
-      badge.textContent=meta.source==='cache'?'⚡ cache':'⚡ atualizado'
-      badge.title=`Central: ${totalMs}ms · HTML: ${htmlMs}ms`
-      r.prepend(badge)
-    }catch(e){
-      console.error('[Poker Study][Central] render failed',e)
-      r.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Não foi possível montar a Central</h2><p class="muted">Etapa: renderização do Coach Intelligence.</p><code>${esc(e?.message||String(e))}</code><div><button class="btn" id="retryTeamIntel">Tentar novamente</button></div></section>`
-      document.getElementById('retryTeamIntel')?.addEventListener('click',()=>initTeamCenter())
-    }
-  }
-
-  // Instant paint from the last successful result, while the fresh RPC runs.
-  if(cached?.rows?.length){
-    renderRows(cached.rows,{source:'cache'})
-    const r=document.getElementById('teamCenterRoot')
-    if(r)r.insertAdjacentHTML('afterbegin','<div class="team-refresh-strip" id="teamRefreshStrip">Atualizando inteligência em segundo plano…</div>')
-  }else{
-    root.innerHTML=`<section class="panel team-loading-fast"><div class="team-loading-line"><span></span></div><h2>🧠 Central do Time <span class="pill">TEAM INTELLIGENCE</span></h2><p>Buscando o último snapshot da equipe…</p><small>Se o banco demorar, esta tela não ficará presa indefinidamente.</small></section>`
-  }
-
-  // Give the browser a paint opportunity before network / heavy HTML work.
-  await new Promise(resolve=>requestAnimationFrame(()=>resolve()))
-  const x=await loadTeamIntel({force:true})
-  if(seq!==teamIntelRenderSeq)return
-
-  if(!x.manager){
-    root.innerHTML=`<section class="panel"><h2>Área exclusiva do gestor</h2><p class="muted">Seu perfil não possui permissão de owner/manager para visualizar a inteligência da equipe.</p></section>`
-    return
-  }
-
-  if(x.error&&!x.rows?.length){
-    root.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Central do Time indisponível</h2><p class="muted">A consulta não concluiu. O app foi liberado para você continuar usando as outras abas.</p><code>${esc(x.error?.message||String(x.error))}</code><div><button class="btn" id="retryTeamIntel">Tentar novamente</button></div></section>`
-    document.getElementById('retryTeamIntel')?.addEventListener('click',()=>initTeamCenter())
-    return
-  }
-
-  renderRows(x.rows||[],{source:x.stale?'cache-stale':'network'})
-}
+const teamCenterRuntime=createTeamCenterRuntime({
+  loadTeamIntel,
+  cacheRead:teamIntelCacheRead,
+  filteredRows:teamFilteredRows,
+  html:teamcenterHtml,
+  bindFilters:bindTeamCenterFilters,
+  bindActions:bindTeamActions,
+  esc
+})
+async function initTeamCenter(){return teamCenterRuntime.init()}
 function leakData(){const m={};for(const h of db.hands){for(const k of [h.topic,...tagList(h.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};m[k].hands++;m[k].confidence+=+h.confidence||0;if(h.status!=='done')m[k].pending++}}for(const s of db.studies){for(const k of [s.topic,...tagList(s.tags)].filter(Boolean)){if(!m[k])m[k]={hands:0,pending:0,studies:0,confidence:0};if(s.status==='done')m[k].studies++}}return Object.entries(m).map(([topic,v])=>({topic,...v,score:v.pending*3+v.hands-Math.min(v.studies,5)-(v.confidence/Math.max(1,v.hands))/2})).sort((a,b)=>b.score-a.score)}
 function leaks(){
   const a=leakData(),pending=db.hands.filter(x=>x.status!=='done').length,avg=db.hands.length?db.hands.reduce((n,h)=>n+(+h.confidence||0),0)/db.hands.length:0
