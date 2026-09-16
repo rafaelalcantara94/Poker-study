@@ -1,8 +1,8 @@
 export function replayPlayerIdentity(h){
-  if(!h)return {name:'Hero',site:'',nick:''}
-  const name=h.teamSourcePlayer||h.playerName||'Hero'
+  if(!h)return {name:'',site:'',nick:''}
+  const name=h.teamSourcePlayer||h.playerName||h.hero||''
   const site=h.teamSite||h.site||h.network||h.room||''
-  let nick=h.teamHeroNickname||h.heroNickname||h.heroName||''
+  let nick=h.teamHeroNickname||h.heroNickname||h.heroName||h.hero||''
   if(String(nick).toLowerCase()==='hero')nick=''
   return {name,site,nick}
 }
