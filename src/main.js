@@ -8,6 +8,7 @@ import { createTeamCenterUI, teamLeakArea } from './modules/team-center-ui.js'
 import { createQuickHands } from './modules/quick-hands.js'
 import { HH_STATS_STORE, HH_SNAPSHOT_STORE, replayDb, savedReplayList, saveReplayTournament, deleteReplayTournament, parsePokerHistory, computeReplayState, replayActionLabel, replayActionText, fmtChips, fmtFullChips } from './modules/replayer-core.js'
 import { createReplayerUi } from './modules/replayer-ui.js'
+import { createReplayerRuntime } from './modules/replayer-runtime.js'
 
 const app = document.querySelector('#app')
 let user = null
@@ -50,7 +51,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.8.0 • REPLAYER UI</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.9.0 • REPLAYER UI</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -81,7 +82,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.8.0 • REPLAYER UI</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.9.0 • REPLAYER UI</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2333,35 +2334,20 @@ function replayWorkspaceHtml(){
 function replayHandListHtml(list,selected){
   return list.map(h=>{const pos=h.positionMap[h.hero]||'',stack=h.bb?Math.round((h.seats.find(x=>x.name===h.hero)?.stack||0)/h.bb):0,cards=(h.heroCards||[]).map(cardHtml).join('')||'<span class="card-back">?</span><span class="card-back">?</span>',meta=hhReplayContext?.metaByHand?.[h.handId]||null,tier=meta?.tier?`<em class="strategic-tier ${esc(meta.tier)}">${esc(meta.tierLabel||meta.tier)}</em>`:'',hc=hhReplayContext?`<em class="v835-row-class">${esc(v835HandClassLabel(v835HandClass(h.heroCards)))}</em>`:'',review=studyReviewFor(h.handId),reviewBadge=review?.status?`<em class="study-row-status ${esc(review.status)}">${studyStatusIcon(review.status)}</em>`:'';return `<button class="replay-hand-row ${h.handId===selected?.handId?'active':''}" data-replay-hand="${esc(h.handId)}"><span class="sidebar-hole-cards">${cards}</span><span class="sidebar-hand-info"><b>${esc(h.heroCards.join(' ')||'-- --')} ${tier} ${reviewBadge}</b><span>${esc(pos)} · ${stack||'?'}bb ${hc}</span><small>${h.teamSourcePlayer?`👤 ${esc(h.teamSourcePlayer)}${h.teamSite?` · ${esc(h.teamSite)}`:''}${h.teamHeroNickname&&String(h.teamHeroNickname).toLowerCase()!=='hero'?` · ${esc(h.teamHeroNickname)}`:''} · `:''}${esc((h.dateTime||'').slice(11))} · ${esc(h.originalHandId||h.handId)}</small></span></button>`}).join('')
 }
-function adjacentReplayHand(direction){
-  const hs=(replayState.viewHands&&replayState.viewHands.length?replayState.viewHands:replayState.hands)||[];if(!hs.length||!replayState.selected)return null
-  const i=hs.findIndex(x=>x.handId===replayState.selected.handId);if(i<0)return null
-  const ni=i+direction;if(ni<0||ni>=hs.length)return null
-  return hs[ni]
-}
-let replayTimer=null
-function stopReplay(){if(replayTimer){clearInterval(replayTimer);replayTimer=null}replayState.playing=false}
-function selectReplayHand(id){const h=replayState.hands.find(x=>x.handId===id);if(!h)return;stopReplay();replayState.selected=h;replayState.step=firstReplayActionIndex(h);document.getElementById('replayStage').innerHTML=replayStageHtml(h);document.querySelectorAll('[data-replay-hand]').forEach(b=>b.classList.toggle('active',b.dataset.replayHand===id));bindReplayStage()}
-function bindReplayStage(){
-  const h=replayState.selected;if(!h)return
-  const rerender=()=>{const el=document.getElementById('replayStage');if(!el)return;el.innerHTML=replayStageHtml(h);bindReplayStage()};document.querySelectorAll('[data-replay-step]').forEach(b=>b.onclick=()=>{stopReplay();replayState.step=+b.dataset.replayStep;rerender()})
-  replayFirst.onclick=()=>{const prev=adjacentReplayHand(-1);if(prev)selectReplayHand(prev.handId)};replayLast.onclick=()=>{const next=adjacentReplayHand(1);if(next)selectReplayHand(next.handId)};replayPrev.onclick=()=>{stopReplay();replayState.step=Math.max(0,replayState.step-1);rerender()};replayNext.onclick=()=>{stopReplay();replayState.step=Math.min(h.steps.length-1,replayState.step+1);rerender()};replayRange.oninput=()=>{stopReplay();replayState.step=+replayRange.value;rerender()};saveReplayHand.onclick=()=>replaySaveModal(h)
-  const saveTournamentBtn=document.getElementById('saveReplayTournament');if(saveTournamentBtn)saveTournamentBtn.onclick=async()=>{if(!replayState.rawText)return alert('Importe um arquivo .txt antes de salvar.');const id=(h.tournamentId||h.tournamentName||replayState.sourceName).replace(/[^a-zA-Z0-9_-]/g,'_');await saveReplayTournament({id,name:replayState.sourceName||h.tournamentName||'Torneio',text:replayState.rawText,handsCount:replayState.hands.length,savedAt:new Date().toISOString()});saveTournamentBtn.textContent='✓ Torneio salvo';setTimeout(()=>{if(document.getElementById('saveReplayTournament'))document.getElementById('saveReplayTournament').textContent='💾 Salvar torneio'},1400)}
-  toggleOpponentCards.onclick=()=>{replayState.showOpponentCards=!replayState.showOpponentCards;rerender()};toggleEquilab.onclick=()=>{replayState.equilabOpen=!replayState.equilabOpen;rerender()}
-  replaySpeed.onchange=()=>{replayState.speed=+replaySpeed.value||1;if(replayState.playing){stopReplay();startReplay(h,rerender)}}
-  replayPlay.onclick=()=>{if(replayState.playing){stopReplay();rerender()}else startReplay(h,rerender)}
-  if(hhReplayContext)bindStudyWorkflow()
-  bindEquilab(h,rerender)
-}
-function startReplay(h,rerender){
-  stopReplay();if(replayState.step>=h.steps.length-1)replayState.step=0;replayState.playing=true;rerender()
-  const tick=Math.max(220,900/(replayState.speed||1));replayTimer=setInterval(()=>{if(replayState.step>=h.steps.length-1){stopReplay();rerender();return}replayState.step++;rerender()},tick)
-}
 function replaySaveModal(h){
   const hero=h.seats.find(x=>x.name===h.hero),stackBb=h.bb&&hero?hero.stack/h.bb:0,stackBucket=stackBb<=10?'≤10bb':stackBb<=15?'11–15bb':stackBb<=20?'16–20bb':stackBb<=30?'21–30bb':stackBb<=40?'31–40bb':stackBb<=60?'41–60bb':'61bb+',fmt=/bounty/i.test(h.tournamentName)?'PKO':'MTT Regular',date=h.dateTime.slice(0,10).replaceAll('/','-')
   openModal('Salvar mão do Replayer',`<div class="notice"><b>${esc(h.heroCards.join(' '))}</b> · ${esc(h.positionMap[h.hero]||'')} · ${stackBb.toFixed(1)}bb<br>${esc(h.tournamentName)}</div><div class="form" style="margin-top:14px"><div class="field"><label>Tema</label><select id="rp_topic">${opt(HAND_TOPICS,'Outro')}</select></div><div class="field"><label>Prioridade</label><select id="rp_priority">${opt(['normal','high','low'],'normal')}</select></div><div class="field span2"><label>Dúvida / decisão para revisar</label><textarea id="rp_question" placeholder="Ex.: Tenho call no turn?"></textarea></div></div><br><button class="btn" id="rp_save">Salvar no Banco de Mãos</button><p id="rp_msg" class="muted"></p>`)
   rp_save.onclick=async()=>{if(!rp_question.value.trim())return rp_msg.textContent='Escreva a dúvida que quer revisar.';rp_save.disabled=true;rp_msg.textContent='Salvando...';const row={user_id:user.id,date,site:(h.site||h.room||'GGNetwork'),tournament:h.tournamentName,format:fmt,spot:'Outro',topic:rp_topic.value,blinds:h.blindText,effective_stack:stackBucket,hero_position:h.positionMap[h.hero]||'',villain_position:'',priority:rp_priority.value,confidence:0,preflop:h.streetActions.preflop.join('\n'),flop:h.streetActions.flop.join('\n'),turn:h.streetActions.turn.join('\n'),river:h.streetActions.river.join('\n'),question:rp_question.value,notes:`Importada do Replayer · Hand #${h.handId}`,tags:`Replayer, ${fmt}`,status:'pending',image_path:null};const {error}=await supabase.from('hands').insert(row);if(error){rp_save.disabled=false;return rp_msg.textContent=error.message}modal.classList.remove('show');await load();route('hands')}
 }
+const replayerRuntime=createReplayerRuntime({
+  getReplayState:()=>replayState,
+  firstReplayActionIndex,replayStageHtml,bindEquilab,saveReplayTournament,
+  onSaveHand:replaySaveModal,
+  hasStudyContext:()=>!!hhReplayContext,
+  bindStudyWorkflow
+})
+const {adjacentReplayHand,stopReplay,selectReplayHand,bindReplayStage,startReplay}=replayerRuntime
+
 function results(){return `<div class="toolbar"><button class="btn" id="newResult">+ Novo resultado</button></div><div class="panel">${db.results.length?`<table><tr><th>Data</th><th>Site</th><th>Formato</th><th>MTTs</th><th>ABI</th><th>Buy-ins</th><th>Prêmios</th><th>Profit</th><th>ROI</th><th>Horas</th></tr>${db.results.map(x=>`<tr><td>${x.date}</td><td>${esc(x.site||'')}</td><td>${esc(x.format||'')}</td><td>${x.tournaments}</td><td>${money(x.abi)}</td><td>${money(x.buyins)}</td><td>${money(x.prizes)}</td><td class="${x.profit>=0?'good':'bad'}"><b>${money(x.profit)}</b></td><td>${pct(x.profit,x.buyins)}</td><td>${x.hours||0}</td></tr>`).join('')}</table>`:'<p class="muted">Nenhum resultado manual.</p>'}</div>`}
 
 let csvState=null
