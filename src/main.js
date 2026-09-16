@@ -6,6 +6,7 @@ import { createReviewPacks, replayPlayerIdentity, teamAdaptiveHandsPerPlayer } f
 import { createTeamCenterRuntime } from './modules/team-center-runtime.js'
 import { createTeamCenterUI, teamLeakArea } from './modules/team-center-ui.js'
 import { createQuickHands } from './modules/quick-hands.js'
+import { HH_STATS_STORE, HH_SNAPSHOT_STORE, replayDb, savedReplayList, saveReplayTournament, deleteReplayTournament, parseGgHistory, computeReplayState, replayActionLabel, replayActionText, fmtChips, fmtFullChips } from './modules/replayer-core.js'
 
 const app = document.querySelector('#app')
 let user = null
@@ -18,7 +19,6 @@ let hhPerfLast = {storage:0,facts:0,render:0,total:0,cached:0,recomputed:0}
 const hhFactsSessionCache = new Map()
 let hhImportsMemoryCache = null
 let hhPersistedSnapshot = null
-const HH_SNAPSHOT_STORE='hhStatsSnapshot'
 const HH_SNAPSHOT_KEY='main-v1'
 let hhStatsDataRevision = 0
 const hhStatsViewMemo = new Map()
@@ -49,7 +49,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.3.0 • MODULAR CORE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.4.0 • MODULAR CORE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -80,7 +80,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.3.0 • MODULAR CORE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.4.0 • MODULAR CORE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2170,72 +2170,9 @@ async function refreshHhStats(){
   publishTeamSnapshot(hhStatsCache).catch(()=>{})
   const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V9.4</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}${usedSnapshot?' · <b>snapshot</b>':''}`
 }
-const REPLAY_DB='poker-study-replayer',REPLAY_STORE='tournaments',HH_STATS_STORE='hhStatsImports'
-function replayDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(REPLAY_DB,3);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(REPLAY_STORE))r.result.createObjectStore(REPLAY_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_STATS_STORE))r.result.createObjectStore(HH_STATS_STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(HH_SNAPSHOT_STORE))r.result.createObjectStore(HH_SNAPSHOT_STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-async function savedReplayList(){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readonly'),r=tx.objectStore(REPLAY_STORE).getAll();r.onsuccess=()=>resolve((r.result||[]).sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||'')));r.onerror=()=>reject(r.error)})}
-async function saveReplayTournament(rec){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readwrite');tx.objectStore(REPLAY_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
-async function deleteReplayTournament(id){const d=await replayDb();return new Promise((resolve,reject)=>{const tx=d.transaction(REPLAY_STORE,'readwrite');tx.objectStore(REPLAY_STORE).delete(id);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
 let replayState={hands:[],selected:null,step:0,sourceName:'',rawText:'',speed:1,playing:false,showOpponentCards:false,equilabOpen:false,rangeByHand:{},rangeColor:'blue'}
 function replayer(){
   return `<div class="panel"><h2>Replayer GGNetwork <span class="pill warn">VISUAL</span></h2><div class="notice"><b>Hand History da GG.</b> Faça upload do .txt inteiro do torneio ou cole uma única mão. O arquivo é processado no navegador. Você também pode salvar torneios neste dispositivo para reabrir sem importar novamente.</div><div class="toolbar" style="margin-top:14px"><input id="hhFile" type="file" accept=".txt,text/plain"><button class="btn secondary" id="readHhFile">Ler arquivo</button></div><div id="savedReplayBox" class="saved-replays"><span class="muted">Carregando torneios salvos...</span></div><details style="margin-top:12px"><summary>Ou colar Hand History</summary><textarea id="hhPaste" class="hh-paste" placeholder="Poker Hand #TM..." style="margin-top:10px"></textarea><button class="btn secondary" id="parseHhPaste" style="margin-top:8px">Interpretar texto</button></details></div><div id="replayWorkspace">${replayState.hands.length?replayWorkspaceHtml():'<div class="panel"><p class="muted">Nenhuma Hand History carregada ainda.</p></div>'}</div>`
-}
-function parseGgHistory(text){
-  const blocks=String(text||'').replace(/\r/g,'').split(/(?=^Poker Hand #)/m).map(x=>x.trim()).filter(x=>x.startsWith('Poker Hand #'))
-  return blocks.map(parseGgHand).filter(Boolean)
-}
-function parseGgHand(block){
-  const lines=block.split('\n').map(x=>x.trim()).filter(Boolean),head=lines[0]||''
-  const hm=head.match(/^Poker Hand #([^:]+): Tournament #([^,]+),\s*(.*?)\s+-\s+Level([^\(]+)\((.+)\)\s+-\s+(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})$/)
-  if(!hm)return null
-  const [,handId,tournamentId,tournamentName,level,blindText,dateTime]=hm
-  const tableLine=lines.find(x=>x.startsWith("Table '"))||'',tm=tableLine.match(/Table '([^']+)' .*Seat #(\d+) is the button/),table=tm?.[1]||'',buttonSeat=+(tm?.[2]||0)
-  const seats=[],seatByName={}
-  for(const line of lines){const m=line.match(/^Seat (\d+): (.+) \(([\d,]+) in chips\)$/);if(m){const x={seat:+m[1],name:m[2],stack:+m[3].replace(/,/g,''),cards:null};seats.push(x);seatByName[x.name]=x}}
-  let hero='',heroCards=[]
-  for(const line of lines){const m=line.match(/^Dealt to (.+?) \[([^\]]+)\]$/);if(m){hero=m[1];heroCards=m[2].split(/\s+/);if(seatByName[hero])seatByName[hero].cards=heroCards}}
-  const bbm=lines.find(x=>/posts big blind/.test(x))?.match(/posts big blind ([\d,]+)/),bb=bbm?+bbm[1].replace(/,/g,''):0
-  const sbm=lines.find(x=>/posts small blind/.test(x))?.match(/posts small blind ([\d,]+)/),sb=sbm?+sbm[1].replace(/,/g,''):0
-  const am=lines.find(x=>/posts the ante/.test(x))?.match(/posts the ante ([\d,]+)/),ante=am?+am[1].replace(/,/g,''):0
-  let street='preflop',board=[],steps=[],forcedActions=[]
-  const streetActions={preflop:[],flop:[],turn:[],river:[]}
-  for(const line of lines){
-    if(line==='*** HOLE CARDS ***'){steps.push({kind:'street',street:'preflop',label:'Pré-flop',board:[]});continue}
-    let m=line.match(/^\*\*\* FLOP \*\*\* \[([^\]]+)\]/);if(m){street='flop';board=m[1].split(/\s+/);steps.push({kind:'street',street,label:'Flop',board:[...board]});continue}
-    m=line.match(/^\*\*\* TURN \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='turn';board=[...board,m[1]];steps.push({kind:'street',street,label:'Turn',board:[...board]});continue}
-    m=line.match(/^\*\*\* RIVER \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='river';board=[...board,m[1]];steps.push({kind:'street',street,label:'River',board:[...board]});continue}
-    if(/^\*\*\*/.test(line)||/^Seat \d+:/.test(line)||/^Dealt to /.test(line)||line.startsWith("Table '")||line.startsWith('Poker Hand #')||line.startsWith('Total pot ')||line.startsWith('Board '))continue
-    const a=parseGgAction(line,street)
-    if(a){
-      if(['ante','sb','bb'].includes(a.type)) forcedActions.push(a)
-      else {steps.push(a);if(streetActions[street])streetActions[street].push(line)}
-    }
-  }
-  // Keep street transitions as visual replay events so the board can be dealt
-  // street by street (especially when players are all-in pre-flop). They are
-  // replayed, but are not counted as player actions in the UI.
-  const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,]+)/),finalPot=potm?+potm[1].replace(/,/g,''):0
-  const positionMap=derivePositions(seats,buttonSeat)
-  return {handId,tournamentId,tournamentName,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,raw:block}
-}
-function parseGgAction(line,street){
-  let m=line.match(/^(.+?): posts the ante ([\d,]+)/);if(m)return {kind:'action',type:'ante',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): posts small blind ([\d,]+)/);if(m)return {kind:'action',type:'sb',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): posts big blind ([\d,]+)/);if(m)return {kind:'action',type:'bb',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): folds/);if(m)return {kind:'action',type:'fold',player:m[1],street,text:line}
-  m=line.match(/^(.+?): checks/);if(m)return {kind:'action',type:'check',player:m[1],street,text:line}
-  m=line.match(/^(.+?): calls ([\d,]+)/);if(m)return {kind:'action',type:'call',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): bets ([\d,]+)/);if(m)return {kind:'action',type:'bet',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): raises ([\d,]+) to ([\d,]+)/);if(m)return {kind:'action',type:'raise',player:m[1],amount:+m[2].replace(/,/g,''),to:+m[3].replace(/,/g,''),street,text:line}
-  m=line.match(/^Uncalled bet \(([\d,]+)\) returned to (.+)$/);if(m)return {kind:'action',type:'return',player:m[2],amount:+m[1].replace(/,/g,''),street,text:line}
-  m=line.match(/^(.+?): shows \[([^\]]+)\]/);if(m)return {kind:'action',type:'show',player:m[1],cards:m[2].split(/\s+/),street,text:line}
-  m=line.match(/^(.+?) collected ([\d,]+) from pot/);if(m)return {kind:'action',type:'collect',player:m[1],amount:+m[2].replace(/,/g,''),street,text:line}
-  return null
-}
-function derivePositions(seats,buttonSeat){
-  const ordered=[...seats].sort((a,b)=>a.seat-b.seat),bi=ordered.findIndex(x=>x.seat===buttonSeat);if(bi<0)return {}
-  const clockwise=[...ordered.slice(bi),...ordered.slice(0,bi)],n=clockwise.length,map={};
-  const labels=n===2?['BTN/SB','BB']:n===3?['BTN','SB','BB']:n===4?['BTN','SB','BB','CO']:n===5?['BTN','SB','BB','HJ','CO']:n===6?['BTN','SB','BB','UTG','HJ','CO']:n===7?['BTN','SB','BB','UTG','UTG+1','HJ','CO']:n===8?['BTN','SB','BB','UTG','UTG+1','MP','HJ','CO']:['BTN','SB','BB','UTG','UTG+1','MP1','MP2','HJ','CO']
-  clockwise.forEach((x,i)=>map[x.name]=labels[i]||`Seat ${x.seat}`);return map
 }
 const STUDY_REVIEW_KEY='poker-study-review-v90'
 function studyReviews(){try{return JSON.parse(localStorage.getItem(STUDY_REVIEW_KEY)||'{}')||{}}catch{return {}}}
@@ -2500,46 +2437,6 @@ function bindEquilab(h,rerender){
   const er=document.getElementById('rangeErase');if(er)er.onclick=()=>{replayState.rangeColor='erase';rerender()}
   const clear=document.getElementById('rangeClear');if(clear)clear.onclick=()=>{if(confirm('Limpar todo o range desta mão?')){replayState.rangeByHand[h.handId]={};rerender()}}
 }
-function computeReplayState(h,idx){
-  const players={};h.seats.forEach(x=>players[x.name]={stack:x.stack,folded:false,cards:null});let pot=0,board=[],streetLabel='Pré-flop',street='preflop',streetContrib={}
-  ;(h.forcedActions||[]).forEach(x=>{const p=players[x.player];if(!p)return;const a=Math.max(0,x.amount||0);p.stack=Math.max(0,p.stack-a);pot+=a;if(x.type==='sb'||x.type==='bb')streetContrib[x.player]=(streetContrib[x.player]||0)+a})
-  for(let i=0;i<=idx&&i<h.steps.length;i++){
-    const x=h.steps[i];if(x.kind==='street'){if(x.street!==street)streetContrib={};street=x.street;streetLabel=x.label;board=[...(x.board||[])];continue}
-    const p=players[x.player];if(!p)continue
-    const commit=(a,countsForBet=true)=>{a=Math.max(0,a||0);p.stack=Math.max(0,p.stack-a);pot+=a;if(countsForBet)streetContrib[x.player]=(streetContrib[x.player]||0)+a}
-    if(x.type==='ante')commit(x.amount,false)
-    else if(['sb','bb','call','bet'].includes(x.type))commit(x.amount,true)
-    else if(x.type==='raise'){const a=Math.max(0,x.to-(streetContrib[x.player]||0));commit(a,true)}
-    else if(x.type==='return'){p.stack+=x.amount;pot=Math.max(0,pot-x.amount);streetContrib[x.player]=Math.max(0,(streetContrib[x.player]||0)-x.amount)}
-    else if(x.type==='fold')p.folded=true
-    else if(x.type==='show')p.cards=x.cards
-    else if(x.type==='collect'){/* o pot permanece visível no replay até o resumo */}
-  }
-  return {players,pot,board,streetLabel,street,streetContrib}
-}
-function replayActionLabel(x,h){
-  if(!x||x.kind!=='action')return ''
-  const bb=h.bb||1,amt=n=>`${fmtChips(n)} · ${(n/bb).toFixed(1)}bb`
-  if(x.type==='fold')return 'FOLD'
-  if(x.type==='check')return 'CHECK'
-  if(x.type==='call')return `CALL ${amt(x.amount)}`
-  if(x.type==='bet')return `BET ${amt(x.amount)}`
-  if(x.type==='raise')return `RAISE TO ${amt(x.to)}`
-  if(x.type==='sb')return `SB ${amt(x.amount)}`
-  if(x.type==='bb')return `BB ${amt(x.amount)}`
-  if(x.type==='ante')return `ANTE ${amt(x.amount)}`
-  if(x.type==='return')return `RETURN ${amt(x.amount)}`
-  if(x.type==='show')return 'SHOW'
-  if(x.type==='collect')return `WIN ${amt(x.amount)}`
-  return x.type.toUpperCase()
-}
-function replayActionText(x,h){
-  if(!x||x.kind!=='action')return ''
-  const pos=h.positionMap[x.player]||x.player,label=replayActionLabel(x,h)
-  return `${pos}: ${label}`
-}
-function fmtChips(n){n=+n||0;return n>=1e6?(n/1e6).toFixed(n>=1e7?1:2)+'M':n>=1e3?(n/1e3).toFixed(n>=1e5?0:1)+'k':Math.round(n).toLocaleString('pt-BR')}
-function fmtFullChips(n){return Math.max(0,Math.round(+n||0)).toLocaleString('pt-BR')}
 function cardHtml(c){const m=String(c).match(/^([2-9TJQKA])([cdhs])$/);if(!m)return `<span class="playing-card">${esc(c)}</span>`;const suit={c:'♣',d:'♦',h:'♥',s:'♠'}[m[2]];return `<span class="playing-card suit-${m[2]}"><span class="card-rank">${m[1]}</span><span class="card-suit">${suit}</span></span>`}
 let replayTimer=null
 function stopReplay(){if(replayTimer){clearInterval(replayTimer);replayTimer=null}replayState.playing=false}
