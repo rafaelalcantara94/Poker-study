@@ -52,7 +52,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.2.0 • PLAYER IDENTITY</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.0.0 • LEAK STUDY</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -83,7 +83,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.2.0 • PLAYER IDENTITY</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.0.0 • LEAK STUDY</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -475,6 +475,15 @@ function studyPlanTasks(){
   return tasks.sort((a,b)=>(b.score||0)-(a.score||0))
 }
 function studySessionReviews(session){
+  // V14: sessões criadas diretamente de um leak podem carregar as HHs selecionadas
+  // sem exigir que elas tenham sido previamente enviadas para a Caixa de Revisões.
+  if(Array.isArray(session?.hhFactIds)&&session.hhFactIds.length){
+    const ids=new Set(session.hhFactIds.map(String))
+    return (hhStatsCache||[]).filter(x=>ids.has(String(x.handId))).slice(0,20).map(x=>({
+      handId:x.handId,heroCards:x.heroCards||[],position:x.position||'',stackBb:x.stack,
+      note:session.leakStudyWhy||'Mão selecionada automaticamente pelo diagnóstico do leak.'
+    }))
+  }
   const key=evoTopicKey(session?.title||'');if(!key)return []
   let items=reviewDestinationItems('plan').filter(x=>{const k=evoTopicKey(reviewTopic(x));return k===key||k.includes(key)||key.includes(k)})
   if(!items.length)items=reviewBoxItems().filter(x=>{const k=evoTopicKey(reviewTopic(x));return k===key||k.includes(key)||key.includes(k)})
@@ -1947,6 +1956,32 @@ function v87ConcentrationHtml(allRows=[],reviewRows=[],prioritized=[],opts={}){
   return `<section class="v87-concentration"><header><div><h4>🎯 Onde revisar primeiro</h4><p>Recortes que combinam desvio, amostra e relevância estratégica. Regiões com candidatos priorizados sobem; Trash/Outras continua auditável, mas não domina o ranking só pelo volume. Não é uma prescrição GTO.</p></div><span>${reviewTarget==='misses'?'frequência baixa':'frequência alta'}</span></header><div class="v87-focus-list">${cards}</div></section>`
 }
 
+function v140DidacticLeakHtml(entry,reviewTarget,reviewCount){
+  if(!entry)return ''
+  const below=entry.bench?.min!=null&&entry.value<entry.bench.min
+  const above=entry.bench?.max!=null&&entry.value>entry.bench.max
+  const direction=below?'abaixo':above?'acima':'fora'
+  const meaning=below
+    ? `Você está executando <b>${esc(entry.statLabel)}</b> menos vezes do que a faixa de referência neste recorte.`
+    : `Você está executando <b>${esc(entry.statLabel)}</b> mais vezes do que a faixa de referência neste recorte.`
+  const investigate=reviewTarget==='misses'
+    ? 'O estudo prioriza oportunidades válidas em que a ação não aconteceu. A pergunta é: em quais tipos de mão, stack e configuração você está deixando passar a ação?'
+    : 'O estudo prioriza mãos em que a ação aconteceu. A pergunta é: em quais tipos de mão, stack e configuração você pode estar repetindo a ação em excesso?'
+  const caution=`A referência (${v75RangeText(entry.bench)}) funciona como sinal de investigação, não como resposta GTO. O objetivo é encontrar padrões nas suas próprias decisões antes de concluir que existe um erro estratégico.`
+  return `<section class="v140-didactic"><header><div><small>V14 · DIAGNÓSTICO DIDÁTICO</small><h3>O que este desvio quer dizer?</h3></div><span>${entry.value.toFixed(1)}% · ${direction} da referência</span></header><div class="v140-didactic-grid"><div><b>1 · O sinal</b><p>${meaning} Foram ${entry.den.toLocaleString('pt-BR')} oportunidades na amostra atual.</p></div><div><b>2 · O que investigar</b><p>${investigate}</p></div><div><b>3 · Como estudar</b><p>O Poker Study separou ${reviewCount.toLocaleString('pt-BR')} candidato${reviewCount===1?'':'s'}. Comece por uma sessão curta, tome sua decisão antes de revelar a ação original e registre o aprendizado.</p></div></div><footer><span>⚠ ${caution}</span><button class="btn" id="v140StartLeakStudy">🎓 Estudar este leak</button></footer></section>`
+}
+function v140StartLeakStudy(entry,reviewRows,replayLabel,reviewTarget){
+  if(!entry||!reviewRows?.length)return alert('Não há mãos suficientes neste recorte para iniciar o estudo.')
+  const chosen=reviewRows.slice(0,Math.min(15,reviewRows.length))
+  saveActiveStudySession({
+    id:uid(),title:entry.statLabel,kind:'LEAK STUDY · DIAGNÓSTICO DIDÁTICO',mins:35,
+    why:`${entry.group} · ${entry.value.toFixed(1)}% · ref. ${v75RangeText(entry.bench)} · ${entry.den.toLocaleString('pt-BR')} oportunidades`,
+    startedAt:Date.now(),notes:'',reviewedHandIds:[],handNotes:{},hhFactIds:chosen.map(x=>String(x.handId)),
+    leakMetric:entry.metric,leakPos:entry.pos,leakTarget:reviewTarget,leakStudyWhy:`${replayLabel} · sessão criada automaticamente a partir do diagnóstico.`
+  })
+  route('studies')
+}
+
 function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   const all=pos==='all'?[...hhStatsFilteredCache]:hhStatsFilteredCache.filter(x=>x.position===pos)
   const labelPos=pos==='all'?'Filtro atual':pos
@@ -2053,11 +2088,13 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
     return aa
   }
   const v87Entry=v78LeakEntries(hhStatsFilteredCache).find(e=>e.metric===metric&&e.pos===pos)
+  const didactic=v140DidacticLeakHtml(v87Entry,reviewTarget,reviewCount)
   const diagnosis=v84DiagnosisHtml(replayUniverseRows,strategicEligible?reviewRows:[],{outcomes:strategicEligible?outcomeCounts:{}})
   const concentration=v87ConcentrationHtml(rows,replayUniverseRows,strategicEligible?reviewRows:[],{bench:v87Entry?.bench||null,hitFor,reviewTarget,strategic:strategicEligible})
-  const html=`${diagnosis}${concentration}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
+  const html=`${didactic}${diagnosis}${concentration}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
   openModal(title,html)
   const priorityFacts=strategicEligible?reviewRows:[]
+  const studyBtn=document.getElementById('v140StartLeakStudy');if(studyBtn)studyBtn.onclick=()=>v140StartLeakStudy(v87Entry,reviewRows,replayLabel,reviewTarget)
   const open=document.getElementById('auditOpenReplay');if(open)open.onclick=()=>openHhFactsInReplayer(replayUniverseRows,replayLabel,{priorityFacts})
   document.querySelectorAll('[data-v84-class]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Class,cut=replayUniverseRows.filter(x=>v835HandClass(x.heroCards)===k),ids=new Set(cut.map(x=>x.handId));openHhFactsInReplayer(cut,`${replayLabel} · ${v835HandClassLabel(k)}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
   document.querySelectorAll('[data-v84-stack]').forEach(b=>b.onclick=()=>{const k=b.dataset.v84Stack,cut=replayUniverseRows.filter(x=>v84StackBucket(x.stack)===k),ids=new Set(cut.map(x=>x.handId)),lab=(V84_STACKS.find(x=>x[0]===k)||['',k])[1];openHhFactsInReplayer(cut,`${replayLabel} · ${lab}`,{priorityFacts:priorityFacts.filter(x=>ids.has(x.handId))})})
