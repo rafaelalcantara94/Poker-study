@@ -21,19 +21,20 @@ export function createTeamCenterUI(deps){
   const alert=alertFn
   let refresh=()=>{}
 
-let teamCenterFilters={player:'all',period:'all'},teamLeakSeverity='all'
+let teamCenterFilters={player:'all',period:'all',room:'all'},teamLeakSeverity='all'
 function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h2>👥 Central do Time <span class="pill good">TEAM INTELLIGENCE</span></h2><p class="muted">Carregando inteligência da equipe…</p></section></div>`}
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
-function teamViewSnap(snap,period='all'){
+function teamViewSnap(snap,period='all',room='all'){
   if(!snap)return null
-  const views=snap.stats?.views||{},view=views[period+'|all']||views[period]||views['all|all']||views.all
+  const views=snap.stats?.views||{},key=period+'|'+room,view=views[key]||views[period+'|all']||views[period]||views['all|all']||views.all
   if(!view)return snap
-  return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,dateRange:snap.stats?.dateRange},leaks:view.leaks||[]}
+  return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,dateRange:snap.stats?.dateRange,pokerIdentities:snap.stats?.pokerIdentities,roomsAvailable:snap.stats?.roomsAvailable,roomBreakdown:snap.stats?.roomBreakdown},leaks:view.leaks||[]}
 }
-function teamFilteredRows(rows){return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period)}))}
+function teamFilteredRows(rows){return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period,teamCenterFilters.room)}))}
 function teamFilterBar(rows){
   const labels={all:'Base completa','30d':'Últimos 30 dias','90d':'Últimos 90 dias','180d':'Últimos 6 meses','365d':'Últimos 12 meses'}
-  return `<section class="team-filterbar team-filterbar-v3"><div class="team-filter-icon">👥</div><div><small>JOGADOR</small><select id="teamFilterPlayer"><option value="all">Todos os jogadores</option>${rows.map(x=>`<option value="${esc(x.member.user_id)}" ${teamCenterFilters.player===x.member.user_id?'selected':''}>${esc(x.member.display_name||x.member.email)}</option>`).join('')}</select></div><div class="team-filter-icon">🗓</div><div><small>PERÍODO</small><select id="teamFilterPeriod">${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${teamCenterFilters.period===k?'selected':''}>${v}</option>`).join('')}</select></div><button class="btn secondary small team-clear-btn" id="teamClearFilters">↻ Limpar filtros</button><span class="team-filter-meta">Dados agregados dos snapshots. Clique nos blocos para investigar.</span></section>`
+  const rooms=[...new Set(rows.flatMap(x=>x.snap?.stats?.roomsAvailable||x.snap?.stats?.pokerIdentities?.map(i=>i.room)||[]))].filter(Boolean).sort()
+  return `<section class="team-filterbar team-filterbar-v3"><div class="team-filter-icon">👥</div><div><small>JOGADOR</small><select id="teamFilterPlayer"><option value="all">Todos os jogadores</option>${rows.map(x=>`<option value="${esc(x.member.user_id)}" ${teamCenterFilters.player===x.member.user_id?'selected':''}>${esc(x.member.display_name||x.member.email)}</option>`).join('')}</select></div><div class="team-filter-icon">♠</div><div><small>SALA</small><select id="teamFilterRoom"><option value="all">Todas as salas</option>${rooms.map(r=>`<option value="${esc(r)}" ${teamCenterFilters.room===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div><div class="team-filter-icon">🗓</div><div><small>PERÍODO</small><select id="teamFilterPeriod">${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${teamCenterFilters.period===k?'selected':''}>${v}</option>`).join('')}</select></div><button class="btn secondary small team-clear-btn" id="teamClearFilters">↻ Limpar filtros</button><span class="team-filter-meta">Pessoa consolidada por conta Poker Study; sala e nick permanecem investigáveis.</span></section>`
 }
 function teamPriorityScore(x){const leaks=x.snap?.leaks||[],hi=leaks.filter(l=>l.score>=1.5).length,score=leaks.slice(0,5).reduce((n,l)=>n+(+l.score||0),0);return hi*100+score*10+Math.min(20,Math.log10(Math.max(10,+x.snap?.hands||0))*4)}
 function teamCollectiveLeaks(ready){
@@ -295,7 +296,7 @@ function teamcenterHtml(rows,allRows=rows){return teamCoachCommandCenter(rows,al
 
 function bindTeamCenterFilters(allRows){
   const render=()=>{const root=document.getElementById('teamCenterRoot');if(!root)return;const filtered=teamFilteredRows(allRows);root.innerHTML=teamcenterHtml(filtered,allRows);bindTeamCenterFilters(allRows);bindTeamActions(filtered,allRows)}
-  const p=document.getElementById('teamFilterPlayer'),d=document.getElementById('teamFilterPeriod');if(p)p.onchange=()=>{teamCenterFilters.player=p.value;teamLeakSeverity='all';render()};if(d)d.onchange=()=>{teamCenterFilters.period=d.value;teamLeakSeverity='all';render()};const c=document.getElementById('teamClearFilters');if(c)c.onclick=()=>{teamCenterFilters={player:'all',period:'all'};teamLeakSeverity='all';render()}
+  const p=document.getElementById('teamFilterPlayer'),room=document.getElementById('teamFilterRoom'),d=document.getElementById('teamFilterPeriod');if(p)p.onchange=()=>{teamCenterFilters.player=p.value;teamLeakSeverity='all';render()};if(room)room.onchange=()=>{teamCenterFilters.room=room.value;teamLeakSeverity='all';render()};if(d)d.onchange=()=>{teamCenterFilters.period=d.value;teamLeakSeverity='all';render()};const c=document.getElementById('teamClearFilters');if(c)c.onclick=()=>{teamCenterFilters={player:'all',period:'all',room:'all'};teamLeakSeverity='all';render()}
 }
 function bindTeamActions(rows,allRows){
   const openXray=id=>{const row=rows.find(x=>x.member.user_id===id)||allRows.find(x=>x.member.user_id===id);if(!row||!row.snap)return;document.body.insertAdjacentHTML('beforeend',teamPlayerXray(row));const close=()=>document.getElementById('teamXrayBackdrop')?.remove();document.getElementById('teamXrayClose')?.addEventListener('click',close);document.getElementById('teamXrayBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamXrayBackdrop')close()});document.querySelector('.team-filter-this-player')?.addEventListener('click',e=>{teamCenterFilters.player=e.currentTarget.dataset.player;close();route('teamcenter')});document.getElementById('teamGoOwnStats')?.addEventListener('click',()=>{close();route('hhstats')});document.querySelectorAll('#teamXrayBackdrop .team-open-leak').forEach(b=>b.onclick=()=>{const lab=b.dataset.teamLeak;close();openLeak(lab)})}

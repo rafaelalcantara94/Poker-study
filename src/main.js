@@ -51,7 +51,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V12.9.0 • REPLAYER UI</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.0 • REPLAYER UI</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -82,7 +82,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V12.9.0 • REPLAYER UI</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.0 • REPLAYER UI</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -1462,6 +1462,7 @@ function hhStackMatch(stack,bucket){
 function applyHhStatsFilters(){
   let a=[...hhStatsCache]
   if(hhStatsFilters.game!=='all')a=a.filter(x=>x.game===hhStatsFilters.game)
+  if((hhStatsFilters.room||'all')!=='all')a=a.filter(x=>(x.room||'Unknown')===hhStatsFilters.room)
   if(hhStatsFilters.position!=='all')a=a.filter(x=>x.position===hhStatsFilters.position)
   if(hhStatsFilters.stack!=='all')a=a.filter(x=>hhStackMatch(x.stack,hhStatsFilters.stack))
   if(hhStatsFilters.players!=='all')a=a.filter(x=>x.players===+hhStatsFilters.players)
@@ -1476,23 +1477,25 @@ function applyHhStatsFilters(){
   }
   const sum=document.getElementById('hhFilterSummary');if(sum){
     const d=hhStatsFilters.start||hhStatsFilters.end?`${hhStatsFilters.start||'início'} até ${hhStatsFilters.end||'hoje'}`:'todas as datas'
+    const room=(hhStatsFilters.room||'all')==='all'?'todas salas':hhStatsFilters.room
     const pos=hhStatsFilters.position==='all'?'todas posições':hhStatsFilters.position
     const stk=hhStatsFilters.stack==='all'?'todos stacks':`${hhStatsFilters.stack}bb`
     const ply=hhStatsFilters.players==='all'?'todas mesas':`${hhStatsFilters.players}-max`
-    sum.textContent=`Exibindo ${a.length.toLocaleString('pt-BR')} de ${hhStatsCache.length.toLocaleString('pt-BR')} mãos · ${hhGameLabel(hhStatsFilters.game)} · ${pos} · ${stk} · ${ply} · ${d}.`
+    sum.textContent=`Exibindo ${a.length.toLocaleString('pt-BR')} de ${hhStatsCache.length.toLocaleString('pt-BR')} mãos · ${hhGameLabel(hhStatsFilters.game)} · ${room} · ${pos} · ${stk} · ${ply} · ${d}.`
   }
 }
 function bindHhStatsFilters(){
-  const g=document.getElementById('hhGameFilter'),pos=document.getElementById('hhPositionFilter'),stk=document.getElementById('hhStackFilter'),ply=document.getElementById('hhPlayersFilter'),a=document.getElementById('hhDateStart'),b=document.getElementById('hhDateEnd'),clear=document.getElementById('clearHhFilters')
+  const g=document.getElementById('hhGameFilter'),room=document.getElementById('hhRoomFilter'),pos=document.getElementById('hhPositionFilter'),stk=document.getElementById('hhStackFilter'),ply=document.getElementById('hhPlayersFilter'),a=document.getElementById('hhDateStart'),b=document.getElementById('hhDateEnd'),clear=document.getElementById('clearHhFilters')
   if(!g)return
-  g.value=hhStatsFilters.game;pos.value=hhStatsFilters.position;stk.value=hhStatsFilters.stack;ply.value=hhStatsFilters.players;a.value=hhStatsFilters.start;b.value=hhStatsFilters.end
+  g.value=hhStatsFilters.game;if(room)room.value=hhStatsFilters.room||'all';pos.value=hhStatsFilters.position;stk.value=hhStatsFilters.stack;ply.value=hhStatsFilters.players;a.value=hhStatsFilters.start;b.value=hhStatsFilters.end
   g.onchange=()=>{hhStatsFilters.game=g.value;applyHhStatsFilters()}
+  if(room)room.onchange=()=>{hhStatsFilters.room=room.value;applyHhStatsFilters()}
   pos.onchange=()=>{hhStatsFilters.position=pos.value;applyHhStatsFilters()}
   stk.onchange=()=>{hhStatsFilters.stack=stk.value;applyHhStatsFilters()}
   ply.onchange=()=>{hhStatsFilters.players=ply.value;applyHhStatsFilters()}
   a.onchange=()=>{hhStatsFilters.start=a.value;if(hhStatsFilters.end&&a.value>hhStatsFilters.end){hhStatsFilters.end=a.value;b.value=a.value}applyHhStatsFilters()}
   b.onchange=()=>{hhStatsFilters.end=b.value;if(hhStatsFilters.start&&b.value<hhStatsFilters.start){hhStatsFilters.start=b.value;a.value=b.value}applyHhStatsFilters()}
-  clear.onclick=()=>{hhStatsFilters={game:'holdem',start:'',end:'',position:'all',stack:'all',players:'all'};bindHhStatsFilters();applyHhStatsFilters()}
+  clear.onclick=()=>{hhStatsFilters={game:'holdem',room:'all',start:'',end:'',position:'all',stack:'all',players:'all'};bindHhStatsFilters();applyHhStatsFilters()}
   applyHhStatsFilters()
 }
 async function hhHandsByIds(ids){
@@ -2177,7 +2180,7 @@ const replayerUi=createReplayerUi({esc,computeReplayState,replayActionLabel,repl
 const {replayPlayerCoords,replayBetCoords,replayInfoCoords,replayTimelineHtml,replayActionProgress,firstReplayActionIndex,replayStageHtml,knownOpponentCards,rangeKeyForCell,rangeSelections,rangeCellCombos,equilabStats,equilabHtml,bindEquilab,cardHtml}=replayerUi
 
 function replayer(){
-  return `<div class="panel"><h2>Replayer Multi-Room <span class="pill warn">VISUAL</span></h2><div class="notice"><b>Hand History multi-room.</b> Faça upload do .txt inteiro do torneio ou cole uma única mão. Compatível nesta versão com GGNetwork e ACR. O arquivo é processado no navegador. Você também pode salvar torneios neste dispositivo para reabrir sem importar novamente.</div><div class="toolbar" style="margin-top:14px"><input id="hhFile" type="file" accept=".txt,text/plain"><button class="btn secondary" id="readHhFile">Ler arquivo</button></div><div id="savedReplayBox" class="saved-replays"><span class="muted">Carregando torneios salvos...</span></div><details style="margin-top:12px"><summary>Ou colar Hand History</summary><textarea id="hhPaste" class="hh-paste" placeholder="Poker Hand #TM..." style="margin-top:10px"></textarea><button class="btn secondary" id="parseHhPaste" style="margin-top:8px">Interpretar texto</button></details></div><div id="replayWorkspace">${replayState.hands.length?replayWorkspaceHtml():'<div class="panel"><p class="muted">Nenhuma Hand History carregada ainda.</p></div>'}</div>`
+  return `<div class="panel"><h2>Replayer Multi-Room <span class="pill warn">VISUAL</span></h2><div class="notice"><b>Hand History multi-room.</b> Faça upload do .txt inteiro do torneio ou cole uma única mão. Compatível com GGNetwork, PokerStars, ACR e CoinPoker. O arquivo é processado no navegador. Você também pode salvar torneios neste dispositivo para reabrir sem importar novamente.</div><div class="toolbar" style="margin-top:14px"><input id="hhFile" type="file" accept=".txt,text/plain"><button class="btn secondary" id="readHhFile">Ler arquivo</button></div><div id="savedReplayBox" class="saved-replays"><span class="muted">Carregando torneios salvos...</span></div><details style="margin-top:12px"><summary>Ou colar Hand History</summary><textarea id="hhPaste" class="hh-paste" placeholder="Poker Hand #TM..." style="margin-top:10px"></textarea><button class="btn secondary" id="parseHhPaste" style="margin-top:8px">Interpretar texto</button></details></div><div id="replayWorkspace">${replayState.hands.length?replayWorkspaceHtml():'<div class="panel"><p class="muted">Nenhuma Hand History carregada ainda.</p></div>'}</div>`
 }
 const STUDY_REVIEW_KEY='poker-study-review-v90'
 function studyReviews(){try{return JSON.parse(localStorage.getItem(STUDY_REVIEW_KEY)||'{}')||{}}catch{return {}}}
@@ -2435,13 +2438,17 @@ function teamPeriodFacts(facts,key){
 function teamSnapshotPayload(facts){
   const base=teamTechSnapshot(facts)
   const periods=['all','30d','90d','180d','365d'],views={}
+  const rooms=[...new Set((facts||[]).map(x=>x.room||'Unknown').filter(Boolean))]
   for(const period of periods){
     const pf=teamPeriodFacts(facts,period)
     views[period]=teamTechSnapshot(pf)
+    views[period+'|all']=views[period]
+    for(const room of rooms)views[period+'|'+room]=teamTechSnapshot(pf.filter(x=>(x.room||'Unknown')===room))
   }
   const dates=(facts||[]).map(x=>String(x.date||'')).filter(Boolean).sort()
   const pokerIdentities=[...new Map((facts||[]).filter(x=>x.heroNickname).map(x=>{const room=x.room||'Unknown';return [room+'|'+x.heroNickname,{room,nick:x.heroNickname}]})).values()]
-  return {...base,leaks:base.leaks,views,periodsAvailable:periods,dateRange:{min:dates[0]||null,max:dates.at(-1)||null},pokerIdentities}
+  const roomBreakdown=Object.fromEntries(rooms.map(room=>[room,(facts||[]).filter(x=>(x.room||'Unknown')===room).length]))
+  return {...base,leaks:base.leaks,views,periodsAvailable:periods,roomsAvailable:rooms,roomBreakdown,dateRange:{min:dates[0]||null,max:dates.at(-1)||null},pokerIdentities}
 }
 
 const reviewPackApi=createReviewPacks({
