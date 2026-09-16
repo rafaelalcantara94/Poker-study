@@ -1,4 +1,15 @@
-const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1305'
+const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1420'
+function emailFirstName(email){
+  const local=String(email||'').split('@')[0].trim()
+  const first=local.split(/[._+\-\s]+/).filter(Boolean)[0]||''
+  return first?first.charAt(0).toUpperCase()+first.slice(1):'Jogador'
+}
+function smartPlayerName(row){
+  const raw=String(row?.display_name||'').trim()
+  const generic=!raw||/^(player|jogador|jogadora)$/i.test(raw)
+  return row?.role==='player'&&generic?emailFirstName(row?.email):raw||emailFirstName(row?.email)
+}
+
 
 function cacheRead(){
   try{
@@ -44,7 +55,7 @@ export function createTeamIntelService({supabase,ensureTeamContext}){
       member:{
         user_id:r.user_id,
         role:r.role,
-        display_name:r.display_name,
+        display_name:smartPlayerName(r),
         email:r.email,
         joined_at:r.joined_at
       },

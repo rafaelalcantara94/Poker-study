@@ -52,7 +52,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.1.0 • LEAK CORRECTION</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.2.0 • COACH FOLLOW-UP</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -83,7 +83,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.1.0 • LEAK CORRECTION</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.2.0 • COACH FOLLOW-UP</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2535,6 +2535,18 @@ function teamPeriodFacts(facts,key){
   const cut=new Date(end);cut.setDate(cut.getDate()-days+1);const iso=cut.toISOString().slice(0,10)
   return holdem.filter(x=>String(x.date||'')>=iso&&String(x.date||'')<=anchor)
 }
+function teamCorrectionSnapshot(facts){
+  return leakCorrections().filter(c=>c?.status==='tracking').map(c=>{
+    const start=String(c.startedAt||'').slice(0,10)
+    let post=(facts||[]).filter(x=>String(x.date||'')>start)
+    if(c.room&&c.room!=='all')post=post.filter(x=>(x.room||'Unknown')===c.room)
+    const e=v78LeakEntries(post).find(x=>x.metric===c.metric&&x.pos===(c.pos||'all'))
+    const postDen=+e?.den||0,postValue=postDen?(+e?.value||0):null
+    const need=Math.max(0,50-postDen)
+    const state=postDen<50?'forming':(postValue!=null&&Math.abs(postValue-(+c.baselineValue||0))>=2?'changed':'stable')
+    return {key:c.key,label:c.label||c.metric,metric:c.metric,pos:c.pos||'all',target:c.target||'hits',room:c.room||'all',startedAt:c.startedAt,baselineValue:+c.baselineValue||0,baselineDen:+c.baselineDen||0,postValue,postDen,need,state,studyId:c.studyId||null}
+  }).slice(0,40)
+}
 function teamSnapshotPayload(facts){
   const base=teamTechSnapshot(facts)
   const periods=['all','30d','90d','180d','365d'],views={}
@@ -2548,7 +2560,7 @@ function teamSnapshotPayload(facts){
   const dates=(facts||[]).map(x=>String(x.date||'')).filter(Boolean).sort()
   const pokerIdentities=[...new Map((facts||[]).filter(x=>x.heroNickname).map(x=>{const room=x.room||'Unknown';return [room+'|'+x.heroNickname,{room,nick:x.heroNickname}]})).values()]
   const roomBreakdown=Object.fromEntries(rooms.map(room=>[room,(facts||[]).filter(x=>(x.room||'Unknown')===room).length]))
-  return {...base,leaks:base.leaks,views,periodsAvailable:periods,roomsAvailable:rooms,roomBreakdown,dateRange:{min:dates[0]||null,max:dates.at(-1)||null},pokerIdentities}
+  return {...base,leaks:base.leaks,views,periodsAvailable:periods,roomsAvailable:rooms,roomBreakdown,dateRange:{min:dates[0]||null,max:dates.at(-1)||null},pokerIdentities,leakCorrections:teamCorrectionSnapshot(facts)}
 }
 
 const reviewPackApi=createReviewPacks({
