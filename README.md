@@ -1,5 +1,3 @@
-## V14.0.0 — Player Identity
+# Poker Study V14.1.0 · Leak Correction
 
-Central do Time agora torna visível a consolidação Pessoa → Sala → Nick → Mãos, mantendo a pessoa como identidade principal do Poker Study.
-
-Sem SQL novo.
+Acompanhamento Antes × Depois para sessões criadas pelo Diagnóstico Didático, com correção de UX do modal.

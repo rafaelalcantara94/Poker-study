@@ -52,7 +52,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.0.0 • LEAK STUDY</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.1.0 • LEAK CORRECTION</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -83,7 +83,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.0.0 • LEAK STUDY</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.1.0 • LEAK CORRECTION</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -414,6 +414,25 @@ function analytics(){
 const STUDY_ACTIVE_KEY='poker-study-active-session-v95'
 function activeStudySession(){try{return JSON.parse(localStorage.getItem(STUDY_ACTIVE_KEY)||'null')}catch{return null}}
 function saveActiveStudySession(x){if(x)localStorage.setItem(STUDY_ACTIVE_KEY,JSON.stringify(x));else localStorage.removeItem(STUDY_ACTIVE_KEY)}
+const LEAK_CORRECTION_KEY='poker-study-leak-corrections-v141'
+function leakCorrections(){try{return JSON.parse(localStorage.getItem(LEAK_CORRECTION_KEY)||'[]')}catch{return []}}
+function saveLeakCorrections(rows){localStorage.setItem(LEAK_CORRECTION_KEY,JSON.stringify(rows||[]))}
+function leakCorrectionKey(metric,pos,target){return [metric||'',pos||'all',target||'hits'].join('|')}
+function activeLeakCorrection(metric,pos,target){const k=leakCorrectionKey(metric,pos,target);return leakCorrections().find(x=>x.key===k&&x.status==='tracking')||null}
+function startLeakCorrectionFromSession(session){
+  if(!session?.leakMetric)return
+  const rows=leakCorrections(),key=leakCorrectionKey(session.leakMetric,session.leakPos,session.leakTarget),old=rows.find(x=>x.key===key&&x.status==='tracking')
+  const rec={key,status:'tracking',metric:session.leakMetric,pos:session.leakPos||'all',target:session.leakTarget||'hits',label:session.title||session.leakMetric,startedAt:new Date().toISOString(),baselineValue:+session.leakBaselineValue||0,baselineDen:+session.leakBaselineDen||0,baselineNum:+session.leakBaselineNum||0,room:session.leakRoom||'all',studyId:session.id}
+  if(old)Object.assign(old,rec);else rows.unshift(rec)
+  saveLeakCorrections(rows.slice(0,80))
+}
+function leakCorrectionHtml(entry,reviewRows,reviewHits,reviewTarget){
+  const c=activeLeakCorrection(entry?.metric,entry?.pos,reviewTarget);if(!c)return ''
+  const start=String(c.startedAt||'').slice(0,10),post=(reviewRows||[]).filter(x=>String(x.date||'')>start),hitIds=new Set((reviewHits||[]).map(x=>String(x.handId))),postHits=post.filter(x=>hitIds.has(String(x.handId)))
+  const n=post.length,val=n?100*postHits.length/n:null,need=Math.max(0,50-n)
+  const state=n<50?'Amostra em formação':(val!=null&&Math.abs(val-c.baselineValue)>=2?'Mudança detectada':'Ainda sem mudança clara')
+  return `<section class="v141-correction"><header><div><small>V14.1 · CORREÇÃO EM ACOMPANHAMENTO</small><h3>Antes × Depois</h3></div><span>${esc(state)}</span></header><div class="v141-correction-grid"><div><small>ANTES DO ESTUDO</small><b>${(+c.baselineValue||0).toFixed(1)}%</b><span>${(+c.baselineDen||0).toLocaleString('pt-BR')} oportunidades</span></div><div><small>DEPOIS DO ESTUDO</small><b>${val==null?'—':val.toFixed(1)+'%'}</b><span>${n.toLocaleString('pt-BR')} novas oportunidades</span></div><div><small>STATUS</small><b>${n<50?`faltam ${need}`:'amostra mínima atingida'}</b><span>Início: ${start?start.split('-').reverse().join('/'):'—'}</span></div></div><footer>O Poker Study só compara decisões posteriores ao estudo. O status descreve a amostra; não declara automaticamente que a estratégia está correta.</footer></section>`
+}
 
 const TEAM_COACH_PLAN_KEY='poker_study_team_coach_plans_v1043'
 function teamCoachPlans(){try{return JSON.parse(localStorage.getItem(TEAM_COACH_PLAN_KEY)||'[]')}catch{return []}}
@@ -538,7 +557,8 @@ async function completeActiveStudySession(){
   const row={user_id:user.id,course:'Poker Study · Plano',title:`Sessão: ${session.title}`,teacher:'Poker Study',topic:session.title,date:today(),duration,status:'done',tags:['workflow','plano',session.title,`reviewed:${reviewed.length}`,`learning:${reviewedLearnings.length}`].join(','),notes:[notes,...reviewedLearnings.map(([id,v])=>`Aprendizado ${id}: ${String(v).trim()}`),related.length?`Mãos relacionadas: ${related.join(', ')}`:'',reviewed.length?`Mãos revisadas: ${reviewed.join(', ')}`:''].filter(Boolean).join('\n\n')}
   const {error}=await supabase.from('studies').insert(row);if(error)return alert(error.message)
   if(session.teamCoachPlanId)updateTeamCoachPlan(session.teamCoachPlanId,{status:'done',completedAt:new Date().toISOString()})
-  saveActiveStudySession(null);await load();studyToast('✓ Estudo concluído e registrado');route('studies')
+  if(session.leakMetric)startLeakCorrectionFromSession(session)
+  saveActiveStudySession(null);await load();studyToast(session.leakMetric?'✓ Estudo concluído · correção agora em acompanhamento':'✓ Estudo concluído e registrado');route('studies')
 }
 
 function toggleStudyReviewedHand(handId){
@@ -1977,8 +1997,10 @@ function v140StartLeakStudy(entry,reviewRows,replayLabel,reviewTarget){
     id:uid(),title:entry.statLabel,kind:'LEAK STUDY · DIAGNÓSTICO DIDÁTICO',mins:35,
     why:`${entry.group} · ${entry.value.toFixed(1)}% · ref. ${v75RangeText(entry.bench)} · ${entry.den.toLocaleString('pt-BR')} oportunidades`,
     startedAt:Date.now(),notes:'',reviewedHandIds:[],handNotes:{},hhFactIds:chosen.map(x=>String(x.handId)),
-    leakMetric:entry.metric,leakPos:entry.pos,leakTarget:reviewTarget,leakStudyWhy:`${replayLabel} · sessão criada automaticamente a partir do diagnóstico.`
+    leakMetric:entry.metric,leakPos:entry.pos,leakTarget:reviewTarget,leakStudyWhy:`${replayLabel} · sessão criada automaticamente a partir do diagnóstico.`,
+    leakBaselineValue:entry.value,leakBaselineDen:entry.den,leakBaselineNum:entry.num||Math.round(entry.value*entry.den/100),leakRoom:(document.getElementById('hhRoomFilter')?.value||'all')
   })
+  modal.classList.remove('show')
   route('studies')
 }
 
@@ -2089,9 +2111,10 @@ function hhAuditModal(metric,pos,reviewTarget='hits',strategicMode=false){
   }
   const v87Entry=v78LeakEntries(hhStatsFilteredCache).find(e=>e.metric===metric&&e.pos===pos)
   const didactic=v140DidacticLeakHtml(v87Entry,reviewTarget,reviewCount)
+  const correction=v87Entry?leakCorrectionHtml(v87Entry,rows,hits,reviewTarget):''
   const diagnosis=v84DiagnosisHtml(replayUniverseRows,strategicEligible?reviewRows:[],{outcomes:strategicEligible?outcomeCounts:{}})
   const concentration=v87ConcentrationHtml(rows,replayUniverseRows,strategicEligible?reviewRows:[],{bench:v87Entry?.bench||null,hitFor,reviewTarget,strategic:strategicEligible})
-  const html=`${didactic}${diagnosis}${concentration}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
+  const html=`${didactic}${correction}${diagnosis}${concentration}${replayBar}<div class="audit-modal-note">${metric==='bb100'?'As 100 mãos de maior impacto absoluto aparecem primeiro.':reviewTarget==='misses'?'Mostrando oportunidades estatisticamente válidas em que a ação-alvo NÃO aconteceu. Isso não significa que a ação seria obrigatória pela teoria/GTO. Quando o Strategic Priority Engine estiver ativo, ações incompatíveis são separadas e a lista é ordenada por prioridade contextual. Ainda é uma fila conservadora de candidatos, não uma afirmação GTO.':'Cada linha abaixo pertence ao denominador da estatística. O selo verde indica quando entrou no numerador.'}</div><div class="audit-hand-list">${shown.map(x=>{const hit=hitFor(x),relevant=relevantActions(x);return `<details class="audit-hand"><summary><b>#${esc(x.handId)}</b><span>${esc(x.date)} · ${cards(x)} · ${x.stack.toFixed(1)}bb${strategicEligible?` · ${esc(x.__strategicTierLabel||v82CandidateTier(v83StrategicInfo(x,strategicMetric,reviewTarget)).label)} · ${esc(x.__strategicReason||v83StrategicInfo(x,strategicMetric,reviewTarget).reason||'candidato')}`:''}</span>${hit===null?`<strong class="${x.netBb>=0?'good':'bad'}">${x.netBb>=0?'+':''}${x.netBb.toFixed(2)}bb</strong>`:`<strong class="${hit?'good':reviewTarget==='misses'?'warn':''}">${hit?'✓ ação executada':reviewTarget==='misses'?(strategicEligible?`◎ ${esc(x.__strategicTierLabel||'candidato')}`:'○ oportunidade sem a ação'):'só oportunidade'}</strong>`}</summary><div class="audit-actions">${relevant.map(a=>`<code>${esc(a.street)} · ${esc(auditActionText(a))}</code>`).join('')}</div></details>`}).join('')}</div>${displayRows.length>shown.length?`<p class="muted">Mostrando 100 de ${displayRows.length.toLocaleString('pt-BR')} mãos para manter a auditoria rápida.</p>`:''}`
   openModal(title,html)
   const priorityFacts=strategicEligible?reviewRows:[]
   const studyBtn=document.getElementById('v140StartLeakStudy');if(studyBtn)studyBtn.onclick=()=>v140StartLeakStudy(v87Entry,reviewRows,replayLabel,reviewTarget)
