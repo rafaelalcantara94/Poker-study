@@ -150,7 +150,17 @@ export function createReviewPacks(deps){
     return data||[]
   }
 
-  function teamReplayFromPacks(packs,label){
+  function reviewRoomName(v){
+    const s=String(v||'').trim().toLowerCase()
+    if(!s)return 'Unknown'
+    if(s.includes('pokerstars'))return 'PokerStars'
+    if(s==='acr'||s.includes('americas cardroom')||s.includes('winning poker'))return 'ACR'
+    if(s.includes('coinpoker'))return 'CoinPoker'
+    if(s.includes('gg'))return 'GGNetwork'
+    return String(v||'Unknown')
+  }
+
+  function teamReplayFromPacks(packs,label,room='all'){
     if(!packs?.length){
       alertFn('Nenhum Review Pack foi encontrado para este recorte. Abra o Stats HH do jogador uma vez nesta versão e confirme no topo quantos pacotes foram sincronizados.')
       return false
@@ -165,7 +175,7 @@ export function createReviewPacks(deps){
     for(const p of packs){
       if(!byPlayer.has(p.user_id))byPlayer.set(p.user_id,[])
       const src=p.display_name||p.email||'Jogador'
-      const rows=[...(p.hands||[])].sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||'')))
+      const rows=[...(p.hands||[])].filter(h=>room==='all'||reviewRoomName(h.room||h.teamSite||h.site||h.network)===room).sort((a,b)=>String(b.dateTime||'').localeCompare(String(a.dateTime||'')))
 
       for(const h of rows){
         const c=JSON.parse(JSON.stringify(h))
@@ -221,17 +231,17 @@ export function createReviewPacks(deps){
     return true
   }
 
-  async function openTeamCollectiveReplayer(label){
+  async function openTeamCollectiveReplayer(label,room='all'){
     const packs=await teamLoadReviewPacks(label)
-    return teamReplayFromPacks(packs,label)
+    return teamReplayFromPacks(packs,label,room)
   }
 
-  async function openTeamPlayerReviewPack(label,userId,playerName='Jogador'){
+  async function openTeamPlayerReviewPack(label,userId,playerName='Jogador',room='all'){
     const packs=(await teamLoadReviewPacks(label)).filter(p=>p.user_id===userId)
-    return teamReplayFromPacks(packs,`${playerName} · ${label}`)
+    return teamReplayFromPacks(packs,`${playerName} · ${label}`,room)
   }
 
-  async function openTeamAreaCollectiveReplayer(area,rows,userId=null){
+  async function openTeamAreaCollectiveReplayer(area,rows,userId=null,room='all'){
     const labels=[...new Set(
       (rows||[])
         .filter(x=>x.snap&&(!userId||x.member.user_id===userId))

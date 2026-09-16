@@ -26,11 +26,14 @@ function teamcenter(){return `<div id="teamCenterRoot"><section class="panel"><h
 function teamNum(v,d=1){return Number(v||0).toFixed(d)}
 function teamViewSnap(snap,period='all',room='all'){
   if(!snap)return null
-  const views=snap.stats?.views||{},key=period+'|'+room,view=views[key]||views[period+'|all']||views[period]||views['all|all']||views.all
-  if(!view)return snap
+  const views=snap.stats?.views||{},key=period+'|'+room
+  // A room-specific selection must never fall back to the all-rooms view.
+  // Players without data in the selected room are excluded from the active recorte.
+  const view=room!=='all' ? views[key] : (views[key]||views[period+'|all']||views[period]||views['all|all']||views.all)
+  if(!view)return room==='all'?snap:null
   return {...snap,hands:view.hands,stats:{...view,views:snap.stats?.views,dateRange:snap.stats?.dateRange,pokerIdentities:snap.stats?.pokerIdentities,roomsAvailable:snap.stats?.roomsAvailable,roomBreakdown:snap.stats?.roomBreakdown},leaks:view.leaks||[]}
 }
-function teamFilteredRows(rows){return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period,teamCenterFilters.room)}))}
+function teamFilteredRows(rows){return rows.filter(x=>teamCenterFilters.player==='all'||x.member.user_id===teamCenterFilters.player).map(x=>({...x,snap:teamViewSnap(x.snap,teamCenterFilters.period,teamCenterFilters.room)})).filter(x=>x.snap)}
 function teamFilterBar(rows){
   const labels={all:'Base completa','30d':'Últimos 30 dias','90d':'Últimos 90 dias','180d':'Últimos 6 meses','365d':'Últimos 12 meses'}
   const rooms=[...new Set(rows.flatMap(x=>x.snap?.stats?.roomsAvailable||x.snap?.stats?.pokerIdentities?.map(i=>i.room)||[]))].filter(Boolean).sort()
@@ -281,7 +284,7 @@ function teamCoachCommandCenter(rows,allRows=rows){
   const maxArea=Math.max(1,...data.areas.map(x=>x.count))
   return `<div class="coach-command">
     <div class="coach-command-head"><div><span class="team-kicker">V11.4 · COACH INTELLIGENCE</span><h1>Bom dia, ${esc(name)}.</h1><p>Seu time precisa de atenção em <b>${Math.min(critical||data.all.length,4)}</b> ponto${Math.min(critical||data.all.length,4)===1?'':'s'} prioritário${Math.min(critical||data.all.length,4)===1?'':'s'} hoje. A Central já organizou o que fazer primeiro.</p></div><div class="coach-health"><small>RECORTE ATUAL</small><strong>${ready.length} jogadores · ${total.toLocaleString('pt-BR')} mãos</strong><span>${critical} alertas altos</span></div></div>
-    ${teamFilterBar(allRows)}${teamRoomDiagPanel(allRows)}
+    ${teamFilterBar(allRows)}
     <section class="coach-focus-card"><div class="coach-focus-copy"><small>FOCO #1 DO TIME</small><h2>${focus?esc(data.topCollective?.label||focus.label):'Nenhuma prioridade crítica agora'}</h2><p>${focus?`${focusPlayers.map(esc).join(' + ')} · ${teamPriorityReason(focus)}`:'Continue acumulando amostra e acompanhando o time.'}</p><div class="coach-focus-why"><b>Por que isso vem primeiro?</b><span>${data.topCollective?`O mesmo tema aparece em ${data.topCollective.players.size} jogadores, combinando recorrência coletiva, severidade e amostra.`:focus?`É o desvio com maior prioridade no recorte atual.`:'Sem intervenção necessária.'}</span></div></div><div class="coach-focus-actions">${focus?`<button class="btn team-open-leak" data-team-leak="${esc(data.topCollective?.label||focus.label)}">🔎 Entender o problema</button>${data.topCollective?`<button class="btn secondary team-focus-replay" data-team-focus-replay="${esc(data.topCollective.label)}">🎬 Revisar mãos</button>`:''}<button class="btn secondary" data-team-create-plan="${esc(data.topCollective?.label||focus.label)}">🎓 Criar aula</button>`:''}</div></section>${teamCoachBriefing(ready,data)}
     <div class="coach-command-grid">
       <section class="panel coach-today"><header><div><small>AGENDA DO COACH</small><h2>O que fazer hoje</h2><p>Uma fila curta, em ordem de impacto. Cada item já leva direto para a ação necessária.</p></div><span class="pill">${teamDailyProgress(plan).done}/${teamDailyProgress(plan).total} concluídas</span></header>
@@ -313,7 +316,7 @@ function bindTeamActions(rows,allRows){
     backdrop?.querySelectorAll('.team-leak-player-xray').forEach(b=>b.onclick=()=>{const id=b.dataset.teamPlayer;close();openXray(id)})
     backdrop?.querySelectorAll('.team-leak-player-hands').forEach(b=>b.onclick=async ev=>{
       ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…'
-      try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName)}
+      try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName,teamCenterFilters.room)}
       catch(e){console.error(e);alert('Não foi possível abrir as mãos: '+(e?.message||String(e)))}
       finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}
     })
@@ -321,7 +324,7 @@ function bindTeamActions(rows,allRows){
     const collective=document.getElementById('teamLeakCollectiveReplay')
     if(collective&&!collective.disabled)collective.onclick=async()=>{
       collective.disabled=true;const old=collective.textContent;collective.textContent='Carregando pacote…'
-      try{const ok=await openTeamCollectiveReplayer(label);if(ok)close()}
+      try{const ok=await openTeamCollectiveReplayer(label,teamCenterFilters.room);if(ok)close()}
       catch(e){console.error(e);alert('Não foi possível abrir o Replayer coletivo: '+(e?.message||String(e)))}
       finally{if(document.body.contains(collective)){collective.disabled=false;collective.textContent=old}}
     }
@@ -329,7 +332,7 @@ function bindTeamActions(rows,allRows){
     if(areaReplay)areaReplay.onclick=async()=>{
       areaReplay.disabled=true;const old=areaReplay.textContent;areaReplay.textContent='Montando Review Pack…'
       try{
-        const ok=await openTeamAreaCollectiveReplayer(areaReplay.dataset.teamArea,rows,areaReplay.dataset.teamAreaUser||null)
+        const ok=await openTeamAreaCollectiveReplayer(areaReplay.dataset.teamArea,rows,areaReplay.dataset.teamAreaUser||null,teamCenterFilters.room)
         if(ok)close()
       }catch(e){
         console.error(e);alert('Não foi possível montar o Review Pack da área: '+(e?.message||String(e)))
@@ -344,10 +347,10 @@ function bindTeamActions(rows,allRows){
   document.querySelectorAll('[data-team-area]:not([data-team-area-player])').forEach(el=>el.addEventListener('click',()=>openLeak(null,el.dataset.teamArea)))
   document.querySelectorAll('[data-team-collective]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.teamCollective)openLeak(el.dataset.teamCollective)}))
   document.querySelectorAll('[data-team-lesson-leak]').forEach(el=>el.addEventListener('click',()=>openLeak(el.dataset.teamLessonLeak)))
-  document.querySelectorAll('[data-team-lesson-replay]').forEach(el=>el.addEventListener('click',async()=>{el.disabled=true;const old=el.textContent;el.textContent='Carregando…';try{await openTeamCollectiveReplayer(el.dataset.teamLessonReplay)}catch(e){alert('Não foi possível abrir o pacote: '+(e?.message||String(e)))}finally{el.disabled=false;el.textContent=old}}))
-  document.querySelectorAll('[data-team-focus-replay]').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamCollectiveReplayer(b.dataset.teamFocusReplay)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{b.disabled=false;b.textContent=old}}))
-  document.querySelectorAll('[data-coach-action]').forEach(b=>b.addEventListener('click',async()=>{const kind=b.dataset.coachAction;if(kind==='collective'){await openTeamCollectiveReplayer(b.dataset.teamLeak);return}if(kind==='playerLeak'){openLeak(b.dataset.teamLeak);return}}))
-  document.querySelectorAll('.team-player-pack').forEach(b=>b.addEventListener('click',async ev=>{ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}}))
+  document.querySelectorAll('[data-team-lesson-replay]').forEach(el=>el.addEventListener('click',async()=>{el.disabled=true;const old=el.textContent;el.textContent='Carregando…';try{await openTeamCollectiveReplayer(el.dataset.teamLessonReplay,teamCenterFilters.room)}catch(e){alert('Não foi possível abrir o pacote: '+(e?.message||String(e)))}finally{el.disabled=false;el.textContent=old}}))
+  document.querySelectorAll('[data-team-focus-replay]').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamCollectiveReplayer(b.dataset.teamFocusReplay,teamCenterFilters.room)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{b.disabled=false;b.textContent=old}}))
+  document.querySelectorAll('[data-coach-action]').forEach(b=>b.addEventListener('click',async()=>{const kind=b.dataset.coachAction;if(kind==='collective'){await openTeamCollectiveReplayer(b.dataset.teamLeak,teamCenterFilters.room);return}if(kind==='playerLeak'){openLeak(b.dataset.teamLeak);return}}))
+  document.querySelectorAll('.team-player-pack').forEach(b=>b.addEventListener('click',async ev=>{ev.stopPropagation();b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamPlayerReviewPack(b.dataset.teamLeak,b.dataset.teamPlayer,b.dataset.teamPlayerName,teamCenterFilters.room)}catch(e){alert('Não foi possível abrir o Review Pack: '+(e?.message||String(e)))}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}}))
 
   document.querySelectorAll('[data-team-task-done]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();toggleTeamDailyTask(b.dataset.teamTaskDone);refresh()}))
 
