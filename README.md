@@ -1,3 +1,7 @@
+## V13.0.6 — Snapshot Schema Fix
+
+Hotfix do diagnostico/sincronizacao Multi-Room. Sem SQL novo.
+
 ## V10.1.21 — Financial Clean Start
 
 Esta versão mantém todas as correções validadas da V10.1.20 e adiciona o script de reset financeiro final para começar a operação real com base limpa.

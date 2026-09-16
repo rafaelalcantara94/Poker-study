@@ -22,6 +22,7 @@ const hhFactsSessionCache = new Map()
 let hhImportsMemoryCache = null
 let hhPersistedSnapshot = null
 const HH_SNAPSHOT_KEY='main-v1'
+const HH_STATS_SNAPSHOT_SCHEMA=4
 let hhStatsDataRevision = 0
 const hhStatsViewMemo = new Map()
 let hhReplayContext = null
@@ -51,7 +52,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.5 • ROOM CONTRACT FIX</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.6 • SNAPSHOT SCHEMA FIX</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -82,7 +83,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.5 • ROOM CONTRACT FIX</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.6 • SNAPSHOT SCHEMA FIX</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -657,7 +658,7 @@ async function hhStatsSnapshot(){
   try{const d=await replayDb();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readonly'),r=tx.objectStore(HH_SNAPSHOT_STORE).get(HH_SNAPSHOT_KEY);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});hhPersistedSnapshot=rec;return rec}catch(e){console.warn('HH snapshot read failed',e);return null}
 }
 async function saveHhStatsSnapshot(facts,html=''){
-  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:4};hhPersistedSnapshot=rec
+  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:HH_STATS_SNAPSHOT_SCHEMA};hhPersistedSnapshot=rec
   try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot write failed',e)}
 }
 async function clearHhStatsSnapshot(){hhPersistedSnapshot=null;try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot clear failed',e)}}
