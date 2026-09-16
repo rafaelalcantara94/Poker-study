@@ -84,7 +84,7 @@ export function parsePokerStarsHand(block){
   const seats=[],seatByName={}
   for(const line of lines){
     const m=line.match(/^Seat (\d+): (.+?) \(([\d,.]+) in chips(?:, \$([\d,.]+) bounty)?\)$/)
-    if(m){const x={seat:+m[1],name:m[2],stack:chipAmount(m[3]),bounty:m[4]!=null?chipAmount(m[4]):null,cards:null};seats.push(x);seatByName[x.name]=x}
+    if(m){const bountyTotal=m[4]!=null?chipAmount(m[4]):null;const x={seat:+m[1],name:m[2],stack:chipAmount(m[3]),bountyTotal,bountyCash:bountyTotal!=null?bountyTotal/2:null,bounty:bountyTotal,cards:null};seats.push(x);seatByName[x.name]=x}
   }
   let hero='',heroCards=[]
   for(const line of lines){const m=line.match(/^Dealt to (.+?) \[([^\]]+)\]$/);if(m){hero=m[1];heroCards=m[2].split(/\s+/);if(seatByName[hero])seatByName[hero].cards=heroCards}}
