@@ -48,6 +48,76 @@ export async function deleteReplayTournament(id){
   })
 }
 
+
+
+function chipAmount(v){return +(String(v||'0').replace(/,/g,''))||0}
+
+// Universal entry point. Each room keeps its own adapter but returns the same
+// normalized hand shape consumed by Replayer, Stats HH and Leak Intelligence.
+export function detectPokerRoom(text){
+  const t=String(text||'').replace(/\r/g,'')
+  if(/^Game Hand #.+ - Tournament #.+ - Holdem \(No Limit\)/m.test(t))return 'ACR'
+  if(/^Poker Hand #/m.test(t))return 'GGNetwork'
+  return 'UNKNOWN'
+}
+
+export function parsePokerHistory(text){
+  const room=detectPokerRoom(text)
+  if(room==='ACR')return parseAcrHistory(text)
+  if(room==='GGNetwork')return parseGgHistory(text)
+  return []
+}
+
+export function parseAcrHistory(text){
+  const blocks=String(text||'').replace(/\r/g,'').split(/(?=^Game Hand #)/m).map(x=>x.trim()).filter(x=>x.startsWith('Game Hand #'))
+  return blocks.map(parseAcrHand).filter(Boolean)
+}
+
+export function parseAcrHand(block){
+  const lines=block.split('\n').map(x=>x.trim()).filter(Boolean),head=lines[0]||''
+  const hm=head.match(/^Game Hand #([^ ]+) - Tournament #([^ ]+) - (.*?) - Level\s+([^ ]+)\s+\(([^)]+)\) - (\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})(?:\s+UTC)?$/)
+  if(!hm)return null
+  const [,handId,tournamentId,gameType,level,blindText,dateTime]=hm
+  const tableLine=lines.find(x=>x.startsWith("Table '"))||'',tm=tableLine.match(/Table '([^']+)' .*Seat #(\d+) is the button/),table=tm?.[1]||'',buttonSeat=+(tm?.[2]||0)
+  const seats=[],seatByName={}
+  for(const line of lines){const m=line.match(/^Seat (\d+): (.+?) \(([\d,.]+)\)(?: is sitting out)?$/);if(m){const x={seat:+m[1],name:m[2],stack:chipAmount(m[3]),cards:null};seats.push(x);seatByName[x.name]=x}}
+  let hero='',heroCards=[]
+  for(const line of lines){const m=line.match(/^Dealt to (.+?) \[([^\]]+)\]$/);if(m){hero=m[1];heroCards=m[2].split(/\s+/);if(seatByName[hero])seatByName[hero].cards=heroCards}}
+  const bbm=lines.find(x=>/posts the big blind/.test(x))?.match(/posts the big blind ([\d,.]+)/),bb=bbm?chipAmount(bbm[1]):0
+  const sbm=lines.find(x=>/posts the small blind/.test(x))?.match(/posts the small blind ([\d,.]+)/),sb=sbm?chipAmount(sbm[1]):0
+  const am=lines.find(x=>/posts ante/.test(x))?.match(/posts ante ([\d,.]+)/),ante=am?chipAmount(am[1]):0
+  let street='preflop',board=[],steps=[],forcedActions=[]
+  const streetActions={preflop:[],flop:[],turn:[],river:[]}
+  for(const line of lines){
+    if(line==='*** HOLE CARDS ***'){steps.push({kind:'street',street:'preflop',label:'Pré-flop',board:[]});continue}
+    let m=line.match(/^\*\*\* FLOP \*\*\* \[([^\]]+)\]/);if(m){street='flop';board=m[1].split(/\s+/);steps.push({kind:'street',street,label:'Flop',board:[...board]});continue}
+    m=line.match(/^\*\*\* TURN \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='turn';board=[...board,m[1]];steps.push({kind:'street',street,label:'Turn',board:[...board]});continue}
+    m=line.match(/^\*\*\* RIVER \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='river';board=[...board,m[1]];steps.push({kind:'street',street,label:'River',board:[...board]});continue}
+    if(/^\*\*\*/.test(line)||/^Seat \d+:/.test(line)||/^Dealt to /.test(line)||line.startsWith("Table '")||line.startsWith('Game Hand #')||line.startsWith('Total pot ')||line.startsWith('Board ')||line.startsWith('Main pot '))continue
+    const a=parseAcrAction(line,street)
+    if(a){if(['ante','sb','bb'].includes(a.type))forcedActions.push(a);else{steps.push(a);if(streetActions[street])streetActions[street].push(line)}}
+  }
+  const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,.]+)/),finalPot=potm?chipAmount(potm[1]):0
+  const positionMap=derivePositions(seats,buttonSeat)
+  const isPko=/\bPKO\b/i.test(block)
+  return {room:'ACR',site:'ACR',handId,tournamentId,tournamentName:`Tournament #${tournamentId}`,gameType,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,isPko,bountyDataAvailable:false,raw:block}
+}
+
+export function parseAcrAction(line,street){
+  let m=line.match(/^(.+?) posts ante ([\d,.]+)/);if(m)return {kind:'action',type:'ante',player:m[1],amount:chipAmount(m[2]),street,text:line}
+  m=line.match(/^(.+?) posts the small blind ([\d,.]+)/);if(m)return {kind:'action',type:'sb',player:m[1],amount:chipAmount(m[2]),street,text:line}
+  m=line.match(/^(.+?) posts the big blind ([\d,.]+)/);if(m)return {kind:'action',type:'bb',player:m[1],amount:chipAmount(m[2]),street,text:line}
+  m=line.match(/^(.+?) folds/);if(m)return {kind:'action',type:'fold',player:m[1],street,text:line}
+  m=line.match(/^(.+?) checks/);if(m)return {kind:'action',type:'check',player:m[1],street,text:line}
+  m=line.match(/^(.+?) calls ([\d,.]+)/);if(m)return {kind:'action',type:'call',player:m[1],amount:chipAmount(m[2]),street,text:line,allIn:/all-in/i.test(line)}
+  m=line.match(/^(.+?) bets ([\d,.]+)/);if(m)return {kind:'action',type:'bet',player:m[1],amount:chipAmount(m[2]),street,text:line,allIn:/all-in/i.test(line)}
+  m=line.match(/^(.+?) raises ([\d,.]+) to ([\d,.]+)/);if(m)return {kind:'action',type:'raise',player:m[1],amount:chipAmount(m[2]),to:chipAmount(m[3]),street,text:line,allIn:/all-in/i.test(line)}
+  m=line.match(/^Uncalled bet \(([\d,.]+)\) returned to (.+)$/);if(m)return {kind:'action',type:'return',player:m[2],amount:chipAmount(m[1]),street,text:line}
+  m=line.match(/^(.+?) shows \[([^\]]+)\]/);if(m)return {kind:'action',type:'show',player:m[1],cards:m[2].split(/\s+/),street,text:line}
+  m=line.match(/^(.+?) collected ([\d,.]+) from (?:main )?pot/);if(m)return {kind:'action',type:'collect',player:m[1],amount:chipAmount(m[2]),street,text:line}
+  return null
+}
+
 export function parseGgHistory(text){
   const blocks=String(text||'').replace(/\r/g,'').split(/(?=^Poker Hand #)/m).map(x=>x.trim()).filter(x=>x.startsWith('Poker Hand #'))
   return blocks.map(parseGgHand).filter(Boolean)
@@ -82,7 +152,7 @@ export function parseGgHand(block){
   }
   const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,]+)/),finalPot=potm?+potm[1].replace(/,/g,''):0
   const positionMap=derivePositions(seats,buttonSeat)
-  return {handId,tournamentId,tournamentName,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,raw:block}
+  return {room:'GGNetwork',site:'GG Poker',handId,tournamentId,tournamentName,level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,bountyDataAvailable:null,raw:block}
 }
 
 export function parseGgAction(line,street){
