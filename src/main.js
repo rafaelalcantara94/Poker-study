@@ -51,7 +51,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.2 • ROOM SNAPSHOT MIGRATION</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.3 • INCREMENTAL HH CACHE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -82,7 +82,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.2 • ROOM SNAPSHOT MIGRATION</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.3 • INCREMENTAL HH CACHE</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -657,7 +657,7 @@ async function hhStatsSnapshot(){
   try{const d=await replayDb();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readonly'),r=tx.objectStore(HH_SNAPSHOT_STORE).get(HH_SNAPSHOT_KEY);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});hhPersistedSnapshot=rec;return rec}catch(e){console.warn('HH snapshot read failed',e);return null}
 }
 async function saveHhStatsSnapshot(facts,html=''){
-  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:3};hhPersistedSnapshot=rec
+  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:4};hhPersistedSnapshot=rec
   try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot write failed',e)}
 }
 async function clearHhStatsSnapshot(){hhPersistedSnapshot=null;try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot clear failed',e)}}
@@ -2147,37 +2147,63 @@ function bindHhAudit(){
   bindV72Actions()
 }
 async function refreshHhStats(){
-  const t0=performance.now();let cached=0,recomputed=0,usedSnapshot=false
+  const t0=performance.now();let cached=0,recomputed=0,usedSnapshot=false,migrated=0
   const snap=await hhStatsSnapshot()
-  if(snap&&snap.schema===3&&Array.isArray(snap.facts)&&snap.facts.length&&snap.facts.every(f=>f.room)){
+  // V13.0.3: a tela abre imediatamente do snapshot. Migrações pesadas ficam fora do caminho crítico.
+  if(snap&&Array.isArray(snap.facts)&&snap.facts.length){
     hhStatsCache=snap.facts;cached=hhStatsCache.length;usedSnapshot=true
     const t1=performance.now();bindHhStatsFilters();const t2=performance.now()
     hhPerfLast={storage:t1-t0,facts:0,render:t2-t1,total:t2-t0,cached,recomputed}
-  }else{
-    const imports=await hhStatsImports(),t1=performance.now(),byId=new Map()
-    for(const r of imports){
-      const cacheKey=r.id+'|'+(r.importedAt||'')+'|'+((r.hands||[]).length)
-      // V13.0.2 migration: facts cached before Multi-Room did not carry `room`.
-      // Rebuild them once from the saved raw hands so team snapshots receive the real room.
-      const persistedFacts=(r.perfSchema===3&&Array.isArray(r.facts)&&r.facts.length&&r.facts.every(f=>f.room))?r.facts:null
-      let facts=persistedFacts||hhFactsSessionCache.get(cacheKey)
-      if(facts&&facts.every(f=>f.room)){cached+=facts.length}else{
-        facts=[]
-        for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
-        recomputed+=facts.length;hhFactsSessionCache.set(cacheKey,facts)
-        try{await saveHhStatsImport({...r,facts,perfSchema:3},false)}catch(e){console.warn('HH facts cache persist failed',e)}
-      }
-      for(const f of facts)if(f?.handId)byId.set(f.handId,f)
-      if(recomputed&&recomputed%5000<50)await new Promise(r=>setTimeout(r,0))
-    }
-    const t2=performance.now();hhStatsCache=[...byId.values()];bindHhStatsFilters();const t3=performance.now()
-    hhPerfLast={storage:t1-t0,facts:t2-t1,render:t3-t2,total:t3-t0,cached,recomputed}
-    // Cria um snapshot compacto: nas próximas aberturas completas não é preciso desserializar as HH brutas.
-    saveHhStatsSnapshot(hhStatsCache).catch(()=>{})
+    const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V9.5</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação 0ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · <b>snapshot</b>`
+    publishTeamSnapshot(hhStatsCache).catch(()=>{})
+    // Se o snapshot é legado/tem Unknown, corrige em background sem travar Stats HH.
+    if(snap.schema<4||hhStatsCache.some(f=>!f.room||f.room==='Unknown'))setTimeout(()=>migrateHhRoomCacheInBackground(),50)
+    return
   }
+  const imports=await hhStatsImports(),t1=performance.now(),byId=new Map()
+  for(const r of imports){
+    let facts=(r.perfSchema>=3&&Array.isArray(r.facts)&&r.facts.length)?r.facts:null
+    if(facts){cached+=facts.length}else{
+      facts=[];for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
+      recomputed+=facts.length
+      try{await saveHhStatsImport({...r,facts,perfSchema:3},false)}catch(e){console.warn('HH facts cache persist failed',e)}
+    }
+    for(const f of facts)if(f?.handId)byId.set(f.handId,f)
+    await new Promise(r=>setTimeout(r,0))
+  }
+  const t2=performance.now();hhStatsCache=[...byId.values()];bindHhStatsFilters();const t3=performance.now()
+  hhPerfLast={storage:t1-t0,facts:t2-t1,render:t3-t2,total:t3-t0,cached,recomputed}
+  await saveHhStatsSnapshot(hhStatsCache)
   publishTeamSnapshot(hhStatsCache).catch(()=>{})
-  const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V9.4</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}${usedSnapshot?' · <b>snapshot</b>':''}`
+  const bar=document.getElementById('hhPerfBar');if(bar)bar.innerHTML=`⚡ <b>Performance V9.5</b> · banco ${hhPerfLast.storage.toFixed(0)}ms · preparação ${hhPerfLast.facts.toFixed(0)}ms · tela ${hhPerfLast.render.toFixed(0)}ms · total <b>${hhPerfLast.total.toFixed(0)}ms</b> · cache ${cached.toLocaleString('pt-BR')} · recalculadas ${recomputed.toLocaleString('pt-BR')}`
+  if(hhStatsCache.some(f=>!f.room||f.room==='Unknown'))setTimeout(()=>migrateHhRoomCacheInBackground(),50)
 }
+let hhRoomMigrationRunning=false
+async function migrateHhRoomCacheInBackground(){
+  if(hhRoomMigrationRunning)return;hhRoomMigrationRunning=true
+  const status=document.getElementById('hhTeamSyncStatus')
+  try{
+    if(status)status.textContent='☁️ Multi-Room: corrigindo salas em segundo plano…'
+    const imports=await hhStatsImports(),byId=new Map(),roomByHand=new Map(),total=imports.reduce((n,r)=>n+(r.hands?.length||0),0);let done=0
+    // Fast path: room/site já existe na HH salva; não recalcula 53k fatos só para descobrir a sala.
+    for(const r of imports){
+      let changed=false
+      for(const h of (r.hands||[])){if(h?.handId)roomByHand.set(h.handId,h.room||h.site||'Unknown')}
+      let facts=Array.isArray(r.facts)?r.facts:[]
+      if(!facts.length){facts=(r.hands||[]).map(heroHandFacts).filter(Boolean);changed=true}
+      facts=facts.map(f=>{const room=f.room&&f.room!=='Unknown'?f.room:(roomByHand.get(f.handId)||'Unknown');if(room!==f.room){changed=true;return {...f,room}}return f})
+      if(changed){migrated+=facts.length;await saveHhStatsImport({...r,facts,perfSchema:3},false)}
+      for(const f of facts)if(f?.handId)byId.set(f.handId,f)
+      done+=r.hands?.length||0
+      if(status)status.textContent=`☁️ Multi-Room: corrigindo salas… ${done.toLocaleString('pt-BR')}/${total.toLocaleString('pt-BR')} mãos`
+      await new Promise(r=>setTimeout(r,0))
+    }
+    const facts=[...byId.values()]
+    if(facts.length){hhStatsCache=facts;hhStatsDataRevision++;hhStatsViewMemo.clear();bindHhStatsFilters();await saveHhStatsSnapshot(facts);await publishTeamSnapshot(facts)}
+  }catch(e){console.error('Room cache migration failed',e);if(status)status.textContent='⚠️ Multi-Room: não foi possível concluir a migração de salas.'}
+  finally{hhRoomMigrationRunning=false}
+}
+
 let replayState={hands:[],selected:null,step:0,sourceName:'',rawText:'',speed:1,playing:false,showOpponentCards:false,equilabOpen:false,rangeByHand:{},rangeColor:'blue'}
 const replayerUi=createReplayerUi({esc,computeReplayState,replayActionLabel,replayActionText,fmtChips,fmtFullChips,replayPlayerIdentity,getReplayState:()=>replayState})
 const {replayPlayerCoords,replayBetCoords,replayInfoCoords,replayTimelineHtml,replayActionProgress,firstReplayActionIndex,replayStageHtml,knownOpponentCards,rangeKeyForCell,rangeSelections,rangeCellCombos,equilabStats,equilabHtml,bindEquilab,cardHtml}=replayerUi
@@ -2757,7 +2783,7 @@ function bindPage(p){
           const text=await f.text(),hands=parsePokerHistory(text)
           if(!hands.length){ignored++;continue}
           valid++;total+=hands.length
-          const facts=hands.map(heroHandFacts).filter(Boolean);await saveHhStatsImport({id:displayName+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:displayName,importedAt:new Date().toISOString(),hands,facts,perfSchema:2})
+          const facts=hands.map(heroHandFacts).filter(Boolean);await saveHhStatsImport({id:displayName+'|'+(hands[0]?.tournamentId||'')+'|'+f.size,name:displayName,importedAt:new Date().toISOString(),hands,facts,perfSchema:3})
           if(i%8===0)await new Promise(r=>setTimeout(r,0))
         }
         await refreshHhStats()
