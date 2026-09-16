@@ -51,7 +51,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.1 • MULTI-ROOM ANALYTICS</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.2 • ROOM SNAPSHOT MIGRATION</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -82,7 +82,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.1 • MULTI-ROOM ANALYTICS</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.2 • ROOM SNAPSHOT MIGRATION</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -657,7 +657,7 @@ async function hhStatsSnapshot(){
   try{const d=await replayDb();const rec=await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readonly'),r=tx.objectStore(HH_SNAPSHOT_STORE).get(HH_SNAPSHOT_KEY);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});hhPersistedSnapshot=rec;return rec}catch(e){console.warn('HH snapshot read failed',e);return null}
 }
 async function saveHhStatsSnapshot(facts,html=''){
-  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:2};hhPersistedSnapshot=rec
+  const rec={id:HH_SNAPSHOT_KEY,facts,html,updatedAt:new Date().toISOString(),schema:3};hhPersistedSnapshot=rec
   try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).put(rec);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot write failed',e)}
 }
 async function clearHhStatsSnapshot(){hhPersistedSnapshot=null;try{const d=await replayDb();await new Promise((resolve,reject)=>{const tx=d.transaction(HH_SNAPSHOT_STORE,'readwrite');tx.objectStore(HH_SNAPSHOT_STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(e){console.warn('HH snapshot clear failed',e)}}
@@ -2149,7 +2149,7 @@ function bindHhAudit(){
 async function refreshHhStats(){
   const t0=performance.now();let cached=0,recomputed=0,usedSnapshot=false
   const snap=await hhStatsSnapshot()
-  if(snap&&snap.schema===2&&Array.isArray(snap.facts)&&snap.facts.length){
+  if(snap&&snap.schema===3&&Array.isArray(snap.facts)&&snap.facts.length&&snap.facts.every(f=>f.room)){
     hhStatsCache=snap.facts;cached=hhStatsCache.length;usedSnapshot=true
     const t1=performance.now();bindHhStatsFilters();const t2=performance.now()
     hhPerfLast={storage:t1-t0,facts:0,render:t2-t1,total:t2-t0,cached,recomputed}
@@ -2157,12 +2157,15 @@ async function refreshHhStats(){
     const imports=await hhStatsImports(),t1=performance.now(),byId=new Map()
     for(const r of imports){
       const cacheKey=r.id+'|'+(r.importedAt||'')+'|'+((r.hands||[]).length)
-      let facts=(r.perfSchema===2&&Array.isArray(r.facts)&&r.facts.length)?r.facts:hhFactsSessionCache.get(cacheKey)
-      if(facts){cached+=facts.length}else{
+      // V13.0.2 migration: facts cached before Multi-Room did not carry `room`.
+      // Rebuild them once from the saved raw hands so team snapshots receive the real room.
+      const persistedFacts=(r.perfSchema===3&&Array.isArray(r.facts)&&r.facts.length&&r.facts.every(f=>f.room))?r.facts:null
+      let facts=persistedFacts||hhFactsSessionCache.get(cacheKey)
+      if(facts&&facts.every(f=>f.room)){cached+=facts.length}else{
         facts=[]
         for(const h of (r.hands||[])){const f=heroHandFacts(h);if(f)facts.push(f)}
         recomputed+=facts.length;hhFactsSessionCache.set(cacheKey,facts)
-        try{await saveHhStatsImport({...r,facts,perfSchema:2},false)}catch(e){console.warn('HH facts cache persist failed',e)}
+        try{await saveHhStatsImport({...r,facts,perfSchema:3},false)}catch(e){console.warn('HH facts cache persist failed',e)}
       }
       for(const f of facts)if(f?.handId)byId.set(f.handId,f)
       if(recomputed&&recomputed%5000<50)await new Promise(r=>setTimeout(r,0))
