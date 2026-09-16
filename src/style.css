@@ -922,3 +922,6 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 
 /* V12.6.0 · PokerStars bounty identity */
 .seat-info .seat-bounty{display:block;color:#ffd76a;font-weight:800;font-size:.78rem;margin-top:2px;line-height:1.05}
+
+/* V13.0.5 — temporary Multi-Room diagnostics */
+.hh-room-diag,.team-room-diag{margin-top:10px;padding:10px 12px;border:1px dashed #7c4dff;border-radius:10px;background:rgba(124,77,255,.07);font-size:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hh-room-diag b,.team-room-diag b{color:#c6a8ff}.hh-room-diag span,.team-room-diag span{color:#b8c7df}.hh-room-diag small{width:100%;color:#8294b3}.team-room-diag{margin:0 0 12px}.team-room-diag>b{width:100%}.team-room-diag span{display:block;width:100%}

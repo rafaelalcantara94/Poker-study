@@ -1,4 +1,4 @@
-const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1304'
+const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1305'
 
 function cacheRead(){
   try{
