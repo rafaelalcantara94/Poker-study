@@ -919,3 +919,6 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
   .quick-inbox-empty,.quick-capture-footer{align-items:stretch;flex-direction:column}
   .quick-hand-grid{grid-template-columns:1fr}
 }
+
+/* V12.6.0 · PokerStars bounty identity */
+.seat-info .seat-bounty{display:block;color:#ffd76a;font-weight:800;font-size:.78rem;margin-top:2px;line-height:1.05}

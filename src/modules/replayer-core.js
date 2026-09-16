@@ -56,6 +56,7 @@ function chipAmount(v){return +(String(v||'0').replace(/,/g,''))||0}
 // normalized hand shape consumed by Replayer, Stats HH and Leak Intelligence.
 export function detectPokerRoom(text){
   const t=String(text||'').replace(/\r/g,'')
+  if(/^PokerStars Hand #/m.test(t))return 'PokerStars'
   if(/^Game Hand #.+ - Tournament #.+ - Holdem \(No Limit\)/m.test(t))return 'ACR'
   if(/^Poker Hand #/m.test(t))return 'GGNetwork'
   return 'UNKNOWN'
@@ -63,9 +64,49 @@ export function detectPokerRoom(text){
 
 export function parsePokerHistory(text){
   const room=detectPokerRoom(text)
+  if(room==='PokerStars')return parsePokerStarsHistory(text)
   if(room==='ACR')return parseAcrHistory(text)
   if(room==='GGNetwork')return parseGgHistory(text)
   return []
+}
+
+export function parsePokerStarsHistory(text){
+  const blocks=String(text||'').replace(/\r/g,'').split(/(?=^PokerStars Hand #)/m).map(x=>x.trim()).filter(x=>x.startsWith('PokerStars Hand #'))
+  return blocks.map(parsePokerStarsHand).filter(Boolean)
+}
+
+export function parsePokerStarsHand(block){
+  const lines=block.split('\n').map(x=>x.trim()).filter(Boolean),head=lines[0]||''
+  const hm=head.match(/^PokerStars Hand #([^:]+): Tournament #([^,]+),\s*(.*?)\s+Hold'em No Limit - Level\s+([^ ]+)\s+\(([^)]+)\) - (\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})(?:\s+[^\[]+)?(?:\s+\[[^\]]+\])?$/)
+  if(!hm)return null
+  const [,handId,tournamentId,buyinText,level,blindText,dateTime]=hm
+  const tableLine=lines.find(x=>x.startsWith("Table '"))||'',tm=tableLine.match(/Table '([^']+)' .*Seat #(\d+) is the button/),table=tm?.[1]||'',buttonSeat=+(tm?.[2]||0)
+  const seats=[],seatByName={}
+  for(const line of lines){
+    const m=line.match(/^Seat (\d+): (.+?) \(([\d,.]+) in chips(?:, \$([\d,.]+) bounty)?\)$/)
+    if(m){const x={seat:+m[1],name:m[2],stack:chipAmount(m[3]),bounty:m[4]!=null?chipAmount(m[4]):null,cards:null};seats.push(x);seatByName[x.name]=x}
+  }
+  let hero='',heroCards=[]
+  for(const line of lines){const m=line.match(/^Dealt to (.+?) \[([^\]]+)\]$/);if(m){hero=m[1];heroCards=m[2].split(/\s+/);if(seatByName[hero])seatByName[hero].cards=heroCards}}
+  const bbm=lines.find(x=>/posts big blind/.test(x))?.match(/posts big blind ([\d,.]+)/),bb=bbm?chipAmount(bbm[1]):0
+  const sbm=lines.find(x=>/posts small blind/.test(x))?.match(/posts small blind ([\d,.]+)/),sb=sbm?chipAmount(sbm[1]):0
+  const am=lines.find(x=>/posts the ante/.test(x))?.match(/posts the ante ([\d,.]+)/),ante=am?chipAmount(am[1]):0
+  let street='preflop',board=[],steps=[],forcedActions=[]
+  const streetActions={preflop:[],flop:[],turn:[],river:[]},bountyEvents=[]
+  for(const line of lines){
+    if(line==='*** HOLE CARDS ***'){steps.push({kind:'street',street:'preflop',label:'Pré-flop',board:[]});continue}
+    let m=line.match(/^\*\*\* FLOP \*\*\* \[([^\]]+)\]/);if(m){street='flop';board=m[1].split(/\s+/);steps.push({kind:'street',street,label:'Flop',board:[...board]});continue}
+    m=line.match(/^\*\*\* TURN \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='turn';board=[...board,m[1]];steps.push({kind:'street',street,label:'Turn',board:[...board]});continue}
+    m=line.match(/^\*\*\* RIVER \*\*\* \[[^\]]+\] \[([^\]]+)\]/);if(m){street='river';board=[...board,m[1]];steps.push({kind:'street',street,label:'River',board:[...board]});continue}
+    m=line.match(/^(.+?) wins \$([\d,.]+) for eliminating (.+?) and their own bounty increases by \$([\d,.]+) to \$([\d,.]+)$/)
+    if(m){bountyEvents.push({winner:m[1],won:chipAmount(m[2]),eliminated:m[3],increase:chipAmount(m[4]),newBounty:chipAmount(m[5])});continue}
+    if(/^\*\*\*/.test(line)||/^Seat \d+:/.test(line)||/^Dealt to /.test(line)||line.startsWith("Table '")||line.startsWith('PokerStars Hand #')||line.startsWith('Total pot ')||line.startsWith('Board '))continue
+    const a=parseGgAction(line,street)
+    if(a){if(['ante','sb','bb'].includes(a.type))forcedActions.push(a);else{steps.push(a);if(streetActions[street])streetActions[street].push(line)}}
+  }
+  const resultLine=lines.find(x=>x.startsWith('Total pot '))||'',potm=resultLine.match(/Total pot ([\d,.]+)/),finalPot=potm?chipAmount(potm[1]):0
+  const positionMap=derivePositions(seats,buttonSeat),bountyDataAvailable=seats.some(x=>x.bounty!=null)
+  return {room:'PokerStars',site:'PokerStars',handId,tournamentId,tournamentName:`Tournament #${tournamentId} · ${buyinText.trim()}`,buyinText:buyinText.trim(),gameType:"Hold'em No Limit",level:level.trim(),blindText,dateTime,table,buttonSeat,seats,hero,heroCards,bb,sb,ante,forcedActions,steps,streetActions,finalPot,positionMap,isPko:bountyDataAvailable,bountyDataAvailable,bountyEvents,raw:block}
 }
 
 export function parseAcrHistory(text){
