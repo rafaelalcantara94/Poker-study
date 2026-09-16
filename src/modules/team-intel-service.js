@@ -1,4 +1,4 @@
-const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1141'
+const TEAM_INTEL_CACHE_KEY='poker_study_team_intel_cache_v1304'
 
 function cacheRead(){
   try{
@@ -106,9 +106,14 @@ export function createTeamIntelService({supabase,ensureTeamContext}){
     return loadPromise
   }
 
+  function invalidate(){
+    try{sessionStorage.removeItem(TEAM_INTEL_CACHE_KEY)}catch{}
+  }
+
   return {
     load,
     cacheRead,
-    cacheWrite
+    cacheWrite,
+    invalidate
   }
 }

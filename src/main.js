@@ -6,7 +6,7 @@ import { createReviewPacks, replayPlayerIdentity, teamAdaptiveHandsPerPlayer } f
 import { createTeamCenterRuntime } from './modules/team-center-runtime.js'
 import { createTeamCenterUI, teamLeakArea } from './modules/team-center-ui.js'
 import { createQuickHands } from './modules/quick-hands.js'
-import { HH_STATS_STORE, HH_SNAPSHOT_STORE, replayDb, savedReplayList, saveReplayTournament, deleteReplayTournament, parsePokerHistory, computeReplayState, replayActionLabel, replayActionText, fmtChips, fmtFullChips } from './modules/replayer-core.js'
+import { HH_STATS_STORE, HH_SNAPSHOT_STORE, replayDb, savedReplayList, saveReplayTournament, deleteReplayTournament, detectPokerRoom, parsePokerHistory, computeReplayState, replayActionLabel, replayActionText, fmtChips, fmtFullChips } from './modules/replayer-core.js'
 import { createReplayerUi } from './modules/replayer-ui.js'
 import { createReplayerRuntime } from './modules/replayer-runtime.js'
 
@@ -51,7 +51,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.3 • INCREMENTAL HH CACHE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V13.0.4 • ROOM CONTRACT FIX</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -82,7 +82,7 @@ async function load(){
 
 
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.3 • INCREMENTAL HH CACHE</small></div><nav class="nav">
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V13.0.4 • ROOM CONTRACT FIX</small></div><nav class="nav">
   ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -2183,24 +2183,34 @@ async function migrateHhRoomCacheInBackground(){
   if(hhRoomMigrationRunning)return;hhRoomMigrationRunning=true
   const status=document.getElementById('hhTeamSyncStatus')
   try{
-    if(status)status.textContent='☁️ Multi-Room: corrigindo salas em segundo plano…'
-    const imports=await hhStatsImports(),byId=new Map(),roomByHand=new Map(),total=imports.reduce((n,r)=>n+(r.hands?.length||0),0);let done=0
-    // Fast path: room/site já existe na HH salva; não recalcula 53k fatos só para descobrir a sala.
+    if(status)status.textContent='☁️ Multi-Room: identificando salas das HHs legadas…'
+    const imports=await hhStatsImports(),byId=new Map(),roomByHand=new Map(),total=imports.reduce((n,r)=>n+(r.hands?.length||0),0);let done=0,migrated=0
+    const normalizeRoom=v=>{const x=String(v||'').trim();if(!x)return '';if(/^gg( poker|network)?$/i.test(x))return 'GGNetwork';if(/^pokerstars$/i.test(x))return 'PokerStars';if(/^acr$/i.test(x))return 'ACR';if(/^coinpoker$/i.test(x))return 'CoinPoker';return /unknown/i.test(x)?'':x}
     for(const r of imports){
       let changed=false
-      for(const h of (r.hands||[])){if(h?.handId)roomByHand.set(h.handId,h.room||h.site||'Unknown')}
+      const importRoom=normalizeRoom(r.room||r.site)||normalizeRoom(detectPokerRoom(r.rawText||''))
+      for(const h of (r.hands||[])){
+        if(!h?.handId)continue
+        const room=normalizeRoom(h.room||h.site)||normalizeRoom(detectPokerRoom(h.raw||''))||importRoom||'Unknown'
+        roomByHand.set(h.handId,room)
+      }
       let facts=Array.isArray(r.facts)?r.facts:[]
       if(!facts.length){facts=(r.hands||[]).map(heroHandFacts).filter(Boolean);changed=true}
-      facts=facts.map(f=>{const room=f.room&&f.room!=='Unknown'?f.room:(roomByHand.get(f.handId)||'Unknown');if(room!==f.room){changed=true;return {...f,room}}return f})
-      if(changed){migrated+=facts.length;await saveHhStatsImport({...r,facts,perfSchema:3},false)}
+      facts=facts.map(f=>{const current=normalizeRoom(f.room),room=current||(roomByHand.get(f.handId)||'Unknown');if(room!==f.room){changed=true;return {...f,room}}return f})
+      if(changed){migrated+=facts.length;await saveHhStatsImport({...r,facts,perfSchema:4},false)}
       for(const f of facts)if(f?.handId)byId.set(f.handId,f)
       done+=r.hands?.length||0
-      if(status)status.textContent=`☁️ Multi-Room: corrigindo salas… ${done.toLocaleString('pt-BR')}/${total.toLocaleString('pt-BR')} mãos`
+      if(status)status.textContent=`☁️ Multi-Room: identificando salas… ${done.toLocaleString('pt-BR')}/${total.toLocaleString('pt-BR')} mãos`
       await new Promise(r=>setTimeout(r,0))
     }
     const facts=[...byId.values()]
-    if(facts.length){hhStatsCache=facts;hhStatsDataRevision++;hhStatsViewMemo.clear();bindHhStatsFilters();await saveHhStatsSnapshot(facts);await publishTeamSnapshot(facts)}
-  }catch(e){console.error('Room cache migration failed',e);if(status)status.textContent='⚠️ Multi-Room: não foi possível concluir a migração de salas.'}
+    if(facts.length){
+      hhStatsCache=facts;hhStatsDataRevision++;hhStatsViewMemo.clear();bindHhStatsFilters();await saveHhStatsSnapshot(facts)
+      const rooms=[...new Set(facts.map(f=>normalizeRoom(f.room)).filter(Boolean))]
+      if(status)status.textContent=`☁️ Multi-Room: ${rooms.length?rooms.join(' · '):'nenhuma sala identificada'} · publicando snapshot…`
+      await publishTeamSnapshot(facts)
+    }
+  }catch(e){console.error('Room cache migration failed',e);if(status)status.textContent='⚠️ Multi-Room: não foi possível concluir a migração de salas: '+(e?.message||String(e))}
   finally{hhRoomMigrationRunning=false}
 }
 
@@ -2514,6 +2524,7 @@ async function publishTeamSnapshot(facts){
     const {teamId}=await ensureTeamContext(),payload=teamSnapshotPayload(facts)
     const {data,error}=await supabase.rpc('publish_team_hh_snapshot',{p_team:teamId,p_hands:payload.hands,p_stats:payload,p_leaks:payload.leaks})
     if(error)throw error
+    teamIntelService?.invalidate?.()
     let review={packs:0,hands:0}
     try{review=await publishTeamReviewPacks(teamId,facts,payload.leaks)}catch(packErr){console.warn('Review packs sync failed',packErr)}
     const when=data?new Date(data).toLocaleString('pt-BR'):'agora'
