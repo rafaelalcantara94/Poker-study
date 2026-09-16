@@ -1,7 +1,7 @@
 {
   "name": "poker-study-v5-6",
   "private": true,
-  "version": "12.6.1",
+  "version": "12.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
