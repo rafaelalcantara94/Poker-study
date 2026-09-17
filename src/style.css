@@ -1066,3 +1066,32 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 :root[data-replayer-theme="minimal"] .icm-replayer .seat-info{background:#15181c!important;border:1px solid #444b54!important;box-shadow:none!important}
 
 @media(max-width:900px){:root[data-app-theme="minimal-premium"] .content{padding:22px 18px}:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-table-wrap{min-height:580px!important;padding-left:8px!important;padding-right:8px!important}}
+
+
+/* V15.1.1 — Icemizer Pro is a genuinely separate visual renderer skin */
+:root[data-replayer-theme="icemizer-pro"] .replay-stage-panel.icm-replayer{padding:0!important;background:#16191d!important;border:1px solid #454b53!important;overflow:hidden!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head{margin:0!important;border:0!important;border-bottom:1px solid #3b4148!important;border-radius:0!important;background:linear-gradient(#262a2f,#1d2024)!important;padding:10px 14px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head h2{font-size:18px!important;margin:0 0 2px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head-actions{gap:5px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head-actions .btn{font-size:11px!important;padding:7px 9px!important;text-transform:none!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-table-wrap{min-height:735px!important;margin:0!important;border:0!important;border-radius:0!important;padding:22px 28px!important;background:radial-gradient(ellipse at 50% 48%,#353a40 0,#252a2f 48%,#181b1f 100%)!important;box-shadow:inset 0 18px 50px #0006!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene{width:min(1080px,94%)!important;aspect-ratio:1.62/1!important;margin:18px auto 0!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene .poker-table{left:14%!important;right:14%!important;top:25%!important;bottom:22%!important;border:9px solid #0d0f11!important;background:radial-gradient(ellipse at 50% 43%,#18a53a 0,#078126 58%,#04611c 100%)!important;box-shadow:inset 0 0 0 2px #42bf5e,inset 0 0 70px #003c11,0 0 0 3px #656b72,0 0 0 7px #111417,0 18px 28px #000c!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-felt-mark{top:70%!important;font-size:15px!important;letter-spacing:3px!important;color:rgba(255,255,255,.12)!important;font-weight:800!important}
+/* blue ICM-style hidden cards make the renderer immediately distinct */
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-cards .card-back{width:45px!important;height:61px!important;background:linear-gradient(145deg,#2476dc,#0d3d91)!important;border:2px solid #dfeeff!important;box-shadow:inset 0 0 0 2px #2f8cff,0 4px 10px #000a!important;color:#dcebff!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-cards .playing-card{width:45px!important;height:61px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info{min-width:126px!important;padding:4px 7px!important;border-radius:3px!important;background:#101214!important;border:1px solid #777e86!important;box-shadow:0 3px 8px #000d!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info b{font-size:10px!important;line-height:1.15!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info span{font-size:9px!important;line-height:1.2!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info.hero{background:#10170e!important;border:2px solid #8bd238!important;box-shadow:0 0 0 1px #2b4a14,0 3px 9px #000d!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info.hero:before{content:'HERO';position:absolute;right:-1px;top:-14px;background:#79b92f;color:#10150b;font-size:7px;font-weight:900;padding:2px 5px;border-radius:3px 3px 0 0}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-center{top:48%!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .pot-display{background:#0d3b1a!important;border:1px solid #3d8e4d!important;border-radius:3px!important;padding:4px 10px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .pot-display span{font-size:8px!important;letter-spacing:1px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .board-cards .playing-card{width:47px!important;height:64px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .board-placeholder{width:45px!important;height:62px!important;border-radius:3px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-bet{background:transparent!important;filter:drop-shadow(0 2px 2px #000)}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-controlbar{margin:0!important;border:0!important;border-top:1px solid #3b4148!important;border-radius:0!important;background:#20242a!important;padding:8px 12px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-timeline{margin:0!important;border-left:0!important;border-right:0!important;border-radius:0!important;background:#181b1f!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .raw-actions{margin:0!important;border-radius:0!important;background:#15181b!important}
