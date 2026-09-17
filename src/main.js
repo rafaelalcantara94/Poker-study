@@ -53,7 +53,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.4.0 • PLAYER EXPERIENCE</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.5.0 • ROLE-AWARE CLEANUP</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -95,8 +95,8 @@ async function loadAccessContext(){
 }
 function shell(){
   const managerNav=accessCtx.canManage
-  const navItems=[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],...(managerNav?[['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks']]:[['leaks','🧠 Meus Leaks']]),['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']]
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.4.0 • PLAYER EXPERIENCE</small></div><nav class="nav">
+  const navItems=[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],...(managerNav?[['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks']]:[]),['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']]
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.5.0 • ROLE-AWARE CLEANUP</small></div><nav class="nav">
   ${navItems.map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
@@ -107,7 +107,7 @@ function shell(){
   route(currentPage)
 }
 function route(p){
-  if(p==='teamcenter'&&!accessCtx.canManage){p='dashboard';console.warn('[Poker Study][Access] player blocked from teamcenter')}
+  if((p==='teamcenter'||p==='leaks')&&!accessCtx.canManage){p='dashboard';console.warn('[Poker Study][Access] player blocked from manager intelligence route')}
   const __routeStarted=performance.now()
   if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
