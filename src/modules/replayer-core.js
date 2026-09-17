@@ -1,4 +1,4 @@
-// Poker Study · Replayer Core
+// Painel DR · Replayer Core
 // Pure parsing/state helpers + IndexedDB persistence shared by Replayer and HH Stats.
 
 export const REPLAY_DB='poker-study-replayer'

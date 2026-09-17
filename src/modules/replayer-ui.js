@@ -1,4 +1,4 @@
-// Poker Study V12.8.0 — Replayer UI module
+// Painel DR V12.8.0 — Replayer UI module
 // Visual table/timeline/range rendering extracted from main.js.
 export function createReplayerUi(deps){
   const {esc,computeReplayState,replayActionLabel,replayActionText,fmtChips,fmtFullChips,replayPlayerIdentity,getReplayState}=deps

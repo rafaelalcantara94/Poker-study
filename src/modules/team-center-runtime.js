@@ -36,7 +36,7 @@ export function createTeamCenterRuntime(deps){
         bindActions(rows,allRows)
 
         const totalMs=Math.round(performance.now()-started)
-        console.info('[Poker Study][Central] render',{
+        console.info('[Painel DR][Central] render',{
           source:meta.source||'network',
           htmlMs,
           totalMs,
@@ -49,7 +49,7 @@ export function createTeamCenterRuntime(deps){
         badge.title=`Central: ${totalMs}ms · HTML: ${htmlMs}ms`
         r.prepend(badge)
       }catch(e){
-        console.error('[Poker Study][Central] render failed',e)
+        console.error('[Painel DR][Central] render failed',e)
         r.innerHTML=`<section class="panel team-load-error"><h2>⚠️ Não foi possível montar a Central</h2><p class="muted">Etapa: renderização do Coach Intelligence.</p><code>${esc(e?.message||String(e))}</code><div><button class="btn" id="retryTeamIntel">Tentar novamente</button></div></section>`
         document.getElementById('retryTeamIntel')?.addEventListener('click',()=>init())
       }

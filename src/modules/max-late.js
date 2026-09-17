@@ -97,7 +97,7 @@ function maxLateFire(a){
   const rows=maxLateAlarms(),x=rows.find(r=>r.id===a.id);if(!x||x.fired)return
   x.fired=true;x.firedAt=Date.now();saveMaxLateAlarms(rows);maxLateAlarmSequence(x.name)
   const title=`MAX LATE ${String(x.name||'TORNEIO').toUpperCase()}`
-  maxLateSystemNotify(title,'O Max Late chegou. Abra o Poker Study para revisar o torneio.',x.id)
+  maxLateSystemNotify(title,'O Max Late chegou. Abra o Painel DR para revisar o torneio.',x.id)
   const toast=document.createElement('div');toast.className='maxlate-alarm-toast';toast.innerHTML=`<div>⏰</div><section><small>POKER STUDY · MAX LATE</small><b>${esc(title)}</b><span>O cronômetro chegou a zero. O aviso será repetido 3x.</span></section><button>Parar alarme</button>`;document.body.appendChild(toast);toast.querySelector('button').onclick=()=>{maxLateStopSound();toast.remove()}
   updateMaxLateHeader()
 }
@@ -151,7 +151,7 @@ function renderMaxLateModalBody(){
     const rows=maxLateAlarms();rows.push({id:uid(),name,createdAt:Date.now(),endsAt:Date.now()+duration,fired:false});saveMaxLateAlarms(rows);renderMaxLateModalBody();updateMaxLateHeader()
   }
   const perm=document.getElementById('maxLatePermission');if(perm)perm.onclick=async()=>{await maxLateRequestPermission();renderMaxLateModalBody()}
-  const test=document.getElementById('maxLateTest');if(test)test.onclick=async()=>{const testName=String(document.getElementById('maxLateName')?.value||'Daily Big 10').trim()||'Daily Big 10';await maxLateUnlockAudio();await maxLateRequestPermission();maxLateAlarmSequence(testName);const ok=await maxLateSystemNotify(`MAX LATE ${testName.toUpperCase()}`,'Teste do alerta de Max Late.','test');if(!ok)alert('O navegador não conseguiu enviar a notificação do Windows. A voz ainda pode funcionar normalmente com o Poker Study aberto.')}
+  const test=document.getElementById('maxLateTest');if(test)test.onclick=async()=>{const testName=String(document.getElementById('maxLateName')?.value||'Daily Big 10').trim()||'Daily Big 10';await maxLateUnlockAudio();await maxLateRequestPermission();maxLateAlarmSequence(testName);const ok=await maxLateSystemNotify(`MAX LATE ${testName.toUpperCase()}`,'Teste do alerta de Max Late.','test');if(!ok)alert('O navegador não conseguiu enviar a notificação do Windows. A voz ainda pode funcionar normalmente com o Painel DR aberto.')}
   root.querySelectorAll('[data-maxlate-cancel]').forEach(b=>b.onclick=()=>{saveMaxLateAlarms(maxLateAlarms().filter(a=>a.id!==b.dataset.maxlateCancel));renderMaxLateModalBody();updateMaxLateHeader()})
 }
 

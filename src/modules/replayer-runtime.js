@@ -1,4 +1,4 @@
-// Poker Study V12.9.0 — Replayer Runtime module
+// Painel DR V12.9.0 — Replayer Runtime module
 // Playback, hand selection and stage bindings extracted from main.js.
 export function createReplayerRuntime(deps){
   const {
