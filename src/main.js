@@ -34,6 +34,7 @@ let studyLearningTopic = 'all'
 let studyLearningSearch = ''
 let filters = { days: 30, site: 'all', format: 'all', start:'', end:'', minBuyin:'', maxBuyin:'', excludeSat:false }
 let teamCtx = null
+let accessCtx = {role:'player',canManage:false}
 let reloadMode = 'player'
 let reloadTab = 'requests'
 let playerFinanceTab = 'reload'
@@ -52,7 +53,7 @@ const tagList = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean)
 const uid = () => crypto.randomUUID()
 
 function loginView(){
-  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.3.1 • CORRECTION PANEL FIX</small></div>
+  app.innerHTML = `<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V14.4.0 • PLAYER EXPERIENCE</small></div>
   <h1>Entrar</h1><p class="muted">Estudos, mãos e resultados sincronizados na nuvem.</p>
   <input id="email" type="email" placeholder="E-mail"><input id="password" type="password" placeholder="Senha">
   <button class="btn" id="signin">Entrar</button><button class="btn secondary" id="signup">Criar conta</button>
@@ -68,7 +69,7 @@ function forgotPasswordView(prefill=''){
 }
 function newPasswordView(){
   app.innerHTML=`<main class="auth"><div class="authbox"><div class="brand">Poker <b>Study</b><small>V5.7.1 • NOVA SENHA</small></div><h1>Criar nova senha</h1><input id="newPassword" type="password" placeholder="Nova senha"><input id="confirmPassword" type="password" placeholder="Confirmar nova senha"><button class="btn" id="savePassword">Salvar nova senha</button><p id="passwordMsg" class="muted"></p></div></main>`
-  savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();shell()}else loginView()},600)}
+  savePassword.onclick=async()=>{const a=newPassword.value,b=confirmPassword.value;if(a.length<6)return passwordMsg.textContent='Use pelo menos 6 caracteres.';if(a!==b)return passwordMsg.textContent='As senhas não são iguais.';const {error}=await supabase.auth.updateUser({password:a});if(error)return passwordMsg.textContent=error.message;passwordMsg.textContent='Senha alterada. Abrindo...';history.replaceState({},document.title,window.location.pathname);setTimeout(async()=>{const {data}=await supabase.auth.getSession();user=data.session?.user||null;if(user){await load();await loadAccessContext();shell()}else loginView()},600)}
 }
 
 async function load(){
@@ -82,9 +83,21 @@ async function load(){
 }
 
 
+async function loadAccessContext(){
+  try{
+    const {teamId}=await ensureTeamContext()
+    const [{data:member},{data:manager}]=await Promise.all([
+      supabase.from('team_members').select('role').eq('team_id',teamId).eq('user_id',user.id).maybeSingle(),
+      supabase.rpc('is_team_manager',{p_team:teamId})
+    ])
+    accessCtx={role:member?.role||((manager)?'manager':'player'),canManage:!!manager}
+  }catch(e){console.warn('[Poker Study][Access] fallback player',e);accessCtx={role:'player',canManage:false}}
+}
 function shell(){
-  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.3.1 • CORRECTION PANEL FIX</small></div><nav class="nav">
-  ${[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks'],['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']].map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
+  const managerNav=accessCtx.canManage
+  const navItems=[['dashboard','📊 Dashboard'],['analytics','📉 Analytics'],['studies','📚 Estudos'],['hands','🖐️ Mãos'],['replayer','🎬 Replayer'],['reviews','📥 Revisões'],['hhstats','📊 Stats HH'],['results','💰 Resultados'],['reload','💲 Reload / Caixas'],['importer','↥ SharkScope / CSV'],...(managerNav?[['teamcenter','👥 Central do Time'],['leaks','🧠 Central de Leaks']]:[['leaks','🧠 Meus Leaks']]),['plan','🗓️ Plano de Estudos'],['evolution','🚀 Evolução'],['goals','🎯 Metas'],['reports','📈 Relatórios']]
+  app.innerHTML=`<div class="app"><aside class="sidebar"><div class="brand">Poker <b>Study</b><small>V14.4.0 • PLAYER EXPERIENCE</small></div><nav class="nav">
+  ${navItems.map(([p,l])=>`<button data-p="${p}">${l}</button>`).join('')}
   </nav><button class="btn logout" id="logout">Sair</button></aside><main class="content"><header><div class="header-title"><h1 id="title"></h1><div class="muted" id="subtitle"></div></div><div class="user-zone"><span class="user">${esc(user.email)}</span>${maxLateWidgetHtml()}</div></header><section id="page"></section></main></div>
   <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeModal">Fechar</button></div><div id="modalBody"></div></div></div>`
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>route(b.dataset.p))
@@ -94,11 +107,12 @@ function shell(){
   route(currentPage)
 }
 function route(p){
+  if(p==='teamcenter'&&!accessCtx.canManage){p='dashboard';console.warn('[Poker Study][Access] player blocked from teamcenter')}
   const __routeStarted=performance.now()
   if(studyTimerHandle){clearInterval(studyTimerHandle);studyTimerHandle=null}
   currentPage=p
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p))
-  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer Multi-Room','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],teamcenter:['Central do Time','Inteligência técnica, prioridades e comparação dos jogadores'],leaks:['Central de Leaks','Spots recorrentes, confiança e prioridade de revisão'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload / Caixas','Reloads, fechamentos de caixa, Make Up, Banco e gestão financeira'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
+  const meta={dashboard:['Dashboard','Visão geral de performance e estudo'],analytics:['Analytics','Profit acumulado, filtros por site e formato'],studies:['Estudos','Execute blocos do Plano, registre conclusões e acompanhe o tempo estudado'],hands:['Banco de mãos','Imagens, revisão, confiança e prioridade'],replayer:['Replayer Multi-Room','Importe Hand History e reveja a mão ação por ação'],reviews:['Caixa de Revisões','Dúvidas, possíveis leaks e teoria para revisar'],hhstats:['Stats HH','Tracker técnico baseado nas suas Hand Histories'],results:['Resultados','Sessões manuais e métricas'],importer:['SharkScope / CSV','Importe torneios individuais com mapeamento de colunas'],teamcenter:['Central do Time','Inteligência técnica, prioridades e comparação dos jogadores'],leaks:[accessCtx.canManage?'Central de Leaks':'Meus Leaks',accessCtx.canManage?'Spots recorrentes, confiança e prioridade de revisão':'Seus próprios spots recorrentes, estudos e correções em acompanhamento'],plan:['Plano de Estudos','Fila automática do que estudar agora'],evolution:['Evolução','Cruze estudo, revisão e performance ao longo do tempo'],goals:['Metas','Objetivos de volume e estudo'],reload:['Reload / Caixas','Reloads, fechamentos de caixa, Make Up, Banco e gestão financeira'],reports:['Relatórios','Fechamento de performance, estudo e evolução']}[p]
   title.textContent=meta[0];subtitle.textContent=meta[1]
   try{
     page.innerHTML=({dashboard,analytics,studies,hands,replayer,reviews,hhstats,results,reload,importer,teamcenter,leaks,plan,evolution,goals,reports})[p]()
@@ -3000,7 +3014,7 @@ function resultModal(){openModal('Novo resultado',`<div class="form form3"><div 
 function goalModal(){openModal('Nova meta',`<div class="form"><div class="field"><label>Título</label><input id="g_title"></div><div class="field"><label>Métrica</label><select id="g_metric"><option>Volume</option><option>Estudo</option><option>Mãos revisadas</option><option>Profit</option><option>ROI</option></select></div><div class="field"><label>Meta</label><input id="g_target" type="number" step=".1"></div><div class="field"><label>Unidade</label><input id="g_unit"></div><div class="field"><label>Prazo</label><input id="g_date" type="date" value="${today()}"></div></div><br><button class="btn" id="saveGoal">Salvar</button>`);saveGoal.onclick=()=>{if(!g_title.value.trim())return alert('Digite o título da meta.');insert('goals',{title:g_title.value,metric:g_metric.value,target_value:+g_target.value||0,current_value:0,unit:g_unit.value,date:g_date.value});modal.classList.remove('show')}}
 async function goalProgress(id){const g=db.goals.find(x=>x.id===id),v=prompt(`Valor atual (${g.unit||''})`,g.current_value||0);if(v===null)return;await supabase.from('goals').update({current_value:+v||0}).eq('id',id);await load();route('goals')}
 
-supabase.auth.onAuthStateChange(async(event,s)=>{if(event==='PASSWORD_RECOVERY'){recoveryMode=true;user=s?.user||null;newPasswordView();return}if(recoveryMode)return;user=s?.user||null;if(user){await load();shell()}else loginView()})
+supabase.auth.onAuthStateChange(async(event,s)=>{if(event==='PASSWORD_RECOVERY'){recoveryMode=true;user=s?.user||null;newPasswordView();return}if(recoveryMode)return;user=s?.user||null;if(user){await load();await loadAccessContext();shell()}else loginView()})
 const {data:s}=await supabase.auth.getSession();user=s.session?.user||null
 const recoveryInUrl=window.location.hash.includes('type=recovery')||window.location.search.includes('type=recovery')
-if(recoveryInUrl){recoveryMode=true;newPasswordView()}else if(user){await load();shell()}else loginView()
+if(recoveryInUrl){recoveryMode=true;newPasswordView()}else if(user){await load();await loadAccessContext();shell()}else loginView()
