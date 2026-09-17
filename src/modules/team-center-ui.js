@@ -12,6 +12,7 @@ export function createTeamCenterUI(deps){
     esc,
     route,
     getUser,
+    getLocalCorrections=()=>[],
     teamAdaptiveHandsPerPlayer,
     openTeamCollectiveReplayer,
     openTeamPlayerReviewPack,
@@ -300,6 +301,19 @@ function teamCorrectionItems(ready){
       items.push({...c,player:name,userId:x.member.user_id})
     })
   })
+  // The current user's freshly completed study exists locally before the next
+  // Stats HH snapshot is published. Surface it immediately in the coach panel
+  // instead of hiding the whole block until a later synchronization.
+  const me=getUser?.(),mine=(ready||[]).find(x=>String(x.member?.user_id)===String(me?.id))
+  if(mine){
+    const name=mine.member.display_name||mine.member.email||'Jogador'
+    ;(getLocalCorrections?.()||[]).filter(c=>c?.status==='tracking').forEach(c=>{
+      const room=String(c.room||'all')
+      if(teamCenterFilters.room!=='all' && room!=='all' && room!==teamCenterFilters.room)return
+      if(items.some(x=>String(x.userId)===String(me.id)&&String(x.key)===String(c.key)))return
+      items.push({...c,player:name,userId:me.id,postValue:null,postDen:0,need:50,state:'forming',pendingSync:true})
+    })
+  }
   const rank=c=>c.state==='changed'?0:c.state==='stable'?1:2
   return items.sort((a,b)=>rank(a)-rank(b)||(+a.postDen||0)-(+b.postDen||0)||String(b.startedAt||'').localeCompare(String(a.startedAt||'')))
 }
@@ -317,11 +331,11 @@ function teamCorrectionModal(c){
 }
 function teamCorrectionsPanel(ready){
   const items=teamCorrectionItems(ready)
-  if(!items.length)return ''
+  if(!items.length)return `<section class="panel coach-corrections"><header><div><small>V14.3.1 · ACOMPANHAMENTO PÓS-ESTUDO</small><h2>Leaks em correção</h2><p>Aqui entram os leaks depois que um jogador conclui um estudo. O Antes fica congelado e o Depois usa somente novas oportunidades.</p></div><span class="pill">0 acompanhamentos</span></header><div class="notice">Nenhum leak em correção foi recebido neste recorte ainda. Assim que um estudo for concluído, ele aparecerá aqui; o snapshot do Stats HH mantém o acompanhamento disponível para o gestor.</div></section>`
   const forming=items.filter(c=>c.state==='forming').length
   const mature=items.filter(c=>(+c.postDen||0)>=50).length
   const totalOpp=items.reduce((n,c)=>n+(+c.postDen||0),0)
-  return `<section class="panel coach-corrections"><header><div><small>V14.3 · ACOMPANHAMENTO PÓS-ESTUDO</small><h2>Leaks em correção</h2><p>Visualize quem já está trabalhando um leak, o ponto de partida e a evolução da nova amostra sem misturar mãos anteriores ao estudo.</p></div><span class="pill">${items.length} acompanhamento${items.length===1?'':'s'}</span></header><div class="coach-correction-summary"><div><small>EM FORMAÇÃO</small><b>${forming}</b><span>abaixo de 50 novas opp</span></div><div><small>AMOSTRA MÍNIMA</small><b>${mature}</b><span>50+ novas oportunidades</span></div><div><small>NOVAS OPORTUNIDADES</small><b>${totalOpp.toLocaleString('pt-BR')}</b><span>somadas no time</span></div></div><div class="coach-correction-list">${items.slice(0,12).map(c=>{const st=teamCorrectionStatus(c);return `<button data-team-correction-key="${esc(c.key)}" data-team-correction-player="${esc(c.userId)}"><div class="coach-correction-main"><b>${esc(c.player)} · ${esc(c.label||c.metric)}</b><small>${c.room&&c.room!=='all'?esc(c.room)+' · ':''}desde ${String(c.startedAt||'').slice(0,10).split('-').reverse().join('/')}</small></div><span><em>Antes</em><strong>${(+c.baselineValue||0).toFixed(1)}%</strong><small>${(+c.baselineDen||0).toLocaleString('pt-BR')} opp</small></span><span><em>Depois</em><strong>${c.postValue==null?'—':(+c.postValue).toFixed(1)+'%'}</strong><small>${(+c.postDen||0).toLocaleString('pt-BR')} novas opp</small></span><div class="coach-correction-status ${st.cls}"><b>${esc(st.label)}</b><div><i><em style="width:${st.pct}%"></em></i><small>${esc(st.detail)}</small></div></div><i class="coach-correction-open">Abrir →</i></button>`}).join('')}</div><footer>Use cada linha para abrir o acompanhamento daquele jogador, revisar as mãos relacionadas ou voltar ao diagnóstico individual. O painel acompanha evidência; não substitui análise estratégica.</footer></section>`
+  return `<section class="panel coach-corrections"><header><div><small>V14.3.1 · ACOMPANHAMENTO PÓS-ESTUDO</small><h2>Leaks em correção</h2><p>Visualize quem já está trabalhando um leak, o ponto de partida e a evolução da nova amostra sem misturar mãos anteriores ao estudo.</p></div><span class="pill">${items.length} acompanhamento${items.length===1?'':'s'}</span></header><div class="coach-correction-summary"><div><small>EM FORMAÇÃO</small><b>${forming}</b><span>abaixo de 50 novas opp</span></div><div><small>AMOSTRA MÍNIMA</small><b>${mature}</b><span>50+ novas oportunidades</span></div><div><small>NOVAS OPORTUNIDADES</small><b>${totalOpp.toLocaleString('pt-BR')}</b><span>somadas no time</span></div></div><div class="coach-correction-list">${items.slice(0,12).map(c=>{const st=teamCorrectionStatus(c);return `<button data-team-correction-key="${esc(c.key)}" data-team-correction-player="${esc(c.userId)}"><div class="coach-correction-main"><b>${esc(c.player)} · ${esc(c.label||c.metric)}</b><small>${c.room&&c.room!=='all'?esc(c.room)+' · ':''}desde ${String(c.startedAt||'').slice(0,10).split('-').reverse().join('/')}</small></div><span><em>Antes</em><strong>${(+c.baselineValue||0).toFixed(1)}%</strong><small>${(+c.baselineDen||0).toLocaleString('pt-BR')} opp</small></span><span><em>Depois</em><strong>${c.postValue==null?'—':(+c.postValue).toFixed(1)+'%'}</strong><small>${(+c.postDen||0).toLocaleString('pt-BR')} novas opp</small></span><div class="coach-correction-status ${st.cls}"><b>${esc(st.label)}</b><div><i><em style="width:${st.pct}%"></em></i><small>${esc(st.detail)}</small></div></div><i class="coach-correction-open">Abrir →</i></button>`}).join('')}</div><footer>Use cada linha para abrir o acompanhamento daquele jogador, revisar as mãos relacionadas ou voltar ao diagnóstico individual. O painel acompanha evidência; não substitui análise estratégica.</footer></section>`
 }
 
 function teamCoachCommandCenter(rows,allRows=rows){
