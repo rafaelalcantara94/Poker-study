@@ -975,3 +975,94 @@ input,select,textarea{width:100%;background:#0c1526;color:#fff;border:1px solid 
 :root[data-replayer-theme="classic-wood"] .icm-replayer .poker-table-wrap{background:radial-gradient(ellipse,#5a321e,#25150e 74%)}:root[data-replayer-theme="classic-wood"] .icm-replayer .poker-table{background:radial-gradient(ellipse,#16864a,#075b30 72%);border-color:#5a2f18;box-shadow:inset 0 0 0 2px #23965a,0 0 0 7px #2d170d,0 18px 35px #000a}
 :root[data-replayer-theme="future-neon"] .icm-replayer{background:#09051a;border-color:#3b1b69}:root[data-replayer-theme="future-neon"] .icm-replayer .poker-table-wrap{background:radial-gradient(ellipse,#17103a,#050718 75%)}:root[data-replayer-theme="future-neon"] .icm-replayer .poker-table{background:radial-gradient(ellipse,#121b42,#080d24 70%);border-color:#7c3aed;box-shadow:inset 0 0 0 2px #22d3ee,0 0 32px #7c3aed99,0 0 55px #22d3ee33}:root[data-replayer-theme="future-neon"] .icm-replayer .table-felt-mark{color:#a78bfa35}
 @media(max-width:720px){.onboarding{padding:12px}.onboarding-box{padding:18px}.onboarding-step{grid-template-columns:1fr}.onboarding-password{grid-template-columns:1fr}.appearance-head{flex-direction:column}.theme-grid,.theme-grid.compact{grid-template-columns:1fr 1fr}}
+
+/* ==========================================================
+   V15.1.0 · VISUAL THEMES REAL
+   Full-surface app themes + structural Replayer skins.
+   Classic remains untouched by these scoped rules.
+   ========================================================== */
+
+/* MINIMALISTA PREMIUM — full visual system, not just a palette */
+:root[data-app-theme="minimal-premium"]{
+  --bg:#0a0a0c;--panel:#121216;--line:#292930;--text:#f7f7f8;--muted:#94949f;--accent:#8b5cf6;
+  --good:#39d98a;--bad:#ff647c;--warn:#f4c95d;
+}
+:root[data-app-theme="minimal-premium"] body{background:#0a0a0c;color:var(--text)}
+:root[data-app-theme="minimal-premium"] .app-shell{background:#0a0a0c}
+:root[data-app-theme="minimal-premium"] .sidebar{background:#09090b;border-right:1px solid #202026;box-shadow:none}
+:root[data-app-theme="minimal-premium"] .brand{font-weight:900;letter-spacing:-.025em}
+:root[data-app-theme="minimal-premium"] .brand b{color:#a78bfa}
+:root[data-app-theme="minimal-premium"] .nav{gap:3px}
+:root[data-app-theme="minimal-premium"] .nav button{color:#aaaab5;border:1px solid transparent;border-radius:10px;padding:11px 13px;transition:.15s ease}
+:root[data-app-theme="minimal-premium"] .nav button:hover{background:#151519;color:#fff;border-color:#24242a}
+:root[data-app-theme="minimal-premium"] .nav button.active{background:linear-gradient(90deg,#211936,#17151d);color:#fff;border-color:#35294c;box-shadow:inset 3px 0 #8b5cf6}
+:root[data-app-theme="minimal-premium"] .content{padding:34px 38px;background:radial-gradient(circle at 86% 2%,rgba(139,92,246,.055),transparent 25%),#0a0a0c}
+:root[data-app-theme="minimal-premium"] .content>header h1{letter-spacing:-.035em}
+:root[data-app-theme="minimal-premium"] .panel,
+:root[data-app-theme="minimal-premium"] .card{background:#121216;border-color:#292930;border-radius:16px;box-shadow:0 10px 34px rgba(0,0,0,.22)}
+:root[data-app-theme="minimal-premium"] .panel:hover{border-color:#33333c}
+:root[data-app-theme="minimal-premium"] input,
+:root[data-app-theme="minimal-premium"] select,
+:root[data-app-theme="minimal-premium"] textarea{background:#0d0d10;border-color:#303038;color:#f5f5f7;border-radius:10px}
+:root[data-app-theme="minimal-premium"] input:focus,
+:root[data-app-theme="minimal-premium"] select:focus,
+:root[data-app-theme="minimal-premium"] textarea:focus{outline:none;border-color:#7251c9;box-shadow:0 0 0 3px rgba(139,92,246,.10)}
+:root[data-app-theme="minimal-premium"] .btn{border-radius:10px;background:#7c4ee4;box-shadow:none}
+:root[data-app-theme="minimal-premium"] .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+:root[data-app-theme="minimal-premium"] .btn.secondary{background:#1b1b21;border:1px solid #303038;color:#ededf1}
+:root[data-app-theme="minimal-premium"] .notice{background:#101014;border-color:#2b2b33}
+:root[data-app-theme="minimal-premium"] .v7-resultbar,
+:root[data-app-theme="minimal-premium"] .v7-kpi,
+:root[data-app-theme="minimal-premium"] .team-command-card,
+:root[data-app-theme="minimal-premium"] .coach-card{background:#101014!important;border-color:#292930!important}
+:root[data-app-theme="minimal-premium"] .team-focus-card{background:linear-gradient(115deg,#18131f,#24183d 65%,#19131f)!important;border-color:#4b3471!important}
+:root[data-app-theme="minimal-premium"] .theme-choice{background:#0f0f12;border-color:#2a2a31}
+:root[data-app-theme="minimal-premium"] .theme-choice.selected{background:#17131f;border-color:#8b5cf6;box-shadow:0 0 0 1px #8b5cf655,0 12px 30px #0005}
+
+/* Other themes get real surfaces too */
+:root[data-app-theme="dark-modern"] .content{background:linear-gradient(145deg,#080b10,#0b1018)}
+:root[data-app-theme="dark-modern"] .sidebar{background:#090c11}:root[data-app-theme="dark-modern"] .panel,:root[data-app-theme="dark-modern"] .card{background:#11151c;border-color:#29303b;box-shadow:0 10px 28px #0004}
+:root[data-app-theme="emerald"] .content{background:radial-gradient(circle at 90% 0,#0b241c 0,transparent 28%),#06110f}:root[data-app-theme="emerald"] .panel,:root[data-app-theme="emerald"] .card{background:#0b1b17;border-color:#1d4438}:root[data-app-theme="emerald"] .nav button.active{background:#103128;color:#dffff2}
+:root[data-app-theme="red"] .content{background:radial-gradient(circle at 90% 0,#2b0d14 0,transparent 28%),#12080b}:root[data-app-theme="red"] .panel,:root[data-app-theme="red"] .card{background:#1b0e12;border-color:#4a2029}:root[data-app-theme="red"] .nav button.active{background:#35141c;color:#fff}
+:root[data-app-theme="purple"] .content{background:radial-gradient(circle at 90% 0,#2a1042 0,transparent 30%),#10091a}:root[data-app-theme="purple"] .panel,:root[data-app-theme="purple"] .card{background:#1a1027;border-color:#392452}:root[data-app-theme="purple"] .nav button.active{background:#32134e;color:#fff}
+:root[data-app-theme="gold"] .content{background:radial-gradient(circle at 90% 0,#2d240c 0,transparent 30%),#100e09}:root[data-app-theme="gold"] .panel,:root[data-app-theme="gold"] .card{background:#19160e;border-color:#43381d}:root[data-app-theme="gold"] .nav button.active{background:#30260e;color:#fff7dd}
+:root[data-app-theme="neon-future"] .content{background:radial-gradient(circle at 82% 0,#121c47 0,transparent 28%),#050815}:root[data-app-theme="neon-future"] .panel,:root[data-app-theme="neon-future"] .card{background:#0a1020;border-color:#17345b;box-shadow:0 0 24px rgba(34,211,238,.035)}:root[data-app-theme="neon-future"] .nav button.active{background:linear-gradient(90deg,#24104c,#092d3d);box-shadow:inset 3px 0 #22d3ee}
+
+/* ICEMIZER PRO — structural skin */
+:root[data-replayer-theme="icemizer-pro"] .replay-stage-panel.icm-replayer{background:#1b1e22!important;border:1px solid #383d44!important;border-radius:10px!important;padding:12px!important;box-shadow:0 18px 45px rgba(0,0,0,.32)!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head{background:#20242a;border:1px solid #3a4048;border-radius:8px;padding:12px 14px;margin-bottom:10px;align-items:center}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head h2{font-size:20px;letter-spacing:-.02em}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head-actions .btn{background:#2a2f35!important;border:1px solid #4a515a!important;border-radius:5px!important;color:#f2f4f5!important;box-shadow:none!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-head-actions .btn:not(.secondary){background:#3a9b4d!important;border-color:#58b66a!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-table-wrap{min-height:690px!important;padding:12px 20px 4px!important;background:linear-gradient(180deg,#292d32,#202429 48%,#191c20)!important;border:1px solid #363c43;border-radius:8px!important;box-shadow:inset 0 0 90px rgba(0,0,0,.32)!important;overflow:hidden!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene{width:min(1160px,98%)!important;aspect-ratio:1.82/1!important;margin:0 auto!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene .poker-table{left:13%!important;right:13%!important;top:27%!important;bottom:23%!important;width:auto!important;aspect-ratio:auto!important;background:radial-gradient(ellipse at 50% 43%,#139330 0%,#08731f 58%,#055817 100%)!important;border:13px solid #121518!important;border-radius:50%!important;box-shadow:inset 0 0 0 2px #2caf49,inset 0 0 48px #00370e,0 0 0 4px #4a5056,0 16px 30px #000b!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene .poker-table:before{inset:-7px!important;border:1px solid #0b0d0f!important;box-shadow:none!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-scene .poker-table:after{inset:13px!important;border:1px solid rgba(255,255,255,.10)!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-felt-mark{top:65%!important;font-size:28px!important;letter-spacing:1px!important;color:rgba(0,45,10,.28)!important;font-weight:1000!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-cards .playing-card,
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-cards .card-back{width:48px!important;height:66px!important;border-radius:4px!important;box-shadow:0 4px 8px #0009!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-cards .card-back{background:linear-gradient(145deg,#ef3d36,#a51416)!important;border:2px solid #f4f4f4!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info{min-width:132px!important;padding:5px 9px!important;background:linear-gradient(#2b2e32,#141619)!important;border:1px solid #72777d!important;border-radius:5px!important;box-shadow:0 4px 9px #000b!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info b{font-size:11px!important;color:#f5f5f5!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info span{font-size:10px!important;color:#d5d9dd!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info.hero{border:2px solid #8ecb3c!important;box-shadow:0 0 0 1px #334b19,0 4px 9px #000b!important;background:linear-gradient(#252b21,#121611)!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info.hero b{color:#b8ef67!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .seat-info.acting{border-color:#f0b429!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-center{top:47%!important;gap:7px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .pot-display{background:rgba(17,55,24,.90)!important;border:1px solid #347941!important;border-radius:5px!important;padding:5px 12px!important;box-shadow:0 3px 8px #0007!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .board-cards .playing-card{width:52px!important;height:70px!important;border-radius:4px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .board-placeholder{width:50px!important;height:68px!important;border-color:rgba(255,255,255,.28)!important;background:rgba(0,0,0,.05)!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .table-bet{font-family:Arial,sans-serif!important;text-shadow:0 2px 2px #000!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-controlbar{background:#20242a!important;border:1px solid #3a4048!important;border-radius:7px!important;margin-top:10px!important;padding:9px 10px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-controls .btn{background:#2c3137!important;border:1px solid #4a5159!important;border-radius:4px!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-controls .btn:not(.secondary){background:#3b944c!important;border-color:#58b66a!important}
+:root[data-replayer-theme="icemizer-pro"] .icm-replayer .replay-timeline{background:#171a1e!important;border-color:#343a41!important}
+
+/* Minimalist replayer now intentionally flat and very different from Icemizer */
+:root[data-replayer-theme="minimal"] .replay-stage-panel.icm-replayer{background:#111318!important;border-color:#292d34!important;border-radius:14px!important}
+:root[data-replayer-theme="minimal"] .icm-replayer .poker-table-wrap{background:#15181d!important;border:0!important;box-shadow:none!important}
+:root[data-replayer-theme="minimal"] .icm-replayer .poker-scene .poker-table{background:#20252b!important;border:2px solid #5b626b!important;box-shadow:none!important}
+:root[data-replayer-theme="minimal"] .icm-replayer .seat-info{background:#15181c!important;border:1px solid #444b54!important;box-shadow:none!important}
+
+@media(max-width:900px){:root[data-app-theme="minimal-premium"] .content{padding:22px 18px}:root[data-replayer-theme="icemizer-pro"] .icm-replayer .poker-table-wrap{min-height:580px!important;padding-left:8px!important;padding-right:8px!important}}
