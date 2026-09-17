@@ -290,16 +290,38 @@ function teamFocusTrendPanel(ready,data){
   if(!pts.length)return ''
   return `<section class="panel coach-focus-trend"><header><div><small>EVOLUÇÃO DO FOCO #1</small><h2>${esc(focus)}</h2><p>Como o principal tema de hoje se comporta no recorte recente em relação à base.</p></div></header><div class="focus-trend-bars">${pts.map(({x,a,b})=>{const av=+a?.score||0,bv=+b?.score||0,max=Math.max(1,av,bv),delta=av-bv,ta=teamTrendArrow(delta,true);return `<button data-team-player="${esc(x.member.user_id)}"><b>${esc(x.member.display_name||x.member.email)}</b><div class="focus-bars"><i><em style="width:${Math.min(100,bv/max*100)}%"></em></i><i class="recent"><em style="width:${Math.min(100,av/max*100)}%"></em></i></div><span class="${ta.cls}">${ta.icon} ${delta<-.05?'melhorando':delta>.05?'piorando':'estável'}</span><small>90d → 30d</small></button>`}).join('')}</div></section>`
 }
-function teamCorrectionsPanel(ready){
+function teamCorrectionItems(ready){
   const items=[]
   ;(ready||[]).forEach(x=>{
     const name=x.member.display_name||x.member.email||'Jogador'
-    ;(x.snap?.stats?.leakCorrections||[]).forEach(c=>items.push({...c,player:name,userId:x.member.user_id}))
+    ;(x.snap?.stats?.leakCorrections||[]).forEach(c=>{
+      const room=String(c.room||'all')
+      if(teamCenterFilters.room!=='all' && room!=='all' && room!==teamCenterFilters.room)return
+      items.push({...c,player:name,userId:x.member.user_id})
+    })
   })
+  const rank=c=>c.state==='changed'?0:c.state==='stable'?1:2
+  return items.sort((a,b)=>rank(a)-rank(b)||(+a.postDen||0)-(+b.postDen||0)||String(b.startedAt||'').localeCompare(String(a.startedAt||'')))
+}
+function teamCorrectionStatus(c){
+  const n=+c.postDen||0,need=Math.max(0,50-n)
+  if(c.state==='forming')return {label:`Amostra ${n}/50`,detail:`faltam ${need} oportunidade${need===1?'':'s'}`,cls:'forming',pct:Math.min(100,n/50*100)}
+  if(c.state==='changed')return {label:'Mudança observada',detail:'amostra mínima atingida',cls:'changed',pct:100}
+  return {label:'Acompanhamento estável',detail:'amostra mínima atingida',cls:'stable',pct:100}
+}
+function teamCorrectionModal(c){
+  const st=teamCorrectionStatus(c),date=String(c.startedAt||'').slice(0,10).split('-').reverse().join('/')||'—'
+  const after=c.postValue==null?'—':(+c.postValue).toFixed(1)+'%'
+  const room=c.room&&c.room!=='all'?c.room:'Base completa'
+  return `<div class="team-modal-backdrop" id="teamCorrectionBackdrop"><section class="team-xray-modal team-correction-modal"><header><div><div class="team-xray-avatar">${esc(String(c.player||'??').slice(0,2).toUpperCase())}</div><div><small>LEAK EM CORREÇÃO</small><h2>${esc(c.player)} · ${esc(c.label||c.metric)}</h2><p>${esc(room)} · iniciado em ${esc(date)}</p></div></div><button id="teamCorrectionClose">×</button></header><div class="team-correction-hero"><div><small>ANTES DO ESTUDO</small><strong>${(+c.baselineValue||0).toFixed(1)}%</strong><span>${(+c.baselineDen||0).toLocaleString('pt-BR')} oportunidades</span></div><div class="arrow">→</div><div><small>DEPOIS DO ESTUDO</small><strong>${after}</strong><span>${(+c.postDen||0).toLocaleString('pt-BR')} novas oportunidades</span></div></div><section class="team-correction-progress"><div class="team-correction-progress-head"><div><b>${esc(st.label)}</b><span>${esc(st.detail)}</span></div><strong>${Math.round(st.pct)}%</strong></div><div class="team-correction-track"><i style="width:${st.pct}%"></i></div><p>O Poker Study compara somente decisões posteriores ao estudo. O painel descreve a evolução da amostra e não conclui automaticamente que a estratégia está correta.</p></section><section class="team-correction-actions"><button class="btn" data-team-correction-diagnosis="1" data-team-correction-player="${esc(c.userId)}" data-team-correction-leak="${esc(c.label||c.metric)}">🔎 Abrir acompanhamento</button><button class="btn secondary" data-team-correction-replay="1" data-team-correction-player="${esc(c.userId)}" data-team-correction-leak="${esc(c.label||c.metric)}" data-team-correction-name="${esc(c.player)}">🎬 Revisar mãos do jogador</button></section></section></div>`
+}
+function teamCorrectionsPanel(ready){
+  const items=teamCorrectionItems(ready)
   if(!items.length)return ''
-  items.sort((a,b)=>(+a.postDen||0)-(+b.postDen||0)||String(b.startedAt||'').localeCompare(String(a.startedAt||'')))
-  const stateLabel=c=>c.state==='forming'?`Amostra ${(+c.postDen||0)}/50`:c.state==='changed'?'Mudança detectada':'Sem mudança clara'
-  return `<section class="panel coach-corrections"><header><div><small>ACOMPANHAMENTO PÓS-ESTUDO</small><h2>Leaks em correção</h2><p>O que o time já estudou e quanta evidência nova existe desde o início da correção.</p></div><span class="pill">${items.length} em acompanhamento</span></header><div class="coach-correction-list">${items.slice(0,8).map(c=>`<button data-team-player="${esc(c.userId)}"><div><b>${esc(c.player)} · ${esc(c.label||c.metric)}</b><small>${c.room&&c.room!=='all'?esc(c.room)+' · ':''}desde ${String(c.startedAt||'').slice(0,10).split('-').reverse().join('/')}</small></div><span><em>Antes</em><strong>${(+c.baselineValue||0).toFixed(1)}%</strong><small>${(+c.baselineDen||0).toLocaleString('pt-BR')} opp</small></span><span><em>Depois</em><strong>${c.postValue==null?'—':(+c.postValue).toFixed(1)+'%'}</strong><small>${(+c.postDen||0).toLocaleString('pt-BR')} novas opp</small></span><i class="${c.state==='changed'?'good-text':c.state==='forming'?'':'warn'}">${esc(stateLabel(c))} →</i></button>`).join('')}</div><footer>O painel acompanha amostra e mudança observada; não declara automaticamente que uma estratégia está correta.</footer></section>`
+  const forming=items.filter(c=>c.state==='forming').length
+  const mature=items.filter(c=>(+c.postDen||0)>=50).length
+  const totalOpp=items.reduce((n,c)=>n+(+c.postDen||0),0)
+  return `<section class="panel coach-corrections"><header><div><small>V14.3 · ACOMPANHAMENTO PÓS-ESTUDO</small><h2>Leaks em correção</h2><p>Visualize quem já está trabalhando um leak, o ponto de partida e a evolução da nova amostra sem misturar mãos anteriores ao estudo.</p></div><span class="pill">${items.length} acompanhamento${items.length===1?'':'s'}</span></header><div class="coach-correction-summary"><div><small>EM FORMAÇÃO</small><b>${forming}</b><span>abaixo de 50 novas opp</span></div><div><small>AMOSTRA MÍNIMA</small><b>${mature}</b><span>50+ novas oportunidades</span></div><div><small>NOVAS OPORTUNIDADES</small><b>${totalOpp.toLocaleString('pt-BR')}</b><span>somadas no time</span></div></div><div class="coach-correction-list">${items.slice(0,12).map(c=>{const st=teamCorrectionStatus(c);return `<button data-team-correction-key="${esc(c.key)}" data-team-correction-player="${esc(c.userId)}"><div class="coach-correction-main"><b>${esc(c.player)} · ${esc(c.label||c.metric)}</b><small>${c.room&&c.room!=='all'?esc(c.room)+' · ':''}desde ${String(c.startedAt||'').slice(0,10).split('-').reverse().join('/')}</small></div><span><em>Antes</em><strong>${(+c.baselineValue||0).toFixed(1)}%</strong><small>${(+c.baselineDen||0).toLocaleString('pt-BR')} opp</small></span><span><em>Depois</em><strong>${c.postValue==null?'—':(+c.postValue).toFixed(1)+'%'}</strong><small>${(+c.postDen||0).toLocaleString('pt-BR')} novas opp</small></span><div class="coach-correction-status ${st.cls}"><b>${esc(st.label)}</b><div><i><em style="width:${st.pct}%"></em></i><small>${esc(st.detail)}</small></div></div><i class="coach-correction-open">Abrir →</i></button>`}).join('')}</div><footer>Use cada linha para abrir o acompanhamento daquele jogador, revisar as mãos relacionadas ou voltar ao diagnóstico individual. O painel acompanha evidência; não substitui análise estratégica.</footer></section>`
 }
 
 function teamCoachCommandCenter(rows,allRows=rows){
@@ -381,6 +403,17 @@ function bindTeamActions(rows,allRows){
 
   document.querySelectorAll('[data-team-task-done]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();toggleTeamDailyTask(b.dataset.teamTaskDone);refresh()}))
 
+  document.querySelectorAll('[data-team-correction-key]').forEach(el=>el.addEventListener('click',()=>{
+    const all=teamCorrectionItems(rows)
+    const c=all.find(x=>String(x.userId)===String(el.dataset.teamCorrectionPlayer)&&String(x.key)===String(el.dataset.teamCorrectionKey))
+    if(!c)return
+    document.body.insertAdjacentHTML('beforeend',teamCorrectionModal(c))
+    const close=()=>document.getElementById('teamCorrectionBackdrop')?.remove()
+    document.getElementById('teamCorrectionClose')?.addEventListener('click',close)
+    document.getElementById('teamCorrectionBackdrop')?.addEventListener('click',e=>{if(e.target.id==='teamCorrectionBackdrop')close()})
+    document.querySelector('[data-team-correction-diagnosis]')?.addEventListener('click',()=>{const id=document.querySelector('[data-team-correction-diagnosis]').dataset.teamCorrectionPlayer,lab=document.querySelector('[data-team-correction-diagnosis]').dataset.teamCorrectionLeak;close();openLeak(lab,null,id)})
+    document.querySelector('[data-team-correction-replay]')?.addEventListener('click',async()=>{const b=document.querySelector('[data-team-correction-replay]');const id=b.dataset.teamCorrectionPlayer,lab=b.dataset.teamCorrectionLeak,name=b.dataset.teamCorrectionName;b.disabled=true;const old=b.textContent;b.textContent='Carregando…';try{await openTeamPlayerReviewPack(lab,id,name,teamCenterFilters.room);close()}catch(e){console.error(e);alert('Não foi possível abrir as mãos: '+(e?.message||String(e)))}finally{if(document.body.contains(b)){b.disabled=false;b.textContent=old}}})
+  }))
 
   document.querySelectorAll('[data-team-severity]').forEach(el=>el.addEventListener('click',()=>{teamLeakSeverity=el.dataset.teamSeverity||'all';const root=document.getElementById('teamCenterRoot');if(root){root.innerHTML=teamcenterHtml(rows,allRows);bindTeamCenterFilters(allRows);bindTeamActions(rows,allRows);setTimeout(()=>document.getElementById('teamLeaksSection')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}}))
   document.querySelectorAll('[data-team-nav]').forEach(el=>el.addEventListener('click',()=>{const dest=el.dataset.teamNav;if(dest==='players'){document.getElementById('teamPlayersSection')?.scrollIntoView({behavior:'smooth',block:'center'});return}route(dest)}))
